@@ -1,7 +1,7 @@
 {
-  "name": "@defifofum/hardhat-template",
-  "version": "2.2.0",
-  "description": "Solidity Smart Contract development template using modern Web3 frameworks/tools including Hardhat, Typechain and more.",
+  "name": "@defifofum/zap-lab",
+  "version": "0.0.1",
+  "description": "",
   "main": "./dist/index.js",
   "files": [
     "dist/index.js",
@@ -41,15 +41,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/DeFiFoFum/hardhat-template.git"
+    "url": "git+https://github.com/DeFiFoFum/zap-lab.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/DeFiFoFum/hardhat-template/issues"
+    "url": "https://github.com/DeFiFoFum/zap-lab/issues"
   },
-  "homepage": "https://github.com/DeFiFoFum/hardhat-template#readme",
+  "homepage": "https://github.com/DeFiFoFum/zap-lab#readme",
   "resolutions": {
     "got": "^11.8.5",
     "node-fetch": "^2.6.7",
@@ -94,6 +94,8 @@
   "dependencies": {
     "@openzeppelin/contracts": "^4.8.3",
     "@openzeppelin/contracts-upgradeable": "^4.8.3",
-    "@openzeppelin/hardhat-upgrades": "^1.22.1"
+    "@openzeppelin/hardhat-upgrades": "^1.22.1",
+    "@uniswap/v2-core": "^1.0.1",
+    "@uniswap/v2-periphery": "^1.1.0-beta.0"
   }
 }
