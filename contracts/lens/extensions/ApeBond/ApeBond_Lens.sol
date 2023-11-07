@@ -15,7 +15,7 @@ abstract contract ApeBond_Lens is SoulZap_Lens {
     bytes4 private constant ZAPBONDNATIVE_SELECTOR = ApeBond.zapBondNative.selector;
     bytes4 private constant ZAPBOND_SELECTOR = ApeBond.zapBond.selector;
 
-    function getZapDataNative(
+    function getZapDataBondNative(
         uint256 amount,
         ICustomBillRefillable bill,
         uint256 slippage, // 1 = 0.01%, 100 = 1%
@@ -32,7 +32,7 @@ abstract contract ApeBond_Lens is SoulZap_Lens {
         )
     {
         ISoulZap.ZapParamsBond memory tempParams;
-        (tempParams, priceChangePercentage0, priceChangePercentage1) = getZapDataInternal(
+        (tempParams, priceChangePercentage0, priceChangePercentage1) = getZapDataBondInternal(
             WNATIVE,
             amount,
             bill,
@@ -57,7 +57,7 @@ abstract contract ApeBond_Lens is SoulZap_Lens {
         encodedTx = abi.encodeWithSelector(ZAPBONDNATIVE_SELECTOR, params);
     }
 
-    function getZapData(
+    function getZapDataBond(
         address fromToken,
         uint256 amount,
         ICustomBillRefillable bill,
@@ -74,7 +74,7 @@ abstract contract ApeBond_Lens is SoulZap_Lens {
             uint256 priceChangePercentage1
         )
     {
-        (params, priceChangePercentage0, priceChangePercentage1) = getZapDataInternal(
+        (params, priceChangePercentage0, priceChangePercentage1) = getZapDataBondInternal(
             fromToken,
             amount,
             bill,
@@ -85,7 +85,7 @@ abstract contract ApeBond_Lens is SoulZap_Lens {
         encodedTx = abi.encodeWithSelector(ZAPBOND_SELECTOR, params);
     }
 
-    function getZapDataInternal(
+    function getZapDataBondInternal(
         address fromToken,
         uint256 amount,
         ICustomBillRefillable bill,
@@ -96,83 +96,21 @@ abstract contract ApeBond_Lens is SoulZap_Lens {
         view
         returns (ISoulZap.ZapParamsBond memory params, uint256 priceChangePercentage0, uint256 priceChangePercentage1)
     {
-        console.log("start bond zap", address(bill));
-        address principalToken = bill.principalToken();
-        console.log("principalToken", principalToken);
-        address token0;
-        address token1;
-
-        try IUniswapV2Pair(principalToken).token0() returns (address _token0) {
-            token0 = _token0;
-        } catch (bytes memory) {}
-        try IUniswapV2Pair(principalToken).token1() returns (address _token1) {
-            token1 = _token1;
-        } catch (bytes memory) {}
-
+        IUniswapV2Pair lp = IUniswapV2Pair(bill.principalToken());
+        console.log("lp=", address(lp));
+        //TODO: make sure this also works for bonds wit one erc20 token as principal token
         ISoulZap.ZapParams memory zapParams;
-        zapParams.deadline = block.timestamp + 100_000_000_000; //TODO: chose random extra time, pick a better one
-        zapParams.inputAmount = amount;
-        zapParams.inputToken = IERC20(fromToken);
-        zapParams.to = to;
-        if (token0 != address(0) && token1 != address(0)) {
-            //LP
-            uint256 halfAmount = amount / 2;
-            zapParams.token0 = token0;
-            zapParams.token1 = token1;
-            (zapParams.path0, priceChangePercentage0) = SoulZap_Lens.getBestRoute(
-                fromToken,
-                token0,
-                halfAmount,
-                slippage,
-                soulFee.getFee("apebond-bond-zap")
-            );
-            (zapParams.path1, priceChangePercentage1) = SoulZap_Lens.getBestRoute(
-                fromToken,
-                token1,
-                halfAmount,
-                slippage,
-                soulFee.getFee("apebond-bond-zap")
-            );
-            zapParams.liquidityPath = getLiquidityPath(
-                IUniswapV2Pair(principalToken),
-                zapParams.path0.amountOutMin,
-                zapParams.path1.amountOutMin
-            );
-        } else {
-            //Single token
-            revert("Only lp bonds supported for now");
-        }
+        (zapParams, priceChangePercentage0, priceChangePercentage1) = getZapDataInternal(
+            fromToken,
+            amount,
+            lp,
+            slippage,
+            to
+        );
 
         //TODO: what's this slippage and how to add it properly? seperate from routing slippage.
         //is trueBillPrice the right one?
         uint256 maxPrice = (bill.trueBillPrice() * (10_000 + slippage)) / 10_000;
         params = ISoulZap.ZapParamsBond({zapParams: zapParams, bill: bill, maxPrice: maxPrice});
-    }
-
-    function getLiquidityPath(
-        IUniswapV2Pair lp,
-        uint256 minAmountLP0,
-        uint256 minAmountLP1
-    ) internal view returns (ISoulZap.LiquidityPath memory params) {
-        IUniswapV2Router02 lpRouter = SoulZap_Lens.factoryToRouter[IUniswapV2Factory(lp.factory())];
-
-        (uint256 reserveA, uint256 reserveB, ) = lp.getReserves();
-        uint256 amountB = lpRouter.quote(minAmountLP0, reserveA, reserveB);
-        console.log("liquiditypath", amountB, minAmountLP1);
-
-        //The min amount B to add for LP can be lower than the received tokenB amount.
-        //If that's the case calculate min amount with tokenA amount so it doesn't revert
-        if (amountB > minAmountLP1) {
-            minAmountLP0 = lpRouter.quote(minAmountLP1, reserveB, reserveA);
-            amountB = minAmountLP1;
-            console.log("liquiditypath CHANGED", amountB, minAmountLP0);
-        }
-
-        params = ISoulZap.LiquidityPath({
-            lpRouter: address(lpRouter),
-            lpType: ISoulZap.LPType.V2,
-            minAmountLP0: minAmountLP0,
-            minAmountLP1: amountB
-        });
     }
 }
