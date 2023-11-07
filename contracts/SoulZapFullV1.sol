@@ -34,5 +34,5 @@ import "./extensions/ApeBond/ApeBond.sol";
 import "./SoulFee.sol";
 
 contract SoulZapFullV1 is SoulZap, ApeBond {
-    constructor(address _wnative, address _feeCollector, SoulFee _soulFee) SoulZap(_wnative, _soulFee) ApeBond() {}
+    constructor(address _wnative, SoulFee _soulFee) SoulZap(_wnative, _soulFee) ApeBond() {}
 }

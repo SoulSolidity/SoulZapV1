@@ -9,18 +9,21 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import "../lib/ISoulZap.sol";
 import "../lib/IApeFactory.sol";
 import "hardhat/console.sol";
+import "../SoulFee.sol";
 
 contract SoulZap_Lens is Ownable {
     IUniswapV2Factory[] public factories;
     mapping(IUniswapV2Factory => IUniswapV2Router02) public factoryToRouter;
     address[] public hopTokens;
     address public immutable WNATIVE;
+    SoulFee public soulFee;
 
     constructor(
         address _wnative,
         IUniswapV2Factory[] memory _factories,
         IUniswapV2Router02[] memory _routers,
-        address[] memory _hopTokens
+        address[] memory _hopTokens,
+        SoulFee _soulfee
     ) Ownable() {
         require(_factories.length == _routers.length, "Every factory needs a router");
         factories = _factories;
@@ -29,6 +32,7 @@ contract SoulZap_Lens is Ownable {
         }
         WNATIVE = _wnative;
         hopTokens = _hopTokens;
+        soulFee = _soulfee;
     }
 
     function addFactory(IUniswapV2Factory _factory, IUniswapV2Router02 _router) public onlyOwner {
@@ -138,14 +142,18 @@ contract SoulZap_Lens is Ownable {
      * @param _toToken The address of the output token
      * @param _amountIn The input amount
      * @param _slippage amountOutMin slippage. This is front run slippage and for the small time difference between read and write tx
-     *          AND NOT FOR ACTUAL PRICE IMPACT.
+     *          AND NOT FOR ACTUAL PRICE IMPACT. Denominator 10_000
+     * @param _protocolFee The protocol fee removed from input token
      */
     function getBestRoute(
         address _fromToken,
         address _toToken,
         uint _amountIn,
-        uint256 _slippage // 1 = 0.01%, 100 = 1%
+        uint256 _slippage, //Denominator 10_000 1 = 0.01%, 100 = 1%
+        uint256 _protocolFee
     ) public view returns (ISoulZap.SwapPath memory bestPath, uint256 priceImpactPercentage) {
+        console.log("start finding best route");
+        _amountIn -= (_amountIn * _protocolFee) / 10_000;
         address[] memory path;
         uint256 outputAmount = 0;
         bestPath.swapType = ISoulZap.SwapType.V2;

@@ -23,7 +23,7 @@ export const getDeployConfig = (network: DeployableNetworks, signers?: SignerWit
  *
  * NOTE: Add networks as needed
  */
-export type DeployableNetworks = Extract<Networks, 'bsc' | 'bscTestnet'>
+export type DeployableNetworks = Extract<Networks, 'bsc' | 'polygon' | 'bscTestnet'>
 
 /**
  * Deployment Variables for each network
@@ -38,11 +38,14 @@ interface DeploymentVariables {
   hopTokens: string[]
   feeCollector: string
   protocolFee: number
+  maxFee: number
+  soulFee?: string
 }
 
 const enum Dex {
   ApeBond = 'ApeBond',
   PancakeSwap = 'PancakeSwap',
+  QuickSwap = 'QuickSwap'
 }
 
 const deployableNetworkConfig: Record<DeployableNetworks, (signers?: SignerWithAddress[]) => DeploymentVariables> = {
@@ -72,6 +75,38 @@ const deployableNetworkConfig: Record<DeployableNetworks, (signers?: SignerWithA
       ],
       feeCollector: '0x5c7C7246bD8a18DF5f6Ee422f9F8CCDF716A6aD2',
       protocolFee: 300,
+      maxFee: 1000,
+      soulFee: '0x',
+    }
+  },
+  polygon: (signers?: SignerWithAddress[]) => {
+    return {
+      proxyAdminAddress: '0x',
+      // NOTE: Example of extracting signers
+      adminAddress: signers?.[0] || '0x',
+      wNative: '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270',
+      dexInfo: {
+        [Dex.ApeBond]: {
+          factory: '0xCf083Be4164828f00cAE704EC15a36D711491284',
+          router: '0xC0788A3aD43d79aa53B09c2EaCc313A787d1d607'
+        },
+        [Dex.QuickSwap]: {
+          factory: '0x5757371414417b8C6CAad45bAeF941aBc7d3Ab32',
+          router: '0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff'
+        }
+      },
+      hopTokens: [
+        '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270', //WMATIC
+        '0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619', //ETH
+        '0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6', //BTC
+        '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174', //USDC
+        '0xc2132D05D31c914a87C6611C10748AEb04B58e8F', //USDT
+        '0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063' //DAI
+      ],
+      feeCollector: '0x5c7C7246bD8a18DF5f6Ee422f9F8CCDF716A6aD2',
+      protocolFee: 300,
+      maxFee: 1000,
+      soulFee: '0x',
     }
   },
   bscTestnet: (signers?: SignerWithAddress[]) => {
@@ -88,6 +123,8 @@ const deployableNetworkConfig: Record<DeployableNetworks, (signers?: SignerWithA
       hopTokens: [],
       feeCollector: '0x5c7C7246bD8a18DF5f6Ee422f9F8CCDF716A6aD2',
       protocolFee: 300,
+      maxFee: 1000,
+      soulFee: '0x',
     }
   },
 }

@@ -41,7 +41,8 @@ describe('Routing', function () {
     it('Should work', async function () {
       const { soulZap_Lens } = await loadFixture(fixture)
       console.log('deployed at:', soulZap_Lens.address)
-      const bestRoute = await soulZap_Lens.getZapData('0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d', '100000000000000000000', '0xB12413a70efd97B827201a071285fBFfCAC436Bc', 0, '0x5c7C7246bD8a18DF5f6Ee422f9F8CCDF716A6aD2');
+      // const bestRoute = await soulZap_Lens.getBestRoute('0x5d47bAbA0d66083C52009271faF3F50DCc01023C', '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270', '100000000000000000000', 0);
+      const bestRoute = await soulZap_Lens.getZapDataNative('1000000000000000000', '0x4f9763e745381472a75965E3431782741D607952', 1, '0x5c7C7246bD8a18DF5f6Ee422f9F8CCDF716A6aD2');
       // console.log(bestRoute);
       console.log(JSON.stringify(bestRoute));
     })

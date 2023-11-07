@@ -8,6 +8,8 @@ import "../../SoulZap_Lens.sol";
 import "../../../lib/ISoulZap.sol";
 import "../../../extensions/ApeBond/lib/ICustomBillRefillable.sol";
 import "../../../extensions/ApeBond/ApeBond.sol";
+import "hardhat/console.sol";
+import "../../../SoulFee.sol";
 
 abstract contract ApeBond_Lens is SoulZap_Lens {
     bytes4 private constant ZAPBONDNATIVE_SELECTOR = ApeBond.zapBondNative.selector;
@@ -87,14 +89,16 @@ abstract contract ApeBond_Lens is SoulZap_Lens {
         address fromToken,
         uint256 amount,
         ICustomBillRefillable bill,
-        uint256 slippage, // 1 = 0.01%, 100 = 1%
+        uint256 slippage, //Denominator 10_000. 1 = 0.01%, 100 = 1%
         address to
     )
         internal
         view
         returns (ISoulZap.ZapParamsBond memory params, uint256 priceChangePercentage0, uint256 priceChangePercentage1)
     {
+        console.log("start bond zap", address(bill));
         address principalToken = bill.principalToken();
+        console.log("principalToken", principalToken);
         address token0;
         address token1;
 
@@ -119,15 +123,21 @@ abstract contract ApeBond_Lens is SoulZap_Lens {
                 fromToken,
                 token0,
                 halfAmount,
-                slippage
+                slippage,
+                soulFee.getFee("apebond-bond-zap")
             );
             (zapParams.path1, priceChangePercentage1) = SoulZap_Lens.getBestRoute(
                 fromToken,
                 token1,
                 halfAmount,
-                slippage
+                slippage,
+                soulFee.getFee("apebond-bond-zap")
             );
-            zapParams.liquidityPath = getLiquidityPath(IUniswapV2Pair(principalToken), zapParams.path0.amountOutMin);
+            zapParams.liquidityPath = getLiquidityPath(
+                IUniswapV2Pair(principalToken),
+                zapParams.path0.amountOutMin,
+                zapParams.path1.amountOutMin
+            );
         } else {
             //Single token
             revert("Only lp bonds supported for now");
@@ -141,12 +151,22 @@ abstract contract ApeBond_Lens is SoulZap_Lens {
 
     function getLiquidityPath(
         IUniswapV2Pair lp,
-        uint256 minAmountLP0
+        uint256 minAmountLP0,
+        uint256 minAmountLP1
     ) internal view returns (ISoulZap.LiquidityPath memory params) {
         IUniswapV2Router02 lpRouter = SoulZap_Lens.factoryToRouter[IUniswapV2Factory(lp.factory())];
 
         (uint256 reserveA, uint256 reserveB, ) = lp.getReserves();
         uint256 amountB = lpRouter.quote(minAmountLP0, reserveA, reserveB);
+        console.log("liquiditypath", amountB, minAmountLP1);
+
+        //The min amount B to add for LP can be lower than the received tokenB amount.
+        //If that's the case calculate min amount with tokenA amount so it doesn't revert
+        if (amountB > minAmountLP1) {
+            minAmountLP0 = lpRouter.quote(minAmountLP1, reserveB, reserveA);
+            amountB = minAmountLP1;
+            console.log("liquiditypath CHANGED", amountB, minAmountLP0);
+        }
 
         params = ISoulZap.LiquidityPath({
             lpRouter: address(lpRouter),
