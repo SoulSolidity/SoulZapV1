@@ -1,0 +1,13 @@
+module.exports = [
+  {
+    "name": "SoulZapFullV1",
+    "address": "0x253D007aa92d069eBc85c5b23868A2971C7Ac063",
+    "encodedConstructorArgs": "0x000000000000000000000000bb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c0000000000000000000000005c7c7246bd8a18df5f6ee422f9f8ccdf716a6ad2000000000000000000000000000000000000000000000000000000000000012c",
+    "constructorArguments": [
+      "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c",
+      "0x5c7C7246bD8a18DF5f6Ee422f9F8CCDF716A6aD2",
+      300
+    ],
+    "verificationCommand": "npx hardhat verify --network bsc 0x253D007aa92d069eBc85c5b23868A2971C7Ac063 '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c' '0x5c7C7246bD8a18DF5f6Ee422f9F8CCDF716A6aD2' '300'"
+  }
+];

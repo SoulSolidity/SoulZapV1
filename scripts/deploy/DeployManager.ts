@@ -110,6 +110,15 @@ export class DeployManager {
     return contractInstance as ReturnType<C['deploy']>
   }
 
+  addDeployedContract(filePath: string) {
+    try {
+      const deployedContractDetails = fs.readFileSync('deployments/' + filePath, { encoding: 'utf8' })
+      this.deployedContracts.push(...JSON.parse(deployedContractDetails))
+    } catch (error) {
+      logger.error(`Failed reading contract details: ${error}`)
+    }
+  }
+
   async verifyContracts() {
     for (const contract of this.deployedContracts) {
       logger.logHeader(`Verifying ${contract.name} at ${contract.address}`, ` 🔍`)

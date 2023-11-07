@@ -1,5 +1,6 @@
 import { ethers } from 'hardhat'
 export * from './deployLock'
+export * from './deployRouting'
 
 /**
  * Example of a configurable fixture.
