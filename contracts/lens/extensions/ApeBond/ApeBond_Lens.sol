@@ -15,6 +15,18 @@ abstract contract ApeBond_Lens is SoulZap_Lens {
     bytes4 private constant ZAPBONDNATIVE_SELECTOR = ApeBond.zapBondNative.selector;
     bytes4 private constant ZAPBOND_SELECTOR = ApeBond.zapBond.selector;
 
+    /**
+     * @dev Get the Zap data for a bond transaction with a native token.
+     * @param amount The amount of tokens to zap.
+     * @param bill The custom bill refillable contract.
+     * @param slippage The slippage tolerance (1 = 0.01%, 100 = 1%).
+     * @param to The address to receive the zapped tokens.
+     * @return params ZapParamsBondNative structure containing relevant data.
+     * @return encodedParams Encoded ZapParamsBondNative structure.
+     * @return encodedTx Encoded transaction with the given parameters.
+     * @return priceImpactPercentage0 The price impact percentage for token0.
+     * @return priceImpactPercentage1 The price impact percentage for token1.
+     */
     function getZapDataBondNative(
         uint256 amount,
         ICustomBillRefillable bill,
@@ -27,12 +39,12 @@ abstract contract ApeBond_Lens is SoulZap_Lens {
             ISoulZap.ZapParamsBondNative memory params,
             bytes memory encodedParams,
             bytes memory encodedTx,
-            uint256 priceChangePercentage0,
-            uint256 priceChangePercentage1
+            uint256 priceImpactPercentage0,
+            uint256 priceImpactPercentage1
         )
     {
         ISoulZap.ZapParamsBond memory tempParams;
-        (tempParams, priceChangePercentage0, priceChangePercentage1) = getZapDataBondInternal(
+        (tempParams, priceImpactPercentage0, priceImpactPercentage1) = getZapDataBondInternal(
             WNATIVE,
             amount,
             bill,
@@ -57,6 +69,19 @@ abstract contract ApeBond_Lens is SoulZap_Lens {
         encodedTx = abi.encodeWithSelector(ZAPBONDNATIVE_SELECTOR, params);
     }
 
+    /**
+     * @dev Get the Zap data for a bond transaction with a specified token.
+     * @param fromToken The source token for the zap.
+     * @param amount The amount of tokens to zap.
+     * @param bill The custom bill refillable contract.
+     * @param slippage The slippage tolerance (1 = 0.01%, 100 = 1%).
+     * @param to The address to receive the zapped tokens.
+     * @return params ZapParamsBond structure containing relevant data.
+     * @return encodedParams Encoded ZapParamsBond structure.
+     * @return encodedTx Encoded transaction with the given parameters.
+     * @return priceImpactPercentage0 The price impact percentage for token0.
+     * @return priceImpactPercentage1 The price impact percentage for token1.
+     */
     function getZapDataBond(
         address fromToken,
         uint256 amount,
@@ -70,11 +95,11 @@ abstract contract ApeBond_Lens is SoulZap_Lens {
             ISoulZap.ZapParamsBond memory params,
             bytes memory encodedParams,
             bytes memory encodedTx,
-            uint256 priceChangePercentage0,
-            uint256 priceChangePercentage1
+            uint256 priceImpactPercentage0,
+            uint256 priceImpactPercentage1
         )
     {
-        (params, priceChangePercentage0, priceChangePercentage1) = getZapDataBondInternal(
+        (params, priceImpactPercentage0, priceImpactPercentage1) = getZapDataBondInternal(
             fromToken,
             amount,
             bill,
@@ -85,6 +110,17 @@ abstract contract ApeBond_Lens is SoulZap_Lens {
         encodedTx = abi.encodeWithSelector(ZAPBOND_SELECTOR, params);
     }
 
+    /**
+     * @dev Get the Zap data for a bond transaction with a specified token (internal function).
+     * @param fromToken The source token for the zap.
+     * @param amount The amount of tokens to zap.
+     * @param bill The custom bill refillable contract.
+     * @param slippage The slippage tolerance (Denominator 10_000. 1 = 0.01%, 100 = 1%).
+     * @param to The address to receive the zapped tokens.
+     * @return params ZapParamsBond structure containing relevant data.
+     * @return priceImpactPercentage0 The price impact percentage for token0.
+     * @return priceImpactPercentage1 The price impact percentage for token1.
+     */
     function getZapDataBondInternal(
         address fromToken,
         uint256 amount,
@@ -94,13 +130,13 @@ abstract contract ApeBond_Lens is SoulZap_Lens {
     )
         internal
         view
-        returns (ISoulZap.ZapParamsBond memory params, uint256 priceChangePercentage0, uint256 priceChangePercentage1)
+        returns (ISoulZap.ZapParamsBond memory params, uint256 priceImpactPercentage0, uint256 priceImpactPercentage1)
     {
         IUniswapV2Pair lp = IUniswapV2Pair(bill.principalToken());
         console.log("lp=", address(lp));
-        //TODO: make sure this also works for bonds wit one erc20 token as principal token
+        //TODO: add support for bonds with one erc20 token as principal token
         ISoulZap.ZapParams memory zapParams;
-        (zapParams, priceChangePercentage0, priceChangePercentage1) = getZapDataInternal(
+        (zapParams, priceImpactPercentage0, priceImpactPercentage1) = getZapDataInternal(
             fromToken,
             amount,
             lp,

@@ -52,24 +52,6 @@ contract SoulZap is ISoulZap, ReentrancyGuard, Ownable, Pausable {
         uint256 amount1Lp;
     }
 
-    // struct minAmountsLocalVars {
-    //     uint256 inputAmountHalf;
-    //     uint256 amountOutMin0;
-    //     uint256 amountOutMin1;
-    //     IApeFactory factory;
-    //     address token0;
-    //     address token1;
-    //     address inputToken;
-    //     uint256 amount0;
-    //     uint256 amount1;
-    //     uint256 reserveA;
-    //     uint256 reserveB;
-    //     address uniV3Pool;
-    //     address arrakisPool;
-    //     uint256 weightedPrice0;
-    //     uint256 weightedPrice1;
-    // }
-
     address public immutable WNATIVE;
     SoulFee public soulFee;
 
@@ -106,61 +88,6 @@ contract SoulZap is ISoulZap, ReentrancyGuard, Ownable, Pausable {
     function zapNative(ZapParamsNative memory zapParams) external payable override nonReentrant whenNotPaused {
         _zapNativeInternal(zapParams, soulFee.getFee("zap"));
     }
-
-    // TODO: This is not needed anymore as we use a different lens contract to get best routing and these min amounts for slippage
-    // /// @notice get min amounts for swaps
-    // /// @param params all params
-    // function getMinAmounts(
-    //     MinAmountsParams memory params
-    // ) external view override returns (uint256[2] memory minAmountsSwap, uint256[2] memory minAmountsLP) {
-    //     require(params.path0.path.length >= 2 || params.path1.path.length >= 2, "ApeBond: Needs at least one path");
-
-    //     minAmountsLocalVars memory vars;
-
-    //     IApeFactory factory;
-    //     vars.token0 = params.path0.path.length == 0
-    //         ? params.path1.path[0]
-    //         : params.path0.path[params.path0.path.length - 1];
-    //     vars.token1 = params.path1.path.length == 0
-    //         ? params.path0.path[0]
-    //         : params.path1.path[params.path1.path.length - 1];
-    //     vars.inputToken = params.path0.path.length > 0 ? params.path0.path[0] : params.path1.path[0];
-
-    //     //get min amounts for swap
-    //     // V2 swap and based on V2 also V3 estimate assuming no arbitrage exists
-    //     IApeRouter02 router = IApeRouter02(params.path0.swapRouter);
-    //     factory = IApeFactory(router.factory());
-    //     vars.inputAmountHalf = params.inputAmount / 2;
-    //     vars.amountOutMin0 = vars.inputAmountHalf;
-    //     if (params.path0.path.length != 0) {
-    //         uint256[] memory amountsOut0 = router.getAmountsOut(vars.inputAmountHalf, params.path0.path);
-    //         vars.amountOutMin0 = amountsOut0[amountsOut0.length - 1];
-    //     }
-    //     vars.amountOutMin1 = vars.inputAmountHalf;
-    //     if (params.path1.path.length != 0) {
-    //         uint256[] memory amountsOut1 = router.getAmountsOut(vars.inputAmountHalf, params.path1.path);
-    //         vars.amountOutMin1 = amountsOut1[amountsOut1.length - 1];
-    //     }
-    //     minAmountsSwap = [vars.amountOutMin0, vars.amountOutMin1];
-
-    //     // get min amounts for adding liquidity
-    //     if (params.liquidityPath.lpType == LPType.V2) {
-    //         //V2 LP
-    //         IApePair lp = IApePair(factory.getPair(vars.token0, vars.token1));
-    //         (vars.reserveA, vars.reserveB, ) = lp.getReserves();
-    //         if (vars.token0 == lp.token1()) {
-    //             (vars.reserveA, vars.reserveB) = (vars.reserveB, vars.reserveA);
-    //         }
-    //         uint256 amountB = IApeRouter02(params.path0.swapRouter).quote(
-    //             vars.amountOutMin0,
-    //             vars.reserveA,
-    //             vars.reserveB
-    //         );
-    //         minAmountsLP = [vars.amountOutMin0, amountB];
-    //     } else {
-    //         revert("LP is not yet supported");
-    //     }
-    // }
 
     function _zapInternal(ZapParams memory zapParams, uint256 protocolFee) internal {
         uint256 balanceBefore = _getBalance(zapParams.inputToken);

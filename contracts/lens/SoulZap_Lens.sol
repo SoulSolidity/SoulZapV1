@@ -38,11 +38,20 @@ contract SoulZap_Lens is Ownable {
         soulFee = _soulfee;
     }
 
+    /**
+     * @dev Add a Uniswap V2 factory and its associated router.
+     * @param _factory The Uniswap V2 factory contract to add.
+     * @param _router The Uniswap V2 router contract associated with the factory.
+     */
     function addFactory(IUniswapV2Factory _factory, IUniswapV2Router02 _router) public onlyOwner {
         factories.push(_factory);
         factoryToRouter[_factory] = _router;
     }
 
+    /**
+     * @dev Remove a Uniswap V2 factory from the list of tracked factories.
+     * @param _factory The Uniswap V2 factory contract to remove.
+     */
     function removeFactory(IUniswapV2Factory _factory) public onlyOwner {
         // Search for the factory in the array
         for (uint256 i = 0; i < factories.length; i++) {
@@ -59,16 +68,28 @@ contract SoulZap_Lens is Ownable {
         delete factoryToRouter[_factory];
     }
 
+    /**
+     * @dev Add multiple hop tokens to the list of hop tokens.
+     * @param tokens An array of hop tokens to add.
+     */
     function addHopTokens(address[] memory tokens) public onlyOwner {
         for (uint256 i = 0; i < tokens.length; i++) {
             hopTokens.push(tokens[i]);
         }
     }
 
+    /**
+     * @dev Add a single hop token to the list of hop tokens.
+     * @param token The hop token to add.
+     */
     function addHopToken(address token) public onlyOwner {
         hopTokens.push(token);
     }
 
+    /**
+     * @dev Remove a hop token from the list of hop tokens.
+     * @param token The hop token to remove.
+     */
     function removeHopToken(address token) public onlyOwner {
         for (uint256 i = 0; i < hopTokens.length; i++) {
             if (hopTokens[i] == token) {
@@ -83,6 +104,13 @@ contract SoulZap_Lens is Ownable {
         }
     }
 
+    /**
+     * @dev Find possible hop tokens for swapping between two specified tokens.
+     * @param factory The Uniswap V2 factory contract.
+     * @param _fromToken The source token for the swap.
+     * @param _toToken The target token for the swap.
+     * @return possibleHopTokens An array of possible hop tokens.
+     */
     function findPossibleHopTokens(
         IUniswapV2Factory factory,
         address _fromToken,
@@ -101,6 +129,13 @@ contract SoulZap_Lens is Ownable {
         }
     }
 
+    /**
+     * @dev Check if a pair exists for two given tokens in the Uniswap V2 factory.
+     * @param factory The Uniswap V2 factory contract.
+     * @param token0 The first token of the pair.
+     * @param token1 The second token of the pair.
+     * @return True if the pair exists; false otherwise.
+     */
     function pairExists(IUniswapV2Factory factory, address token0, address token1) public view returns (bool) {
         address pair = factory.getPair(token0, token1);
         if (pair == address(0)) {
@@ -117,8 +152,6 @@ contract SoulZap_Lens is Ownable {
      */
     function calculateOutputAmount(address _pair, uint _inputAmount, address _fromToken) public view returns (uint) {
         //TODO function not even used. needed?
-        //      Oooh this was so we don't need the router I think. so maybe use this and we don't need mapping for router?
-        //TODO important: if we take a protocol fee this calculation/input amount is wrong
         IUniswapV2Pair pair = IUniswapV2Pair(_pair);
         (uint112 reserve0, uint112 reserve1, ) = pair.getReserves();
         uint reserveIn = pair.token0() == _fromToken ? reserve0 : reserve1;
@@ -139,6 +172,18 @@ contract SoulZap_Lens is Ownable {
         return false;
     }
 
+    /**
+     * @dev Get the Zap data for a transaction with a native token.
+     * @param amount The amount of tokens to zap.
+     * @param lp The Uniswap V2 pair contract.
+     * @param slippage The slippage tolerance (1 = 0.01%, 100 = 1%).
+     * @param to The address to receive the zapped tokens.
+     * @return params ZapParamsNative structure containing relevant data.
+     * @return encodedParams Encoded ZapParamsNative structure.
+     * @return encodedTx Encoded transaction with the given parameters.
+     * @return priceImpactPercentage0 The percentage change in price for token0.
+     * @return priceImpactPercentage1 The percentage change in price for token1.
+     */
     function getZapDataNative(
         uint256 amount,
         IUniswapV2Pair lp,
@@ -151,12 +196,12 @@ contract SoulZap_Lens is Ownable {
             ISoulZap.ZapParamsNative memory params,
             bytes memory encodedParams,
             bytes memory encodedTx,
-            uint256 priceChangePercentage0,
-            uint256 priceChangePercentage1
+            uint256 priceImpactPercentage0,
+            uint256 priceImpactPercentage1
         )
     {
         ISoulZap.ZapParams memory tempParams;
-        (tempParams, priceChangePercentage0, priceChangePercentage1) = getZapDataInternal(
+        (tempParams, priceImpactPercentage0, priceImpactPercentage1) = getZapDataInternal(
             WNATIVE,
             amount,
             lp,
@@ -176,6 +221,19 @@ contract SoulZap_Lens is Ownable {
         encodedTx = abi.encodeWithSelector(ZAPNATIVE_SELECTOR, params);
     }
 
+    /**
+     * @dev Get the Zap data for a transaction with a specified token.
+     * @param fromToken The source token for the zap.
+     * @param amount The amount of tokens to zap.
+     * @param lp The Uniswap V2 pair contract.
+     * @param slippage The slippage tolerance (1 = 0.01%, 100 = 1%).
+     * @param to The address to receive the zapped tokens.
+     * @return params ZapParams structure containing relevant data.
+     * @return encodedParams Encoded ZapParams structure.
+     * @return encodedTx Encoded transaction with the given parameters.
+     * @return priceImpactPercentage0 The percentage change in price for token0.
+     * @return priceImpactPercentage1 The percentage change in price for token1.
+     */
     function getZapData(
         address fromToken,
         uint256 amount,
@@ -189,11 +247,11 @@ contract SoulZap_Lens is Ownable {
             ISoulZap.ZapParams memory params,
             bytes memory encodedParams,
             bytes memory encodedTx,
-            uint256 priceChangePercentage0,
-            uint256 priceChangePercentage1
+            uint256 priceImpactPercentage0,
+            uint256 priceImpactPercentage1
         )
     {
-        (params, priceChangePercentage0, priceChangePercentage1) = getZapDataInternal(
+        (params, priceImpactPercentage0, priceImpactPercentage1) = getZapDataInternal(
             fromToken,
             amount,
             lp,
@@ -204,6 +262,17 @@ contract SoulZap_Lens is Ownable {
         encodedTx = abi.encodeWithSelector(ZAP_SELECTOR, params);
     }
 
+    /**
+     * @dev Get the Zap data for a transaction with a specified token (internal function).
+     * @param fromToken The source token for the zap.
+     * @param amount The amount of tokens to zap.
+     * @param lp The Uniswap V2 pair contract.
+     * @param slippage The slippage tolerance (Denominator 10_000. 1 = 0.01%, 100 = 1%).
+     * @param to The address to receive the zapped tokens.
+     * @return zapParams ZapParams structure containing relevant data.
+     * @return priceImpactPercentage0 The percentage change in price for token0.
+     * @return priceImpactPercentage1 The percentage change in price for token1.
+     */
     function getZapDataInternal(
         address fromToken,
         uint256 amount,
@@ -213,7 +282,7 @@ contract SoulZap_Lens is Ownable {
     )
         internal
         view
-        returns (ISoulZap.ZapParams memory zapParams, uint256 priceChangePercentage0, uint256 priceChangePercentage1)
+        returns (ISoulZap.ZapParams memory zapParams, uint256 priceImpactPercentage0, uint256 priceImpactPercentage1)
     {
         address token0;
         address token1;
@@ -237,14 +306,14 @@ contract SoulZap_Lens is Ownable {
             uint256 halfAmount = amount / 2;
             zapParams.token0 = token0;
             zapParams.token1 = token1;
-            (zapParams.path0, priceChangePercentage0) = SoulZap_Lens.getBestRoute(
+            (zapParams.path0, priceImpactPercentage0) = SoulZap_Lens.getBestRoute(
                 fromToken,
                 token0,
                 halfAmount,
                 slippage,
                 soulFee.getFee("apebond-bond-zap")
             );
-            (zapParams.path1, priceChangePercentage1) = SoulZap_Lens.getBestRoute(
+            (zapParams.path1, priceImpactPercentage1) = SoulZap_Lens.getBestRoute(
                 fromToken,
                 token1,
                 halfAmount,
@@ -261,6 +330,13 @@ contract SoulZap_Lens is Ownable {
         }
     }
 
+    /**
+     * @dev Get the Liquidity Path for a specified Uniswap V2 pair.
+     * @param lp The Uniswap V2 pair contract.
+     * @param minAmountLP0 The minimum amount of LP token0 to receive.
+     * @param minAmountLP1 The minimum amount of LP token1 to receive.
+     * @return params LiquidityPath structure containing relevant data.
+     */
     function getLiquidityPath(
         IUniswapV2Pair lp,
         uint256 minAmountLP0,
@@ -304,8 +380,9 @@ contract SoulZap_Lens is Ownable {
         uint256 _slippage, //Denominator 10_000 1 = 0.01%, 100 = 1%
         uint256 _protocolFee
     ) public view returns (ISoulZap.SwapPath memory bestPath, uint256 priceImpactPercentage) {
-        console.log("start finding best route");
+        //Remove protocol fee from amountIn for finding the best path so amounts are correct
         _amountIn -= (_amountIn * _protocolFee) / 10_000;
+
         address[] memory path;
         uint256 outputAmount = 0;
         bestPath.swapType = ISoulZap.SwapType.V2;
@@ -348,6 +425,16 @@ contract SoulZap_Lens is Ownable {
         priceImpactPercentage = 10_000 - ((bestPath.amountOutMin * 1e22) / actualPrice);
     }
 
+    /**
+     * @dev Get the best route from a Uniswap V2 factory for swapping between two tokens.
+     * @param factory The Uniswap V2 factory contract.
+     * @param router The Uniswap V2 router contract associated with the factory.
+     * @param _fromToken The source token for the swap.
+     * @param _toToken The target token for the swap.
+     * @param _amountIn The input amount for the swap.
+     * @return bestPath An array of addresses representing the best route.
+     * @return maxOutputAmount The maximum output amount for the swap.
+     */
     function getBestRouteFromFactory(
         IUniswapV2Factory factory,
         IUniswapV2Router02 router,
@@ -378,7 +465,6 @@ contract SoulZap_Lens is Ownable {
             }
             path[1] = possibleHopTokens[i];
             console.log(path[0], path[1], path[2]);
-            //TODO important: if we take a protocol fee this calculation/input amount is wrong
             uint[] memory amounts = router.getAmountsOut(_amountIn, path);
             if (amounts[amounts.length - 1] > maxOutputAmount) {
                 maxOutputAmount = amounts[amounts.length - 1];

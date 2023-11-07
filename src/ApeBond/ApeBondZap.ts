@@ -16,10 +16,10 @@ const slippage = 50; //denominator of 10_000. 50 = 0.5%
 export async function getZapDataBond(fromToken: string, amount: number | string, bill: string, allowedPriceImpactPercentage: number, to: string, rpc: string): Promise<ZapBondData | { error: string }> {
     const lensContract = getLensContract(rpc);
     const zapData = await lensContract.getZapData(fromToken, amount, bill, slippage, to);
-    if (zapData.priceChangePercentage0 > allowedPriceImpactPercentage * 10_000) {
+    if (zapData.priceImpactPercentage0 > allowedPriceImpactPercentage * 10_000) {
         return { error: "Price impact for first token swap too high" }
     }
-    if (zapData.priceChangePercentage1 > allowedPriceImpactPercentage * 10_000) {
+    if (zapData.priceImpactPercentage1 > allowedPriceImpactPercentage * 10_000) {
         return { error: "Price impact for second token swap too high" }
     }
     return zapData.params;
@@ -28,10 +28,10 @@ export async function getZapDataBond(fromToken: string, amount: number | string,
 export async function getZapDataBondNative(amount: number | string, bill: string, allowedPriceImpactPercentage: number, to: string, rpc: string): Promise<ZapBondDataNative | { error: string }> {
     const lensContract = getLensContract(rpc);
     const zapData = await lensContract.getZapDataNative(amount, bill, slippage, to);
-    if (zapData.priceChangePercentage0 > allowedPriceImpactPercentage * 10_000) {
+    if (zapData.priceImpactPercentage0 > allowedPriceImpactPercentage * 10_000) {
         return { error: "Price impact for first token swap too high" }
     }
-    if (zapData.priceChangePercentage1 > allowedPriceImpactPercentage * 10_000) {
+    if (zapData.priceImpactPercentage1 > allowedPriceImpactPercentage * 10_000) {
         return { error: "Price impact for second token swap too high" }
     }
     return zapData.params;
