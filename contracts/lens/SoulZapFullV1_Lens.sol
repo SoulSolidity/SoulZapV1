@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity 0.8.15;
+pragma solidity 0.8.20;
 
 /*
    ▄████████  ▄██████▄  ███    █▄   ▄█                                      
@@ -29,14 +29,17 @@ pragma solidity 0.8.15;
  * GitHub:          https:// TODO
  */
 
-import "./SoulZap_Lens.sol";
-import "./extensions/ApeBond/ApeBond_Lens.sol";
+import {SoulZap_UniV2_Lens} from "./SoulZap_Lens.sol";
+import {IUniswapV2Router02} from "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 
-contract SoulZapFullV1_Lens is SoulZap_Lens, ApeBond_Lens {
+// import "./extensions/ApeBond/ApeBond_Lens.sol";
+
+// TODO: Naming to reflect UniV2
+contract SoulZapFullV1_Lens is SoulZap_UniV2_Lens /*, ApeBond_Lens*/ {
     constructor(
         address _wnative,
-        IUniswapV2Factory[] memory _factories,
         IUniswapV2Router02[] memory _routers,
-        address[] memory _hopTokens
-    ) SoulZap_Lens(_wnative, _factories, _routers, _hopTokens) {}
+        address[] memory _hopTokens,
+        address _accessManager
+    ) SoulZap_UniV2_Lens(_wnative, _routers, _hopTokens, _accessManager) {}
 }
