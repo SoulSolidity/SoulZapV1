@@ -106,16 +106,16 @@ contract ZapRoutingUniV2_Lens {
                     continue;
                 }
 
-                address[] memory path = new address[](3);
-                path[0] = _fromToken;
-                path[1] = startingTokens[i];
-                path[2] = top10Tokens[j];
+                address[] memory currentPath = new address[](3);
+                currentPath[0] = _fromToken;
+                currentPath[1] = startingTokens[i];
+                currentPath[2] = top10Tokens[j];
 
-                uint[] memory amounts = uniswapV2Router.getAmountsOut(_amountIn, path);
+                uint[] memory currentAmounts = uniswapV2Router.getAmountsOut(_amountIn, currentPath);
 
-                if (amounts[amounts.length - 1] > maxOutputAmount) {
-                    maxOutputAmount = amounts[amounts.length - 1];
-                    bestPath = path;
+                if (currentAmounts[currentAmounts.length - 1] > maxOutputAmount) {
+                    maxOutputAmount = currentAmounts[currentAmounts.length - 1];
+                    bestPath = currentPath;
                 }
             }
         }

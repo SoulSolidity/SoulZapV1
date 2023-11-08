@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: GPL-3.0-only
-pragma solidity 0.8.15;
+// SPDX-License-Identifier: BUSL-1.1
+pragma solidity 0.8.20;
 
 /*
    ▄████████  ▄██████▄  ███    █▄   ▄█                                      
@@ -29,10 +29,20 @@ pragma solidity 0.8.15;
  * GitHub:          https:// TODO
  */
 
-import "./SoulZap.sol";
-import "./extensions/ApeBond/ApeBond.sol";
-import "./SoulFee.sol";
+import {SoulZap_UniV2} from "./SoulZap.sol";
+import {SoulZapExt_ApeBond} from "./extensions/ApeBond/ApeBond.sol";
+import {SoulZapFullV1_Lens} from "./lens/SoulZapFullV1_Lens.sol";
+import {IWETH} from "./lib/IWETH.sol";
+import {ISoulFeeManager} from "./fee-manager/ISoulFeeManager.sol";
 
-contract SoulZapFullV1 is SoulZap, ApeBond {
-    constructor(address _wnative, address _feeCollector, SoulFee _soulFee) SoulZap(_wnative, _soulFee) ApeBond() {}
+// TODO: Need to rename this contract SoulZap_UniV1
+contract SoulZap_UniV2_Extended_V1 is SoulZap_UniV2, SoulZapExt_ApeBond {
+    constructor(
+        IWETH _wnative,
+        // TODO: _feeCollector wasn't being passed?
+        // address _feeCollector,
+        ISoulFeeManager _soulFeeManager,
+        // TODO: IAccessManager
+        address _accessManager
+    ) SoulZap_UniV2(_wnative, _soulFeeManager, _accessManager) SoulZapExt_ApeBond() {}
 }

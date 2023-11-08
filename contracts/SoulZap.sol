@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity 0.8.15;
+pragma solidity 0.8.20;
 
 /*
    ▄████████  ▄██████▄  ███    █▄   ▄█                                      
@@ -29,20 +29,24 @@ pragma solidity 0.8.15;
  * GitHub:          https:// TODO
  */
 
-import "./lib/ISoulZap.sol";
+import "./ISoulZap.sol";
 import "./lib/IApeRouter02.sol";
 import "./lib/IApeFactory.sol";
 import "./lib/IApePair.sol";
 import "./lib/IWETH.sol";
-import "./SoulFee.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/security/Pausable.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {ISoulFeeManager} from "./fee-manager/ISoulFeeManager.sol";
+import {AccessManaged} from "@openzeppelin/contracts/access/manager/AccessManaged.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {EpochTracker} from "./EpochTracker.sol";
+import {TransferHelper} from "./utils/TransferHelper.sol";
 
-contract SoulZap is ISoulZap, ReentrancyGuard, Ownable, Pausable {
+// TODO: Need to rename this file to SoulZap_UniV2.sol
+contract SoulZap_UniV2 is ISoulZap, EpochTracker, TransferHelper, ReentrancyGuard, AccessManaged, Pausable {
     using SafeERC20 for IERC20;
 
+    // TODO:? Move to ISoulZap_LocalVars for cleanup?
     struct LocalVars {
         uint256 amount0In;
         uint256 amount1In;
@@ -70,41 +74,66 @@ contract SoulZap is ISoulZap, ReentrancyGuard, Ownable, Pausable {
     //     uint256 weightedPrice1;
     // }
 
-    address public immutable WNATIVE;
-    SoulFee public soulFee;
+    ISoulFeeManager public soulFeeManager;
+
+    // TODO: Add feature string here?
+    // string public featureName;
 
     event Zap(ZapParams zapParams);
     event ZapNative(ZapParams zapParams);
 
-    constructor(address _wnative, SoulFee _soulFee) Ownable() {
-        WNATIVE = _wnative;
-        soulFee = _soulFee;
+    constructor(
+        IWETH _wnative,
+        ISoulFeeManager _soulFeeManager,
+        address _accessManager
+    ) TransferHelper(_wnative) AccessManaged(_accessManager) EpochTracker(0) {
+        // TODO: validate?
+        soulFeeManager = _soulFeeManager;
     }
 
     /// @dev The receive method is used as a fallback function in a contract
     /// and is called when ether is sent to a contract with no calldata.
     receive() external payable {
-        require(msg.sender == WNATIVE, "ApeBond: Only receive ether from wrapped");
+        require(msg.sender == address(WNATIVE), "SoulZap: Only receive ether from wrapped");
     }
 
-    function pauseAll() public onlyOwner {
+    // TODO: Just go with `pause` and `unpause`?
+    function pauseAll() public restricted {
         _pause();
     }
 
-    function unpauseAll() public onlyOwner {
+    function unpauseAll() public restricted {
         _unpause();
     }
 
     /// @notice Zap single token to LP
     /// @param zapParams all parameters for zap
     function zap(ZapParams memory zapParams) external override nonReentrant whenNotPaused {
-        _zapInternal(zapParams, soulFee.getFee("zap"));
+        uint256 balanceBefore = _getBalance(zapParams.inputToken);
+        zapParams.inputToken.safeTransferFrom(msg.sender, address(this), zapParams.inputAmount);
+        zapParams.inputAmount = _getBalance(zapParams.inputToken) - balanceBefore;
+
+        _zap(zapParams, false, soulFeeManager.getFee(getEpochVolume()));
     }
 
     /// @notice Zap native token to LP
-    /// @param zapParams all parameters for native zap
-    function zapNative(ZapParamsNative memory zapParams) external payable override nonReentrant whenNotPaused {
-        _zapNativeInternal(zapParams, soulFee.getFee("zap"));
+    /// @param zapParamsNative all parameters for native zap
+    function zapNative(ZapParamsNative memory zapParamsNative) external payable override nonReentrant whenNotPaused {
+        (IERC20 wNative, uint256 inputAmount) = _wrapNative();
+
+        ZapParams memory zapParams = ZapParams({
+            inputToken: wNative,
+            inputAmount: inputAmount,
+            token0: zapParamsNative.token0,
+            token1: zapParamsNative.token1,
+            path0: zapParamsNative.path0,
+            path1: zapParamsNative.path1,
+            liquidityPath: zapParamsNative.liquidityPath,
+            to: zapParamsNative.to,
+            deadline: zapParamsNative.deadline
+        });
+
+        _zap(zapParams, true, soulFeeManager.getFee(getEpochVolume()));
     }
 
     // TODO: This is not needed anymore as we use a different lens contract to get best routing and these min amounts for slippage
@@ -113,7 +142,7 @@ contract SoulZap is ISoulZap, ReentrancyGuard, Ownable, Pausable {
     // function getMinAmounts(
     //     MinAmountsParams memory params
     // ) external view override returns (uint256[2] memory minAmountsSwap, uint256[2] memory minAmountsLP) {
-    //     require(params.path0.path.length >= 2 || params.path1.path.length >= 2, "ApeBond: Needs at least one path");
+    //     require(params.path0.path.length >= 2 || params.path1.path.length >= 2, "SoulZap: Needs at least one path");
 
     //     minAmountsLocalVars memory vars;
 
@@ -162,54 +191,8 @@ contract SoulZap is ISoulZap, ReentrancyGuard, Ownable, Pausable {
     //     }
     // }
 
-    function _zapInternal(ZapParams memory zapParams, uint256 protocolFee) internal {
-        uint256 balanceBefore = _getBalance(zapParams.inputToken);
-        zapParams.inputToken.safeTransferFrom(msg.sender, address(this), zapParams.inputAmount);
-        zapParams.inputAmount = _getBalance(zapParams.inputToken) - balanceBefore;
-
-        _zapPrivate(zapParams, false, protocolFee);
-        emit Zap(zapParams);
-    }
-
-    function _zapNativeInternal(ZapParamsNative memory zapParamsNative, uint256 protocolFee) internal {
-        uint256 inputAmount = msg.value;
-        IERC20 inputToken = IERC20(WNATIVE);
-        IWETH(WNATIVE).deposit{value: inputAmount}();
-
-        ZapParams memory zapParams = ZapParams({
-            inputToken: inputToken,
-            inputAmount: inputAmount,
-            token0: zapParamsNative.token0,
-            token1: zapParamsNative.token1,
-            path0: zapParamsNative.path0,
-            path1: zapParamsNative.path1,
-            liquidityPath: zapParamsNative.liquidityPath,
-            to: zapParamsNative.to,
-            deadline: zapParamsNative.deadline
-        });
-
-        _zapPrivate(zapParams, true, protocolFee);
-        emit ZapNative(zapParams);
-    }
-
-    function _transfer(address token, uint256 amount, bool native) internal {
-        if (amount == 0) return;
-        if (token == WNATIVE && native) {
-            IWETH(WNATIVE).withdraw(amount);
-            // 2600 COLD_ACCOUNT_ACCESS_COST plus 2300 transfer gas - 1
-            // Intended to support transfers to contracts, but not allow for further code execution
-            (bool success, ) = msg.sender.call{value: amount, gas: 4899}("");
-            require(success, "native transfer error");
-        } else {
-            IERC20(token).safeTransfer(msg.sender, amount);
-        }
-    }
-
-    function _getBalance(IERC20 token) internal view returns (uint256 balance) {
-        balance = token.balanceOf(address(this));
-    }
-
     /// @notice Ultimate ZAP function
+    /// @dev Assumes tokens are already transferred to this contract
     /// @param zapParams all parameters for zap
     /// swapRouter swap router
     /// swapType type of swap zap
@@ -232,17 +215,18 @@ contract SoulZap is ISoulZap, ReentrancyGuard, Ownable, Pausable {
     /// to Address which receives the LP Tokens
     /// deadline Latest timestamp this call is valid
     /// @param native Unwrap Wrapped Native tokens before transferring
-    function _zapPrivate(ZapParams memory zapParams, bool native, uint256 protocolFee) private {
+    /// @param protocolFee Protocol fee to take
+    function _zap(ZapParams memory zapParams, bool native, uint256 protocolFee) internal {
         // Verify inputs
-        require(zapParams.to != address(0), "ApeBond: Can't zap to null address");
+        require(zapParams.to != address(0), "SoulZap: Can't zap to null address");
         require(
             zapParams.path0.swapRouter != address(0) &&
                 zapParams.path1.swapRouter != address(0) &&
                 zapParams.liquidityPath.lpRouter != address(0),
-            "ApeBond: swap and lp routers can not be address(0)"
+            "SoulZap: swap and lp routers can not be address(0)"
         );
-        require(zapParams.token0 != address(0), "ApeBond: token0 can not be address(0)");
-        require(zapParams.token1 != address(0), "ApeBond: token1 can not be address(0)");
+        require(zapParams.token0 != address(0), "SoulZap: token0 can not be address(0)");
+        require(zapParams.token1 != address(0), "SoulZap: token1 can not be address(0)");
         // Setup struct to prevent stack overflow
         LocalVars memory vars;
         // Ensure token addresses and paths are in ascending numerical order
@@ -254,9 +238,11 @@ contract SoulZap is ISoulZap, ReentrancyGuard, Ownable, Pausable {
         //Take protocol fee
         //TODO: it takes fee in form of input token. Can we somehow get blue chips? or is there another way?
         if (protocolFee > 0) {
+            // TODO: Hardcoded 10_000
             uint256 feeAmount = (zapParams.inputAmount * protocolFee) / 10_000;
             zapParams.inputAmount -= feeAmount;
-            zapParams.inputToken.safeTransfer(soulFee.getFeeCollector(), feeAmount);
+            // TODO: Currently intending on using something like _routerSwap to swap to the proper token. Not fully fleshed out though. EpochTracker is a contract which can be used to track volume.
+            // zapParams.inputToken.safeTransfer(soulFee.getFeeCollector(), feeAmount);
         }
 
         /**
@@ -269,22 +255,22 @@ contract SoulZap is ISoulZap, ReentrancyGuard, Ownable, Pausable {
                     zapParams.token0,
                     zapParams.token1
                 ) != address(0),
-                "ApeBond: Pair doesn't exist"
+                "SoulZap: Pair doesn't exist"
             );
             vars.amount0In = zapParams.inputAmount / 2;
             vars.amount1In = zapParams.inputAmount / 2;
         } else {
-            revert("ApeBond: LPType not supported");
+            revert("SoulZap: LPType not supported");
         }
 
         /**
          * Handle token0 Swap
          */
         if (zapParams.token0 != address(zapParams.inputToken)) {
-            require(zapParams.path0.path[0] == address(zapParams.inputToken), "ApeBond: wrong path path0[0]");
+            require(zapParams.path0.path[0] == address(zapParams.inputToken), "SoulZap: wrong path path0[0]");
             require(
                 zapParams.path0.path[zapParams.path0.path.length - 1] == zapParams.token0,
-                "ApeBond: wrong path path0[-1]"
+                "SoulZap: wrong path path0[-1]"
             );
             zapParams.inputToken.approve(zapParams.path0.swapRouter, vars.amount0In);
             vars.amount0Out = _routerSwapFromPath(zapParams.path0, vars.amount0In, zapParams.deadline);
@@ -295,10 +281,10 @@ contract SoulZap is ISoulZap, ReentrancyGuard, Ownable, Pausable {
          * Handle token1 Swap
          */
         if (zapParams.token1 != address(zapParams.inputToken)) {
-            require(zapParams.path1.path[0] == address(zapParams.inputToken), "ApeBond: wrong path path1[0]");
+            require(zapParams.path1.path[0] == address(zapParams.inputToken), "SoulZap: wrong path path1[0]");
             require(
                 zapParams.path1.path[zapParams.path1.path.length - 1] == zapParams.token1,
-                "ApeBond: wrong path path1[-1]"
+                "SoulZap: wrong path path1[-1]"
             );
             zapParams.inputToken.approve(zapParams.path1.swapRouter, vars.amount1In);
             vars.amount1Out = _routerSwapFromPath(zapParams.path1, vars.amount1In, zapParams.deadline);
@@ -325,16 +311,22 @@ contract SoulZap is ISoulZap, ReentrancyGuard, Ownable, Pausable {
                 zapParams.deadline
             );
         } else {
-            revert("ApeBond: lpType not supported");
+            revert("SoulZap: lpType not supported");
         }
 
-        if (zapParams.token0 == WNATIVE) {
+        if (zapParams.token0 == address(WNATIVE)) {
             // Ensure WNATIVE is called last
-            _transfer(zapParams.token1, vars.amount1Out - vars.amount1Lp, native);
-            _transfer(zapParams.token0, vars.amount0Out - vars.amount0Lp, native);
+            _transferOut(IERC20(zapParams.token1), vars.amount1Out - vars.amount1Lp, msg.sender, native);
+            _transferOut(IERC20(zapParams.token0), vars.amount0Out - vars.amount0Lp, msg.sender, native);
         } else {
-            _transfer(zapParams.token0, vars.amount0Out - vars.amount0Lp, native);
-            _transfer(zapParams.token1, vars.amount1Out - vars.amount1Lp, native);
+            _transferOut(IERC20(zapParams.token0), vars.amount0Out - vars.amount0Lp, msg.sender, native);
+            _transferOut(IERC20(zapParams.token1), vars.amount1Out - vars.amount1Lp, msg.sender, native);
+        }
+
+        if (native) {
+            emit ZapNative(zapParams);
+        } else {
+            emit Zap(zapParams);
         }
     }
 
@@ -343,7 +335,7 @@ contract SoulZap is ISoulZap, ReentrancyGuard, Ownable, Pausable {
         uint256 _amountIn,
         uint256 _deadline
     ) private returns (uint256 amountOut) {
-        require(_uniSwapPath.path.length >= 2, "ApeBond: need path0 of >=2");
+        require(_uniSwapPath.path.length >= 2, "SoulZap: need path0 of >=2");
         address outputToken = _uniSwapPath.path[_uniSwapPath.path.length - 1];
         uint256 balanceBefore = _getBalance(IERC20(outputToken));
         _routerSwap(
@@ -366,10 +358,11 @@ contract SoulZap is ISoulZap, ReentrancyGuard, Ownable, Pausable {
         uint256 deadline
     ) private {
         if (swapType == SwapType.V2) {
+            // TODO ZapFee: Can use this to take the fee and send to the feeCollector if fee route is passed from lens
             // Perform UniV2 swap
             IApeRouter02(router).swapExactTokensForTokens(amountIn, amountOutMin, path, address(this), deadline);
         } else {
-            revert("ApeBond: SwapType not supported");
+            revert("SoulZap: SwapType not supported");
         }
     }
 }

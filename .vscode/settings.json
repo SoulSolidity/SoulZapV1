@@ -7,18 +7,23 @@
     },
     "editor.formatOnSave": true,
     "cSpell.words": [
+        "apebond",
         "ARBISCAN",
+        "Arrakis",
         "bignumber",
         "dont",
+        "IWETH",
         "mixedcase",
         "nomicfoundation",
         "nomiclabs",
         "Numberish",
+        "Pausable",
         "POLYGONSCAN",
         "precommit",
         "Snapshotter",
         "telos",
         "TELOSSCAN",
-        "WBNB"
+        "WBNB",
+        "WNATIVE"
     ]
 }
