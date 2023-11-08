@@ -4,12 +4,12 @@ pragma solidity ^0.8.0;
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
-import "../../SoulZap_Lens.sol";
-import "../../../lib/ISoulZap.sol";
+import {SoulZap_UniV2_Lens} from "../../SoulZap_Lens.sol";
+import "../../../ISoulZap.sol";
 import "../../../extensions/ApeBond/lib/ICustomBillRefillable.sol";
 import "../../../extensions/ApeBond/ApeBond.sol";
 
-abstract contract ApeBond_Lens is SoulZap_Lens {
+abstract contract ApeBond_Lens is SoulZap_UniV2_Lens {
     bytes4 private constant ZAPBONDNATIVE_SELECTOR = ApeBond.zapBondNative.selector;
     bytes4 private constant ZAPBOND_SELECTOR = ApeBond.zapBond.selector;
 
@@ -22,28 +22,25 @@ abstract contract ApeBond_Lens is SoulZap_Lens {
         public
         view
         returns (
-            ISoulZap.ZapParamsBondNative memory params,
+            ISoulZap.ZapParamsNative memory zapParamsNative,
+            ICustomBillRefillable bill,
+            uint256 maxPrice
             bytes memory encodedParams,
             bytes memory encodedTx,
             uint256 priceChangePercentage0,
             uint256 priceChangePercentage1
         )
     {
-        ISoulZap.ZapParamsBond memory tempParams;
-        (tempParams, priceChangePercentage0, priceChangePercentage1) = getZapDataInternal(
-            WNATIVE,
-            amount,
-            bill,
-            slippage,
-            to
-        );
-        ISoulZap.ZapParamsNative memory zapParamsNative = ISoulZap.ZapParamsNative({
+        (tempParams, priceChangePercentage0, priceChangePercentage1) = _getZapData(WNATIVE, amount, bill, slippage, to);
+        
+        zapParamsNative = ISoulZap.ZapParamsNative({
             token0: tempParams.zapParams.token0,
             token1: tempParams.zapParams.token1,
             path0: tempParams.zapParams.path0,
             path1: tempParams.zapParams.path1,
             liquidityPath: tempParams.zapParams.liquidityPath,
             to: to,
+            // FIXME: Need to be updated as this could be exploitable
             deadline: block.timestamp + 100_000_000_000
         });
         params = ISoulZap.ZapParamsBondNative({
@@ -72,18 +69,12 @@ abstract contract ApeBond_Lens is SoulZap_Lens {
             uint256 priceChangePercentage1
         )
     {
-        (params, priceChangePercentage0, priceChangePercentage1) = getZapDataInternal(
-            fromToken,
-            amount,
-            bill,
-            slippage,
-            to
-        );
+        (params, priceChangePercentage0, priceChangePercentage1) = _getZapData(fromToken, amount, bill, slippage, to);
         encodedParams = abi.encode(params);
         encodedTx = abi.encodeWithSelector(ZAPBOND_SELECTOR, params);
     }
 
-    function getZapDataInternal(
+    function _getZapData(
         address fromToken,
         uint256 amount,
         ICustomBillRefillable bill,
@@ -106,6 +97,7 @@ abstract contract ApeBond_Lens is SoulZap_Lens {
         } catch (bytes memory) {}
 
         ISoulZap.ZapParams memory zapParams;
+        // FIXME: Need to be updated as this could be exploitable
         zapParams.deadline = block.timestamp + 100_000_000_000; //TODO: chose random extra time, pick a better one
         zapParams.inputAmount = amount;
         zapParams.inputToken = IERC20(fromToken);
@@ -127,19 +119,20 @@ abstract contract ApeBond_Lens is SoulZap_Lens {
                 halfAmount,
                 slippage
             );
-            zapParams.liquidityPath = getLiquidityPath(IUniswapV2Pair(principalToken), zapParams.path0.amountOutMin);
+            zapParams.liquidityPath = _getLiquidityPath(IUniswapV2Pair(principalToken), zapParams.path0.amountOutMin);
         } else {
             //Single token
             revert("Only lp bonds supported for now");
         }
 
-        //TODO: what's this slippage and how to add it properly? seperate from routing slippage.
+        //TODO: what's this slippage and how to add it properly? separate from routing slippage.
         //is trueBillPrice the right one?
+        // TODO: 10_000 hardcoded
         uint256 maxPrice = (bill.trueBillPrice() * (10_000 + slippage)) / 10_000;
         params = ISoulZap.ZapParamsBond({zapParams: zapParams, bill: bill, maxPrice: maxPrice});
     }
 
-    function getLiquidityPath(
+    function _getLiquidityPath(
         IUniswapV2Pair lp,
         uint256 minAmountLP0
     ) internal view returns (ISoulZap.LiquidityPath memory params) {
