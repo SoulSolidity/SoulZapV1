@@ -10,7 +10,7 @@ export default {
       allowUnlimitedContractSize: false,
       forking: {
         url: getEnv('FORK_RPC_URL') || '',
-        blockNumber: 33060000
+        blockNumber: 49652900
       },
     },
   },

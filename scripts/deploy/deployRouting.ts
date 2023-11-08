@@ -11,15 +11,18 @@ async function main() {
   const currentNetwork = network.name as DeployableNetworks
   // Optionally pass in accounts to be able to use them in the deployConfig
   const accounts = await ethers.getSigners()
-  const { wNative, adminAddress, dexInfo, hopTokens } = getDeployConfig(currentNetwork, accounts)
+  const { wNative, adminAddress, dexInfo, hopTokens, soulFee } = getDeployConfig(currentNetwork, accounts)
   // Optionally pass in signer to deploy contracts
   const deployManager = await DeployManager.create(accounts[0])
 
+  if (!soulFee || soulFee == '0x') {
+    throw new Error('No SoulFee contract address found. deploy it first and/or add to config')
+  }
   const SoulZapFullV1_Lens = 'SoulZapFullV1_Lens'
   const RoutingContract = await ethers.getContractFactory(SoulZapFullV1_Lens)
   const routingContract = await deployManager.deployContractFromFactory(
     RoutingContract,
-    [wNative, [dexInfo.ApeBond?.factory!], [dexInfo.ApeBond?.router!], hopTokens],
+    [wNative, [dexInfo.ApeBond?.factory!], [dexInfo.ApeBond?.router!], hopTokens, soulFee],
     SoulZapFullV1_Lens // Pass in contract name to log contract
   )
   console.log('Lens contract deployed at:', routingContract.address)
