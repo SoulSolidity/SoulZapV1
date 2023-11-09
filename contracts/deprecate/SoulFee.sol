@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity 0.8.15;
+pragma solidity 0.8.20;
 
 /*
    ▄████████  ▄██████▄  ███    █▄   ▄█                                      
@@ -29,14 +29,18 @@ pragma solidity 0.8.15;
  * GitHub:          https:// TODO
  */
 
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+// FIXME: Remove ownable
+// import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {AccessManaged} from "@openzeppelin/contracts/access/manager/AccessManaged.sol";
 
 /**
  * @title SoulFee
  * @dev A contract for managing project fees with ownership control.
  */
-contract SoulFee is Ownable {
+contract SoulFee is AccessManaged {
+    // TODO: Only use CAPs for constants/immutables
     string[] public PROJECTS;
+    // TODO: Only use CAPs for constants/immutables
     mapping(string => uint256) public FEE_PERCENTAGE; // Denominator of 10_000
     uint256 public immutable MAX_FEE;
     address public feeCollector;
@@ -48,7 +52,12 @@ contract SoulFee is Ownable {
     /**
      * @dev Constructor to initialize the contract and add an initial default project.
      */
-    constructor(address _feeCollector, uint256 _defaultFee, uint256 _maxFee) Ownable() {
+    constructor(
+        address _feeCollector,
+        uint256 _defaultFee,
+        uint256 _maxFee,
+        address _accessManager
+    ) AccessManaged(_accessManager) {
         require(_defaultFee <= _maxFee, "SoulFee: Fee too high");
         feeCollector = _feeCollector;
         MAX_FEE = _maxFee;
@@ -112,7 +121,7 @@ contract SoulFee is Ownable {
      * @param project The name of the project.
      * @param fee The fee percentage (out of 10,000).
      */
-    function addProject(string memory project, uint256 fee) public onlyOwner {
+    function addProject(string memory project, uint256 fee) public restricted {
         require(fee <= MAX_FEE, "SoulFee: Fee too high");
         PROJECTS.push(project);
         FEE_PERCENTAGE[project] = fee;
@@ -124,7 +133,7 @@ contract SoulFee is Ownable {
                 Other contracts might depend on the data removed. Move with caution.
      * @param project The name of the project to be removed.
      */
-    function removeProject(string memory project) public onlyOwner {
+    function removeProject(string memory project) public restricted {
         require(!compareStrings(project, "default"), "SoulFee: can't remove default project fee");
         for (uint256 i = 0; i < PROJECTS.length; i++) {
             if (compareStrings(PROJECTS[i], project)) {
@@ -145,14 +154,14 @@ contract SoulFee is Ownable {
      * @param project The name of the project.
      * @param fee The new fee percentage (out of 10,000).
      */
-    function setFee(string memory project, uint256 fee) public onlyOwner {
+    function setFee(string memory project, uint256 fee) public restricted {
         require(fee <= MAX_FEE, "SoulFee: Fee too high");
         require(projectExists(project), "SoulFee: project not found");
         FEE_PERCENTAGE[project] = fee;
         emit UpdatedFee(project, fee);
     }
 
-    function setFeeCollector(address _feeCollector) public onlyOwner {
+    function setFeeCollector(address _feeCollector) public restricted {
         feeCollector = _feeCollector;
         emit UpdatedFeeCollector(_feeCollector);
     }

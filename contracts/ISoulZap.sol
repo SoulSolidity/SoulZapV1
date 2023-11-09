@@ -30,10 +30,14 @@ pragma solidity ^0.8.0;
  */
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "./IApeRouter02.sol";
-import "../extensions/ApeBond/lib/ICustomBillRefillable.sol";
+import "./extensions/ApeBond/lib/ICustomBillRefillable.sol";
 
+// TODO: ISoulZap_UniV2
 interface ISoulZap {
+    /// -----------------------------------------------------------------------
+    /// Swap Path
+    /// -----------------------------------------------------------------------
+
     enum SwapType {
         V2
     }
@@ -45,6 +49,10 @@ interface ISoulZap {
         uint256 amountOutMin;
     }
 
+    //// -----------------------------------------------------------------------
+    /// Liquidity Path
+    /// -----------------------------------------------------------------------
+
     enum LPType {
         V2
     }
@@ -55,6 +63,10 @@ interface ISoulZap {
         uint256 minAmountLP0;
         uint256 minAmountLP1;
     }
+
+    /// -----------------------------------------------------------------------
+    /// Zap Params
+    /// -----------------------------------------------------------------------
 
     struct ZapParams {
         IERC20 inputToken;
@@ -78,18 +90,7 @@ interface ISoulZap {
         uint256 deadline;
     }
 
-    struct ZapParamsBond {
-        ZapParams zapParams;
-        ICustomBillRefillable bill;
-        uint256 maxPrice;
-    }
-
-    struct ZapParamsBondNative {
-        ZapParamsNative zapParamsNative;
-        ICustomBillRefillable bill;
-        uint256 maxPrice;
-    }
-
+    // TODO: comments
     // struct MinAmountsParams {
     //     IERC20 inputToken;
     //     uint256 inputAmount;
@@ -100,10 +101,15 @@ interface ISoulZap {
     //     LiquidityPath liquidityPath;
     // }
 
+    /// -----------------------------------------------------------------------
+    /// Functions
+    /// -----------------------------------------------------------------------
+
     function zap(ZapParams memory zapParams) external;
 
     function zapNative(ZapParamsNative memory zapParamsNative) external payable;
 
+    // TODO: comments
     // function getMinAmounts(
     //     MinAmountsParams memory params
     // ) external view returns (uint256[2] memory minAmountsSwap, uint256[2] memory minAmountsLP);

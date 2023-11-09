@@ -1,21 +1,26 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.15;
+pragma solidity 0.8.20;
 
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import "../lib/ISoulZap.sol";
-import "../lib/IApeFactory.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+// FIXME: remove
+// import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {AccessManaged} from "@openzeppelin/contracts/access/manager/AccessManaged.sol";
+import {ISoulZap} from "../ISoulZap.sol";
+
+// TODO: Remove console before production
 import "hardhat/console.sol";
 import "../SoulFee.sol";
 
-contract SoulZap_Lens is Ownable {
+// TODO: SoulZap_UniV2_Lens
+contract SoulZap_UniV2_Lens is AccessManaged {
     bytes4 private constant ZAPNATIVE_SELECTOR = ISoulZap.zapNative.selector;
     bytes4 private constant ZAP_SELECTOR = ISoulZap.zap.selector;
 
     IUniswapV2Factory[] public factories;
+    // TODO: Technically there can be multiple routers to a factory
     mapping(IUniswapV2Factory => IUniswapV2Router02) public factoryToRouter;
     address[] public hopTokens;
     address public immutable WNATIVE;
@@ -23,36 +28,27 @@ contract SoulZap_Lens is Ownable {
 
     constructor(
         address _wnative,
-        IUniswapV2Factory[] memory _factories,
         IUniswapV2Router02[] memory _routers,
         address[] memory _hopTokens,
-        SoulFee _soulfee
-    ) Ownable() {
-        require(_factories.length == _routers.length, "Every factory needs a router");
-        factories = _factories;
-        for (uint256 index = 0; index < _factories.length; index++) {
-            factoryToRouter[_factories[index]] = _routers[index];
+        address _accessManager
+    ) AccessManaged(_accessManager) {
+        for (uint256 index = 0; index < _routers.length; index++) {
+            IUniswapV2Factory routerFactory = IUniswapV2Factory(_routers[index].factory());
+            factoryToRouter[routerFactory] = _routers[index];
+            factories.push(routerFactory);
         }
         WNATIVE = _wnative;
         hopTokens = _hopTokens;
         soulFee = _soulfee;
     }
 
-    /**
-     * @dev Add a Uniswap V2 factory and its associated router.
-     * @param _factory The Uniswap V2 factory contract to add.
-     * @param _router The Uniswap V2 router contract associated with the factory.
-     */
-    function addFactory(IUniswapV2Factory _factory, IUniswapV2Router02 _router) public onlyOwner {
-        factories.push(_factory);
-        factoryToRouter[_factory] = _router;
+    function addFactoryFromRouter(IUniswapV2Router02 _router) public restricted {
+        IUniswapV2Factory factory = IUniswapV2Factory(_router.factory());
+        factories.push(factory);
+        factoryToRouter[factory] = _router;
     }
 
-    /**
-     * @dev Remove a Uniswap V2 factory from the list of tracked factories.
-     * @param _factory The Uniswap V2 factory contract to remove.
-     */
-    function removeFactory(IUniswapV2Factory _factory) public onlyOwner {
+    function removeFactory(IUniswapV2Factory _factory) public restricted {
         // Search for the factory in the array
         for (uint256 i = 0; i < factories.length; i++) {
             if (factories[i] == _factory) {
@@ -68,29 +64,17 @@ contract SoulZap_Lens is Ownable {
         delete factoryToRouter[_factory];
     }
 
-    /**
-     * @dev Add multiple hop tokens to the list of hop tokens.
-     * @param tokens An array of hop tokens to add.
-     */
-    function addHopTokens(address[] memory tokens) public onlyOwner {
+    function addHopTokens(address[] memory tokens) public restricted {
         for (uint256 i = 0; i < tokens.length; i++) {
             hopTokens.push(tokens[i]);
         }
     }
 
-    /**
-     * @dev Add a single hop token to the list of hop tokens.
-     * @param token The hop token to add.
-     */
-    function addHopToken(address token) public onlyOwner {
+    function addHopToken(address token) public restricted {
         hopTokens.push(token);
     }
 
-    /**
-     * @dev Remove a hop token from the list of hop tokens.
-     * @param token The hop token to remove.
-     */
-    function removeHopToken(address token) public onlyOwner {
+    function removeHopToken(address token) public restricted {
         for (uint256 i = 0; i < hopTokens.length; i++) {
             if (hopTokens[i] == token) {
                 if (i != hopTokens.length - 1) {
@@ -152,6 +136,8 @@ contract SoulZap_Lens is Ownable {
      */
     function calculateOutputAmount(address _pair, uint _inputAmount, address _fromToken) public view returns (uint) {
         //TODO function not even used. needed?
+        //      Oooh this was so we don't need the router I think. so maybe use this and we don't need mapping for router?
+        //TODO important: if we take a protocol fee this calculation/input amount is wrong
         IUniswapV2Pair pair = IUniswapV2Pair(_pair);
         (uint112 reserve0, uint112 reserve1, ) = pair.getReserves();
         uint reserveIn = pair.token0() == _fromToken ? reserve0 : reserve1;
@@ -388,10 +374,12 @@ contract SoulZap_Lens is Ownable {
         bestPath.swapType = ISoulZap.SwapType.V2;
         if (_fromToken == _toToken) {
             //TODO setting this to address(1) because swaprouter can't be address(0). but also not used in zap now because no swap needed. better way of fixing?
+            // TODO: from DeFi FoFum: Consider a new enum: bestPath.swapType = ISoulZap.SwapType.SameToken;
             bestPath.swapRouter = address(1);
             return (bestPath, 0);
         }
 
+        // NOTE: Very concerned about the gas costs here. I was intending that we would only have a single factory :thinking:
         for (uint256 index = 0; index < factories.length; index++) {
             IUniswapV2Router02 router = factoryToRouter[factories[index]];
             (path, outputAmount) = getBestRouteFromFactory(factories[index], router, _fromToken, _toToken, _amountIn);
@@ -401,10 +389,12 @@ contract SoulZap_Lens is Ownable {
                 bestPath.amountOutMin = outputAmount;
             }
         }
+        // TODO: Use a const for 10_000
         bestPath.amountOutMin = (bestPath.amountOutMin * (10_000 - _slippage)) / 10_000;
 
         //Calculation of price impact. actual price is the current actual price which does not take slippage into account for less liquid pairs.
         //It calculates the impact between actual price and price after slippage.
+        // TODO: 10_000 hardcoded
         //With a denominator of 10_000. 100 = 1% price impact, 1000 = 10% price impact.
         uint256 actualPrice = _amountIn;
         IUniswapV2Factory factory = IUniswapV2Factory(IUniswapV2Router02(bestPath.swapRouter).factory());
@@ -419,9 +409,12 @@ contract SoulZap_Lens is Ownable {
             if (i > 0) {
                 actualPrice /= 1e18;
             }
+            // TODO: Remove console.log before production
             console.log("actualPrice", actualPrice);
         }
         console.log(bestPath.amountOutMin, actualPrice);
+        // TODO: Hardcoded 10_000, also we should probably add in some more granularity here
+        // NOTE: hardcoded 1e22
         priceImpactPercentage = 10_000 - ((bestPath.amountOutMin * 1e22) / actualPrice);
     }
 
@@ -443,6 +436,7 @@ contract SoulZap_Lens is Ownable {
         uint _amountIn
     ) public view returns (address[] memory bestPath, uint256 maxOutputAmount) {
         address[] memory path;
+        /// @dev If pair exists, then we will note the output amount and path to compare
         if (pairExists(factory, _fromToken, _toToken)) {
             bestPath = new address[](2);
             bestPath[0] = _fromToken;
@@ -464,6 +458,7 @@ contract SoulZap_Lens is Ownable {
                 break;
             }
             path[1] = possibleHopTokens[i];
+            // TODO: Remove console.log before production
             console.log(path[0], path[1], path[2]);
             uint[] memory amounts = router.getAmountsOut(_amountIn, path);
             if (amounts[amounts.length - 1] > maxOutputAmount) {
@@ -472,6 +467,7 @@ contract SoulZap_Lens is Ownable {
                 bestPath[0] = path[0];
                 bestPath[1] = path[1];
                 bestPath[2] = path[2];
+                // TODO: Remove console.log before production
                 console.log("betterpath", bestPath[1], maxOutputAmount);
             }
         }
