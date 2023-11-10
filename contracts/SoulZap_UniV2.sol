@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 // TODO: Last thing update compiler version to 0.8.23
-pragma solidity 0.8.20;
+pragma solidity 0.8.23;
 
 /*
    ▄████████  ▄██████▄  ███    █▄   ▄█                                      
@@ -53,14 +53,10 @@ import {ISoulFeeManager} from "./fee-manager/ISoulFeeManager.sol";
 import {ISoulZap_UniV2} from "./ISoulZap_UniV2.sol";
 import {TransferHelper} from "./utils/TransferHelper.sol";
 
-// FIXME: Do this last so we have a clean commit history
-// TODO: Need to rename this file to SoulZap_UniV2.sol
 /*
 /// @dev The receive method is used as a fallback function in a contract
 /// and is called when ether is sent to a contract with no calldata.
-receive() external payable {
-    if (msg.sender != address(WNATIVE)) revert SoulZap_ReceiveOnlyFrom_WNative();
-}
+
 */
 /**
  * @title SoulZap_UniV2
@@ -102,7 +98,7 @@ contract SoulZap_UniV2 is
     /// -----------------------------------------------------------------------
 
     // TODO: Refactor `require` to revert
-    error SoulZap_ReceiveOnlyFrom_WNative();
+    error SoulZap_ReceiveOnlyFromWNative();
     error SoulZap_ZapToNullAddressError();
     error SoulZap_SwapAndLpRoutersNullError();
     error SoulZap_Token0NullError();
@@ -127,7 +123,7 @@ contract SoulZap_UniV2 is
     /// @dev The receive method is used as a fallback function in a contract
     /// and is called when ether is sent to a contract with no calldata.
     receive() external payable {
-        require(msg.sender == address(WNATIVE), "SoulZap: Only receive ether from wrapped");
+        if (msg.sender != address(WNATIVE)) revert SoulZap_ReceiveOnlyFromWNative();
     }
 
     // TODO: Just go with `pause` and `unpause`?
