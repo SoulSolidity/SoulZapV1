@@ -33,6 +33,7 @@ export type DeployableNetworks = Extract<Networks, 'bsc' | 'polygon' | 'bscTestn
 interface DeploymentVariables {
   proxyAdminAddress: string
   adminAddress: string | SignerWithAddress
+  admin: string
   wNative: string
   dexInfo: Partial<Record<Dex, { factory: string, router: string }>>
   hopTokens: string[]
@@ -54,6 +55,7 @@ const deployableNetworkConfig: Record<DeployableNetworks, (signers?: SignerWithA
       proxyAdminAddress: '0x',
       // NOTE: Example of extracting signers
       adminAddress: signers?.[0] || '0x',
+      admin: "0x5c7C7246bD8a18DF5f6Ee422f9F8CCDF716A6aD2",
       wNative: '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c',
       dexInfo: {
         [Dex.ApeBond]: {
@@ -66,9 +68,9 @@ const deployableNetworkConfig: Record<DeployableNetworks, (signers?: SignerWithA
         }
       },
       hopTokens: [
+        '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d', //USDC
         '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c', //WBNB
         '0x2170Ed0880ac9A755fd29B2688956BD959F933F8', //ETH
-        '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d', //USDC
         '0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56', //BUSD
         '0x55d398326f99059fF775485246999027B3197955', //USDT
         '0x1AF3F329e8BE154074D8769D1FFa4eE058B1DBc3' //DAI
@@ -84,6 +86,7 @@ const deployableNetworkConfig: Record<DeployableNetworks, (signers?: SignerWithA
       proxyAdminAddress: '0x',
       // NOTE: Example of extracting signers
       adminAddress: signers?.[0] || '0x',
+      admin: "0x5c7C7246bD8a18DF5f6Ee422f9F8CCDF716A6aD2",
       wNative: '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270',
       dexInfo: {
         [Dex.ApeBond]: {
@@ -96,10 +99,10 @@ const deployableNetworkConfig: Record<DeployableNetworks, (signers?: SignerWithA
         }
       },
       hopTokens: [
+        '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174', //USDC
         '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270', //WMATIC
         '0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619', //ETH
         '0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6', //BTC
-        '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174', //USDC
         '0xc2132D05D31c914a87C6611C10748AEb04B58e8F', //USDT
         '0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063' //DAI
       ],
@@ -113,6 +116,7 @@ const deployableNetworkConfig: Record<DeployableNetworks, (signers?: SignerWithA
     return {
       proxyAdminAddress: '0x',
       adminAddress: signers?.[0] || '0x',
+      admin: '',
       wNative: '0x',
       dexInfo: {
         'ApeBond': {

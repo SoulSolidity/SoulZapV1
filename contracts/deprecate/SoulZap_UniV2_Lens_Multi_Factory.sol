@@ -14,11 +14,9 @@ import {IUniswapV2Router02} from "@uniswap/v2-periphery/contracts/interfaces/IUn
 /// -----------------------------------------------------------------------
 /// Internal Imports
 /// -----------------------------------------------------------------------
-import {ISoulZap_UniV2} from "./ISoulZap_UniV2.sol";
-//FIXME: should be from interface
-import {SoulZap_UniV2} from "./SoulZap_UniV2.sol";
-import {ISoulFeeManager} from "./fee-manager/ISoulFeeManager.sol";
-import {IWETH} from "./lib/IWETH.sol";
+import {ISoulZap_UniV2} from "../ISoulZap_UniV2.sol";
+import {ISoulFeeManager} from "../fee-manager/ISoulFeeManager.sol";
+import {IWETH} from "../lib/IWETH.sol";
 
 // TODO: Remove console before production
 import "hardhat/console.sol";
@@ -32,7 +30,7 @@ import "hardhat/console.sol";
  * feel free to experiment locally or on testnets.)
  * @notice Do not use this contract for any tokens that do not have a standard ERC20 implementation.
  */
-contract SoulZap_UniV2_Lens is AccessManaged {
+contract SoulZap_UniV2_Lens_Multi_factory is AccessManaged {
     /// -----------------------------------------------------------------------
     /// Storage variables
     /// -----------------------------------------------------------------------
@@ -40,15 +38,12 @@ contract SoulZap_UniV2_Lens is AccessManaged {
     bytes4 private constant ZAPNATIVE_SELECTOR = ISoulZap_UniV2.zapNative.selector;
     bytes4 private constant ZAP_SELECTOR = ISoulZap_UniV2.zap.selector;
 
-    IUniswapV2Factory public factory;
-    IUniswapV2Router02 public router;
+    IUniswapV2Factory[] public factories;
+    // TODO: Technically there can be multiple routers to a factory
+    mapping(IUniswapV2Factory => IUniswapV2Router02) public factoryToRouter;
     address[] public hopTokens;
-    address public feeStableToken;
     IWETH public immutable WNATIVE;
-    //FIXME: do we really need the fee manger AND the zap in here for just logic stuff...
-    // and make soulzap the interface instead of the contract. need the epoch interface stuff
-    ISoulFeeManager public soulFeeManager;
-    SoulZap_UniV2 public soulZap;
+    ISoulFeeManager public soulFee;
 
     /// -----------------------------------------------------------------------
     /// Constructor
@@ -56,29 +51,30 @@ contract SoulZap_UniV2_Lens is AccessManaged {
 
     constructor(
         address _accessManager,
-        ISoulFeeManager _soulFeeManager,
-        SoulZap_UniV2 _soulZap,
         IWETH _wnative,
-        address _feeStableToken,
-        IUniswapV2Router02 _router,
+        IUniswapV2Router02[] memory _routers,
         address[] memory _hopTokens
     ) AccessManaged(_accessManager) {
-        router = _router;
-        factory = IUniswapV2Factory(_router.factory());
+        for (uint256 index = 0; index < _routers.length; index++) {
+            IUniswapV2Factory routerFactory = IUniswapV2Factory(_routers[index].factory());
+            factoryToRouter[routerFactory] = _routers[index];
+            factories.push(routerFactory);
+        }
         WNATIVE = _wnative;
         hopTokens = _hopTokens;
-        feeStableToken = _feeStableToken;
-        soulFeeManager = _soulFeeManager;
-        soulZap = _soulZap;
+        // FIXME: Need to be addresses to compile
+        // soulFee = _soulfee;
     }
 
     /**
      * @dev Find possible hop tokens for swapping between two specified tokens.
+     * @param factory The Uniswap V2 factory contract.
      * @param _fromToken The source token for the swap.
      * @param _toToken The target token for the swap.
      * @return possibleHopTokens An array of possible hop tokens.
      */
     function findPossibleHopTokens(
+        IUniswapV2Factory factory,
         address _fromToken,
         address _toToken
     ) public view returns (address[] memory possibleHopTokens) {
@@ -86,8 +82,8 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         uint count = 0;
         for (uint i = 0; i < hopTokens.length; i++) {
             address hopToken = hopTokens[i];
-            bool hop1 = pairExists(_fromToken, hopToken);
-            bool hop2 = pairExists(hopToken, _toToken);
+            bool hop1 = pairExists(factory, _fromToken, hopToken);
+            bool hop2 = pairExists(factory, hopToken, _toToken);
             if (hop1 && hop2) {
                 possibleHopTokens[count] = hopToken;
                 count++;
@@ -97,11 +93,12 @@ contract SoulZap_UniV2_Lens is AccessManaged {
 
     /**
      * @dev Check if a pair exists for two given tokens in the Uniswap V2 factory.
+     * @param factory The Uniswap V2 factory contract.
      * @param token0 The first token of the pair.
      * @param token1 The second token of the pair.
      * @return True if the pair exists; false otherwise.
      */
-    function pairExists(address token0, address token1) public view returns (bool) {
+    function pairExists(IUniswapV2Factory factory, address token0, address token1) public view returns (bool) {
         address pair = factory.getPair(token0, token1);
         if (pair == address(0)) {
             return false;
@@ -117,11 +114,13 @@ contract SoulZap_UniV2_Lens is AccessManaged {
      */
     function calculateOutputAmount(address _pair, uint _inputAmount, address _fromToken) public view returns (uint) {
         //TODO function not even used. needed?
+        //      Oooh this was so we don't need the router I think. so maybe use this and we don't need mapping for router?
+        //TODO important: if we take a protocol fee this calculation/input amount is wrong
         IUniswapV2Pair pair = IUniswapV2Pair(_pair);
         (uint112 reserve0, uint112 reserve1, ) = pair.getReserves();
         uint reserveIn = pair.token0() == _fromToken ? reserve0 : reserve1;
         uint reserveOut = pair.token0() == _fromToken ? reserve1 : reserve0;
-        return router.getAmountOut(_inputAmount, reserveIn, reserveOut);
+        return factoryToRouter[IUniswapV2Factory(pair.factory())].getAmountOut(_inputAmount, reserveIn, reserveOut);
     }
 
     /**
@@ -144,7 +143,6 @@ contract SoulZap_UniV2_Lens is AccessManaged {
      * @param slippage The slippage tolerance (1 = 0.01%, 100 = 1%).
      * @param to The address to receive the zapped tokens.
      * @return params ZapParamsNative structure containing relevant data.
-     * @return feeSwapPath SwapPath for protocol fees
      * @return encodedParams Encoded ZapParamsNative structure.
      * @return encodedTx Encoded transaction with the given parameters.
      * @return priceImpactPercentage0 The percentage change in price for token0.
@@ -160,7 +158,6 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         view
         returns (
             ISoulZap_UniV2.ZapParamsNative memory params,
-            ISoulZap_UniV2.SwapPath memory feeSwapPath,
             bytes memory encodedParams,
             bytes memory encodedTx,
             uint256 priceImpactPercentage0,
@@ -168,7 +165,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         )
     {
         ISoulZap_UniV2.ZapParams memory tempParams;
-        (tempParams, feeSwapPath, priceImpactPercentage0, priceImpactPercentage1) = _getZapDataInternal(
+        (tempParams, priceImpactPercentage0, priceImpactPercentage1) = _getZapDataInternal(
             address(WNATIVE),
             amount,
             lp,
@@ -196,7 +193,6 @@ contract SoulZap_UniV2_Lens is AccessManaged {
      * @param slippage The slippage tolerance (1 = 0.01%, 100 = 1%).
      * @param to The address to receive the zapped tokens.
      * @return params ZapParams structure containing relevant data.
-     * @return feeSwapPath SwapPath for protocol fees
      * @return encodedParams Encoded ZapParams structure.
      * @return encodedTx Encoded transaction with the given parameters.
      * @return priceImpactPercentage0 The percentage change in price for token0.
@@ -213,14 +209,13 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         view
         returns (
             ISoulZap_UniV2.ZapParams memory params,
-            ISoulZap_UniV2.SwapPath memory feeSwapPath,
             bytes memory encodedParams,
             bytes memory encodedTx,
             uint256 priceImpactPercentage0,
             uint256 priceImpactPercentage1
         )
     {
-        (params, feeSwapPath, priceImpactPercentage0, priceImpactPercentage1) = _getZapDataInternal(
+        (params, priceImpactPercentage0, priceImpactPercentage1) = _getZapDataInternal(
             fromToken,
             amount,
             lp,
@@ -239,7 +234,6 @@ contract SoulZap_UniV2_Lens is AccessManaged {
      * @param slippage The slippage tolerance (Denominator 10_000. 1 = 0.01%, 100 = 1%).
      * @param to The address to receive the zapped tokens.
      * @return zapParams ZapParams structure containing relevant data.
-     * @return feeSwapPath SwapPath for protocol fees
      * @return priceImpactPercentage0 The percentage change in price for token0.
      * @return priceImpactPercentage1 The percentage change in price for token1.
      */
@@ -254,23 +248,10 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         view
         returns (
             ISoulZap_UniV2.ZapParams memory zapParams,
-            ISoulZap_UniV2.SwapPath memory feeSwapPath,
             uint256 priceImpactPercentage0,
             uint256 priceImpactPercentage1
         )
     {
-        //Get path for protocol fee
-        uint256 feeAmount = (amount * soulFeeManager.getFee(soulZap.getEpochVolume())) / 10_000;
-        if (feeAmount > 0) {
-            //Remove protocol fee from amountIn for finding the best path so amounts are correct
-            amount -= feeAmount;
-            (address[] memory path, uint256 amountOutMin) = getBestPath(fromToken, feeStableToken, feeAmount);
-            feeSwapPath.swapRouter = address(router);
-            feeSwapPath.swapType = ISoulZap_UniV2.SwapType.V2;
-            feeSwapPath.path = path;
-            feeSwapPath.amountOutMin = (amountOutMin * (10_000 - slippage)) / 10_000;
-        }
-
         address token0;
         address token1;
         // TODO: Remove console.log before production
@@ -295,8 +276,24 @@ contract SoulZap_UniV2_Lens is AccessManaged {
             uint256 halfAmount = amount / 2;
             zapParams.token0 = token0;
             zapParams.token1 = token1;
-            (zapParams.path0, priceImpactPercentage0) = getBestRoute(fromToken, token0, halfAmount, slippage);
-            (zapParams.path1, priceImpactPercentage1) = getBestRoute(fromToken, token1, halfAmount, slippage);
+            (zapParams.path0, priceImpactPercentage0) = getBestRoute(
+                fromToken,
+                token0,
+                halfAmount,
+                slippage,
+                // TODO: Add protocol fee
+                0
+                // soulFee.getFee("apebond-bond-zap")
+            );
+            (zapParams.path1, priceImpactPercentage1) = getBestRoute(
+                fromToken,
+                token1,
+                halfAmount,
+                slippage,
+                // TODO: Add protocol fee
+                0
+                // soulFee.getFee("apebond-bond-zap")
+            );
             zapParams.liquidityPath = _getLiquidityPath(
                 IUniswapV2Pair(lp),
                 zapParams.path0.amountOutMin,
@@ -319,106 +316,78 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         uint256 minAmountLP0,
         uint256 minAmountLP1
     ) internal view returns (ISoulZap_UniV2.LiquidityPath memory params) {
+        IUniswapV2Router02 lpRouter = factoryToRouter[IUniswapV2Factory(lp.factory())];
+
         (uint256 reserveA, uint256 reserveB, ) = lp.getReserves();
-        uint256 amountB = router.quote(minAmountLP0, reserveA, reserveB);
+        uint256 amountB = lpRouter.quote(minAmountLP0, reserveA, reserveB);
         // TODO: Remove console.log before production
         console.log("liquiditypath", amountB, minAmountLP1);
 
         //The min amount B to add for LP can be lower than the received tokenB amount.
         //If that's the case calculate min amount with tokenA amount so it doesn't revert
         if (amountB > minAmountLP1) {
-            minAmountLP0 = router.quote(minAmountLP1, reserveB, reserveA);
+            minAmountLP0 = lpRouter.quote(minAmountLP1, reserveB, reserveA);
             amountB = minAmountLP1;
             // TODO: Remove console.log before production
             console.log("liquiditypath CHANGED", amountB, minAmountLP0);
         }
 
         params = ISoulZap_UniV2.LiquidityPath({
-            lpRouter: address(router),
+            lpRouter: address(lpRouter),
             lpType: ISoulZap_UniV2.LPType.V2,
             minAmountLP0: minAmountLP0,
             minAmountLP1: amountB
         });
     }
 
-    //FIXME: bad naming. getBestPath and getBestRoute are bad. Suggestions?
-    function getBestPath(
-        address _fromToken,
-        address _toToken,
-        uint _amountIn
-    ) internal view returns (address[] memory bestPath, uint256 bestAmountOutMin) {
-        /// @dev If pair exists, then we will note the output amount and path to compare
-        if (pairExists(_fromToken, _toToken)) {
-            bestPath = new address[](2);
-            bestPath[0] = _fromToken;
-            bestPath[1] = _toToken;
-            uint[] memory amounts = router.getAmountsOut(_amountIn, bestPath);
-            bestAmountOutMin = amounts[amounts.length - 1];
-        }
-
-        address[] memory possibleHopTokens = findPossibleHopTokens(_fromToken, _toToken);
-        if (possibleHopTokens.length == 0) {
-            return (bestPath, 0);
-        }
-
-        address[] memory path = new address[](3);
-        path[0] = _fromToken;
-        path[2] = _toToken;
-        bool first = true;
-        for (uint i = 0; i < possibleHopTokens.length; i++) {
-            if (possibleHopTokens[i] == address(0)) {
-                break;
-            }
-            path[1] = possibleHopTokens[i];
-            // TODO: Remove console.log before production
-            uint[] memory amounts = router.getAmountsOut(_amountIn, path);
-            console.log(path[1], amounts[amounts.length - 1]);
-            if (amounts[amounts.length - 1] > bestAmountOutMin) {
-                console.log(path[0], path[1], path[2]);
-                if (first) {
-                    bestPath = new address[](3);
-                    bestPath[0] = path[0];
-                    bestPath[2] = path[2];
-                    first = false;
-                }
-                bestPath[1] = path[1];
-                bestAmountOutMin = amounts[amounts.length - 1];
-            }
-        }
-    }
-
     /**
-     * @dev Get the best route from a Uniswap V2 factory for swapping between two tokens.
-     * @param _fromToken The source token for the swap.
-     * @param _toToken The target token for the swap.
-     * @param _amountIn The input amount for the swap.
+     * @dev Find the best route for a given input token and amount
+     * @param _fromToken The address of the input token
+     * @param _toToken The address of the output token
+     * @param _amountIn The input amount
      * @param _slippage amountOutMin slippage. This is front run slippage and for the small time difference between read and write tx
      *          AND NOT FOR ACTUAL PRICE IMPACT. Denominator 10_000
-     * @return bestPath An array of addresses representing the best route.
-     * @return priceImpactPercentage The price impact for the swap.
+     * @param _protocolFee The protocol fee removed from input token
      */
     function getBestRoute(
         address _fromToken,
         address _toToken,
         uint _amountIn,
-        uint256 _slippage //Denominator 10_000 1 = 0.01%, 100 = 1%
+        uint256 _slippage, //Denominator 10_000 1 = 0.01%, 100 = 1%
+        uint256 _protocolFee
     ) public view returns (ISoulZap_UniV2.SwapPath memory bestPath, uint256 priceImpactPercentage) {
+        //Remove protocol fee from amountIn for finding the best path so amounts are correct
+        _amountIn -= (_amountIn * _protocolFee) / 10_000;
+
+        address[] memory path;
+        uint256 outputAmount = 0;
         bestPath.swapType = ISoulZap_UniV2.SwapType.V2;
-        bestPath.swapRouter = address(router);
+        if (_fromToken == _toToken) {
+            //TODO setting this to address(1) because swaprouter can't be address(0). but also not used in zap now because no swap needed. better way of fixing?
+            // TODO: from DeFi FoFum: Consider a new enum: bestPath.swapType = ISoulZap_UniV2.SwapType.SameToken;
+            bestPath.swapRouter = address(1);
+            return (bestPath, 0);
+        }
 
-        (address[] memory bestPathAddresses, uint256 bestAmountOutMin) = getBestPath(_fromToken, _toToken, _amountIn);
-        bestPath.path = bestPathAddresses;
-        bestPath.amountOutMin = (bestAmountOutMin * (10_000 - _slippage)) / 10_000;
-
-        //TODO maybe: add a double hop check so both tokens only need to have a pair with any one of the blue chip hop tokens instead of both with the same one
-        //Probably only if no single hope exists to save gas if it's not needed
+        // NOTE: Very concerned about the gas costs here. I was intending that we would only have a single factory :thinking:
+        for (uint256 index = 0; index < factories.length; index++) {
+            IUniswapV2Router02 router = factoryToRouter[factories[index]];
+            (path, outputAmount) = getBestRouteFromFactory(factories[index], router, _fromToken, _toToken, _amountIn);
+            if (outputAmount > bestPath.amountOutMin) {
+                bestPath.swapRouter = address(router);
+                bestPath.path = path;
+                bestPath.amountOutMin = outputAmount;
+            }
+        }
+        // TODO: Use a const for 10_000
+        bestPath.amountOutMin = (bestPath.amountOutMin * (10_000 - _slippage)) / 10_000;
 
         //Calculation of price impact. actual price is the current actual price which does not take slippage into account for less liquid pairs.
         //It calculates the impact between actual price and price after slippage.
         // TODO: 10_000 hardcoded
         //With a denominator of 10_000. 100 = 1% price impact, 1000 = 10% price impact.
         uint256 actualPrice = _amountIn;
-        console.log("actualPrice", actualPrice);
+        IUniswapV2Factory factory = IUniswapV2Factory(IUniswapV2Router02(bestPath.swapRouter).factory());
         for (uint256 i = 0; i < bestPath.path.length - 1; i++) {
             address token0 = bestPath.path[i];
             address token1 = bestPath.path[i + 1];
@@ -426,7 +395,6 @@ contract SoulZap_UniV2_Lens is AccessManaged {
             if (token0 > token1) {
                 (reserveA, reserveB) = (reserveB, reserveA);
             }
-            console.log(factory.getPair(token0, token1), reserveB, reserveA, (reserveB * 1e18) / reserveA);
             actualPrice *= (reserveB * 1e18) / reserveA;
             if (i > 0) {
                 actualPrice /= 1e18;
@@ -434,20 +402,93 @@ contract SoulZap_UniV2_Lens is AccessManaged {
             // TODO: Remove console.log before production
             console.log("actualPrice", actualPrice);
         }
-        console.log(bestPath.amountOutMin * 1e22, actualPrice);
-        console.log(10_000 - ((bestPath.amountOutMin * 1e22) / actualPrice));
+        console.log(bestPath.amountOutMin, actualPrice);
         // TODO: Hardcoded 10_000, also we should probably add in some more granularity here
         // NOTE: hardcoded 1e22
         priceImpactPercentage = 10_000 - ((bestPath.amountOutMin * 1e22) / actualPrice);
-        console.log(priceImpactPercentage);
+    }
+
+    /**
+     * @dev Get the best route from a Uniswap V2 factory for swapping between two tokens.
+     * @param factory The Uniswap V2 factory contract.
+     * @param router The Uniswap V2 router contract associated with the factory.
+     * @param _fromToken The source token for the swap.
+     * @param _toToken The target token for the swap.
+     * @param _amountIn The input amount for the swap.
+     * @return bestPath An array of addresses representing the best route.
+     * @return maxOutputAmount The maximum output amount for the swap.
+     */
+    function getBestRouteFromFactory(
+        IUniswapV2Factory factory,
+        IUniswapV2Router02 router,
+        address _fromToken,
+        address _toToken,
+        uint _amountIn
+    ) public view returns (address[] memory bestPath, uint256 maxOutputAmount) {
+        address[] memory path;
+        /// @dev If pair exists, then we will note the output amount and path to compare
+        if (pairExists(factory, _fromToken, _toToken)) {
+            bestPath = new address[](2);
+            bestPath[0] = _fromToken;
+            bestPath[1] = _toToken;
+            uint[] memory amounts = router.getAmountsOut(_amountIn, bestPath);
+            maxOutputAmount = amounts[amounts.length - 1];
+        }
+
+        address[] memory possibleHopTokens = findPossibleHopTokens(factory, _fromToken, _toToken);
+        if (possibleHopTokens.length == 0) {
+            return (bestPath, maxOutputAmount);
+        }
+
+        path = new address[](3);
+        path[0] = _fromToken;
+        path[2] = _toToken;
+        for (uint i = 0; i < possibleHopTokens.length; i++) {
+            if (possibleHopTokens[i] == address(0)) {
+                break;
+            }
+            path[1] = possibleHopTokens[i];
+            // TODO: Remove console.log before production
+            console.log(path[0], path[1], path[2]);
+            uint[] memory amounts = router.getAmountsOut(_amountIn, path);
+            if (amounts[amounts.length - 1] > maxOutputAmount) {
+                maxOutputAmount = amounts[amounts.length - 1];
+                bestPath = new address[](3);
+                bestPath[0] = path[0];
+                bestPath[1] = path[1];
+                bestPath[2] = path[2];
+                // TODO: Remove console.log before production
+                console.log("betterpath", bestPath[1], maxOutputAmount);
+            }
+        }
+
+        //TODO: add a double hop check so both tokens only need to have a pair with any one of the blue chip hop tokens instead of both with the same one
     }
 
     /// -----------------------------------------------------------------------
     /// Restricted functions
     /// -----------------------------------------------------------------------
 
-    function changeFeeStableToken(address _feeStableToken) public restricted {
-        feeStableToken = _feeStableToken;
+    function addFactoryFromRouter(IUniswapV2Router02 _router) public restricted {
+        IUniswapV2Factory factory = IUniswapV2Factory(_router.factory());
+        factories.push(factory);
+        factoryToRouter[factory] = _router;
+    }
+
+    function removeFactory(IUniswapV2Factory _factory) public restricted {
+        // Search for the factory in the array
+        for (uint256 i = 0; i < factories.length; i++) {
+            if (factories[i] == _factory) {
+                // Swap the element to remove to the end of the array
+                factories[i] = factories[uint256(factories.length) - 1];
+                // Shorten the array by one
+                factories.pop();
+                break;
+            }
+        }
+
+        // Remove the factory from the mapping
+        delete factoryToRouter[_factory];
     }
 
     function addHopTokens(address[] memory tokens) public restricted {
@@ -467,6 +508,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
                     // Swap the element to remove with the last element
                     hopTokens[i] = hopTokens[hopTokens.length - 1];
                 }
+                // Shorten the array by one
                 hopTokens.pop();
                 break;
             }
