@@ -1,17 +1,29 @@
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity 0.8.20;
+pragma solidity 0.8.23;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "../lib/IWETH.sol";
+import {IWETH} from "../lib/IWETH.sol";
 
 contract TransferHelper {
     using SafeERC20 for IERC20;
 
+    /// -----------------------------------------------------------------------
+    /// Storage variables
+    /// -----------------------------------------------------------------------
+
     IWETH public immutable WNATIVE;
+
+    /// -----------------------------------------------------------------------
+    /// Constructor
+    /// -----------------------------------------------------------------------
 
     constructor(IWETH wnative) {
         WNATIVE = wnative;
     }
+
+    /// -----------------------------------------------------------------------
+    /// Wrapped Native helpers
+    /// -----------------------------------------------------------------------
 
     /// @notice Wrap the msg.value into the Wrapped Native token
     /// @return wNative The IERC20 representation of the wrapped asset
@@ -29,6 +41,16 @@ contract TransferHelper {
         IWETH(WNATIVE).withdraw(amount);
     }
 
+    /// -----------------------------------------------------------------------
+    /// ERC20 transfer helpers (supporting fee on transfer)
+    /// - Also `_transferOut` WNative unwrap support.
+    /// -----------------------------------------------------------------------
+
+    /// @notice Transfers in ERC20 tokens from the sender to this contract
+    /// @param token The ERC20 token to transfer
+    /// @param amount The amount of tokens to transfer
+    /// @return inputAmount The actual amount of tokens transferred
+
     function _transferIn(IERC20 token, uint256 amount) internal returns (uint256 inputAmount) {
         if (amount == 0) return 0;
         uint256 balanceBefore = _getBalance(token);
@@ -36,6 +58,11 @@ contract TransferHelper {
         inputAmount = _getBalance(token) - balanceBefore;
     }
 
+    /// @notice Transfers out ERC20 tokens from this contract to a recipient
+    /// @param token The ERC20 token to transfer
+    /// @param amount The amount of tokens to transfer
+    /// @param to The recipient of the tokens
+    /// @param native Whether to unwrap Wrapped Native tokens before transfer
     function _transferOut(IERC20 token, uint256 amount, address to, bool native) internal {
         if (amount == 0) return;
         if (address(token) == address(WNATIVE) && native) {
@@ -49,6 +76,9 @@ contract TransferHelper {
         }
     }
 
+    /// @notice Gets the balance of an ERC20 token in this contract
+    /// @param token The ERC20 token to check the balance of
+    /// @return balance The balance of the tokens in this contract
     function _getBalance(IERC20 token) internal view returns (uint256 balance) {
         balance = token.balanceOf(address(this));
     }
