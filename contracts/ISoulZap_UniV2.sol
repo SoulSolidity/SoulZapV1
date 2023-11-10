@@ -32,8 +32,7 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./extensions/ApeBond/lib/ICustomBillRefillable.sol";
 
-// TODO: ISoulZap_UniV2
-interface ISoulZap {
+interface ISoulZap_UniV2 {
     /// -----------------------------------------------------------------------
     /// Swap Path
     /// -----------------------------------------------------------------------
@@ -71,6 +70,7 @@ interface ISoulZap {
     struct ZapParams {
         IERC20 inputToken;
         uint256 inputAmount;
+        /// @dev Common interface below between ZapParamsNative
         address token0;
         address token1;
         SwapPath path0;
@@ -90,17 +90,6 @@ interface ISoulZap {
         uint256 deadline;
     }
 
-    // TODO: comments
-    // struct MinAmountsParams {
-    //     IERC20 inputToken;
-    //     uint256 inputAmount;
-    //     address token0;
-    //     address token1;
-    //     SwapPath path0;
-    //     SwapPath path1;
-    //     LiquidityPath liquidityPath;
-    // }
-
     /// -----------------------------------------------------------------------
     /// Functions
     /// -----------------------------------------------------------------------
@@ -109,8 +98,16 @@ interface ISoulZap {
 
     function zapNative(ZapParamsNative memory zapParamsNative) external payable;
 
-    // TODO: comments
-    // function getMinAmounts(
-    //     MinAmountsParams memory params
-    // ) external view returns (uint256[2] memory minAmountsSwap, uint256[2] memory minAmountsLP);
+    /// -----------------------------------------------------------------------
+    /// Helper Structs
+    /// -----------------------------------------------------------------------
+
+    struct LocalVars {
+        uint256 amount0In;
+        uint256 amount1In;
+        uint256 amount0Out;
+        uint256 amount1Out;
+        uint256 amount0Lp;
+        uint256 amount1Lp;
+    }
 }

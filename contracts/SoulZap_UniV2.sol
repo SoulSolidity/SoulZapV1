@@ -1,4 +1,5 @@
-// SPDX-License-Identifier: GPL-3.0-only
+// SPDX-License-Identifier: BUSL-1.1
+// TODO: Last thing update compiler version to 0.8.23
 pragma solidity 0.8.20;
 
 /*
@@ -29,43 +30,96 @@ pragma solidity 0.8.20;
  * GitHub:          https:// TODO
  */
 
-import "./ISoulZap.sol";
-import "./lib/IApeRouter02.sol";
-import "./lib/IApeFactory.sol";
-import "./lib/IApePair.sol";
-import "./lib/IWETH.sol";
-import {ISoulFeeManager} from "./fee-manager/ISoulFeeManager.sol";
+/// -----------------------------------------------------------------------
+/// Package Imports (alphabetical)
+/// -----------------------------------------------------------------------
+
 import {AccessManaged} from "@openzeppelin/contracts/access/manager/AccessManaged.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {EpochTracker} from "./EpochTracker.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {IUniswapV2Factory} from "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
+import {IUniswapV2Pair} from "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
+import {IUniswapV2Router02} from "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
+import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+
+/// -----------------------------------------------------------------------
+/// Local Imports (alphabetical)
+/// -----------------------------------------------------------------------
+import {IWETH} from "./lib/IWETH.sol";
+import {EpochVolumeTracker} from "./utils/EpochVolumeTracker.sol";
+import {ISoulFeeManager} from "./fee-manager/ISoulFeeManager.sol";
+import {ISoulZap_UniV2} from "./ISoulZap_UniV2.sol";
 import {TransferHelper} from "./utils/TransferHelper.sol";
 
+// FIXME: Do this last so we have a clean commit history
 // TODO: Need to rename this file to SoulZap_UniV2.sol
-contract SoulZap_UniV2 is ISoulZap, EpochTracker, TransferHelper, ReentrancyGuard, AccessManaged, Pausable {
+/*
+/// @dev The receive method is used as a fallback function in a contract
+/// and is called when ether is sent to a contract with no calldata.
+receive() external payable {
+    if (msg.sender != address(WNATIVE)) revert SoulZap_ReceiveOnlyFrom_WNative();
+}
+*/
+/**
+ * @title SoulZap_UniV2
+ * @dev This contract is an implementation of ISoulZap interface. It includes functionalities for zapping in and out of
+ * UniswapV2 type liquidity pools.
+ * @notice This contract uses SafeERC20 for safe token transfers.
+ * @author Soul Solidity - (Contact for mainnet licensing until 730 days after the deployment transaction. Otherwise
+ * feel free to experiment locally or on testnets.)
+ * @notice Do not use this contract for any tokens that do not have a standard ERC20 implementation.
+ */
+
+contract SoulZap_UniV2 is
+    ISoulZap_UniV2,
+    /// @dev other extensions in alphabetical order
+    AccessManaged,
+    EpochVolumeTracker,
+    Initializable,
+    Pausable,
+    ReentrancyGuard,
+    TransferHelper
+{
     using SafeERC20 for IERC20;
 
-    // TODO:? Move to ISoulZap_LocalVars for cleanup?
-    struct LocalVars {
-        uint256 amount0In;
-        uint256 amount1In;
-        uint256 amount0Out;
-        uint256 amount1Out;
-        uint256 amount0Lp;
-        uint256 amount1Lp;
-    }
+    /// -----------------------------------------------------------------------
+    /// Storage variables
+    /// -----------------------------------------------------------------------
 
     ISoulFeeManager public soulFeeManager;
+
+    /// -----------------------------------------------------------------------
+    /// Events
+    /// -----------------------------------------------------------------------
 
     event Zap(ZapParams zapParams);
     event ZapNative(ZapParams zapParams);
 
+    /// -----------------------------------------------------------------------
+    /// Errors
+    /// -----------------------------------------------------------------------
+
+    // TODO: Refactor `require` to revert
+    error SoulZap_ReceiveOnlyFrom_WNative();
+    error SoulZap_ZapToNullAddressError();
+    error SoulZap_SwapAndLpRoutersNullError();
+    error SoulZap_Token0NullError();
+    error SoulZap_Token1NullError();
+
+    /// -----------------------------------------------------------------------
+    /// Constructor
+    /// -----------------------------------------------------------------------
+    // TODO: Considering adding a function `optionalInit` which can be called after the constructor to set the initial to allow for constructor deploys and also upgradeable deploys.
+    // But it's a NTH at this point.
     constructor(
+        address _accessManager,
         IWETH _wnative,
         ISoulFeeManager _soulFeeManager,
-        address _accessManager
-    ) TransferHelper(_wnative) AccessManaged(_accessManager) EpochTracker(0) {
+        /// @dev Set to zero to start epoch tracking immediately
+        uint256 _epochStartTime
+    ) AccessManaged(_accessManager) EpochVolumeTracker(0, _epochStartTime) TransferHelper(_wnative) {
         // TODO: validate?
         soulFeeManager = _soulFeeManager;
     }
@@ -87,7 +141,7 @@ contract SoulZap_UniV2 is ISoulZap, EpochTracker, TransferHelper, ReentrancyGuar
 
     /// @notice Zap single token to LP
     /// @param zapParams all parameters for zap
-    function zap(ZapParams memory zapParams) external override nonReentrant whenNotPaused {
+    function zap(ZapParams memory zapParams) external override nonReentrant {
         uint256 balanceBefore = _getBalance(zapParams.inputToken);
         zapParams.inputToken.safeTransferFrom(msg.sender, address(this), zapParams.inputAmount);
         zapParams.inputAmount = _getBalance(zapParams.inputToken) - balanceBefore;
@@ -97,7 +151,7 @@ contract SoulZap_UniV2 is ISoulZap, EpochTracker, TransferHelper, ReentrancyGuar
 
     /// @notice Zap native token to LP
     /// @param zapParamsNative all parameters for native zap
-    function zapNative(ZapParamsNative memory zapParamsNative) external payable override nonReentrant whenNotPaused {
+    function zapNative(ZapParamsNative memory zapParamsNative) external payable override nonReentrant {
         (IERC20 wNative, uint256 inputAmount) = _wrapNative();
 
         ZapParams memory zapParams = ZapParams({
@@ -116,7 +170,8 @@ contract SoulZap_UniV2 is ISoulZap, EpochTracker, TransferHelper, ReentrancyGuar
     }
 
     /// @notice Ultimate ZAP function
-    /// @dev Assumes tokens are already transferred to this contract
+    /// @dev Assumes tokens are already transferred to this contract.
+    /// - whenNotPaused: Only works when not paused which also pauses all other extensions which extend this
     /// @param zapParams all parameters for zap
     /// swapRouter swap router
     /// swapType type of swap zap
@@ -140,7 +195,7 @@ contract SoulZap_UniV2 is ISoulZap, EpochTracker, TransferHelper, ReentrancyGuar
     /// deadline Latest timestamp this call is valid
     /// @param native Unwrap Wrapped Native tokens before transferring
     /// @param protocolFee Protocol fee to take
-    function _zap(ZapParams memory zapParams, bool native, uint256 protocolFee) internal {
+    function _zap(ZapParams memory zapParams, bool native, uint256 protocolFee) internal whenNotPaused {
         // Verify inputs
         require(zapParams.to != address(0), "SoulZap: Can't zap to null address");
         require(
@@ -175,7 +230,7 @@ contract SoulZap_UniV2 is ISoulZap, EpochTracker, TransferHelper, ReentrancyGuar
         if (zapParams.liquidityPath.lpType == LPType.V2) {
             // Handle UniswapV2 Liquidity
             require(
-                IApeFactory(IApeRouter02(zapParams.liquidityPath.lpRouter).factory()).getPair(
+                IUniswapV2Factory(IUniswapV2Router02(zapParams.liquidityPath.lpRouter).factory()).getPair(
                     zapParams.token0,
                     zapParams.token1
                 ) != address(0),
@@ -224,7 +279,7 @@ contract SoulZap_UniV2 is ISoulZap, EpochTracker, TransferHelper, ReentrancyGuar
 
         if (zapParams.liquidityPath.lpType == LPType.V2) {
             // Add liquidity to UniswapV2 Pool
-            (vars.amount0Lp, vars.amount1Lp, ) = IApeRouter02(zapParams.liquidityPath.lpRouter).addLiquidity(
+            (vars.amount0Lp, vars.amount1Lp, ) = IUniswapV2Router02(zapParams.liquidityPath.lpRouter).addLiquidity(
                 zapParams.token0,
                 zapParams.token1,
                 vars.amount0Out,
@@ -284,7 +339,7 @@ contract SoulZap_UniV2 is ISoulZap, EpochTracker, TransferHelper, ReentrancyGuar
         if (swapType == SwapType.V2) {
             // TODO ZapFee: Can use this to take the fee and send to the feeCollector if fee route is passed from lens
             // Perform UniV2 swap
-            IApeRouter02(router).swapExactTokensForTokens(amountIn, amountOutMin, path, address(this), deadline);
+            IUniswapV2Router02(router).swapExactTokensForTokens(amountIn, amountOutMin, path, address(this), deadline);
         } else {
             revert("SoulZap: SwapType not supported");
         }

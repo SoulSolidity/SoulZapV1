@@ -16,6 +16,7 @@
     "precommit": "yarn lint:fix && yarn lint:ci",
     "prepublishOnly": "yarn audit && node prepublish.js",
     "precompile": "yarn clean ./artifacts && yarn clean ./cache",
+    "compile:quick": "hardhat compile",
     "compile": "hardhat compile",
     "gen:docs": "hardhat docgen",
     "deploy": "hardhat run ./scripts/deploy/deployLock.ts --network",

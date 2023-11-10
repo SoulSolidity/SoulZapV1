@@ -4,7 +4,7 @@ pragma solidity 0.8.20;
 import "./IArrakisPool.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
-import "./IApeRouter02.sol";
+import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "./IArrakisFactoryV1.sol";
 
 library ArrakisMath {
@@ -113,7 +113,7 @@ library ArrakisMath {
         if (uniV3PoolFees.length == 0) {
             uint256 tokenDecimals = getTokenDecimals(path[path.length - 1]);
 
-            uint256[] memory amountsOut0 = IApeRouter02(uniV2Router).getAmountsOut(1e18, path);
+            uint256[] memory amountsOut0 = IUniswapV2Router02(uniV2Router).getAmountsOut(1e18, path);
             weightedPrice = _normalizeTokenDecimals(amountsOut0[amountsOut0.length - 1], tokenDecimals);
         } else {
             for (uint256 index = 0; index < path.length - 1; index++) {
