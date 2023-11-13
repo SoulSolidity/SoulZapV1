@@ -82,4 +82,12 @@ contract TransferHelper {
     function _getBalance(IERC20 token) internal view returns (uint256 balance) {
         balance = token.balanceOf(address(this));
     }
+
+    /// @notice Gets the balance of an ERC20 token in this contract
+    /// @param token The ERC20 token to check the balance of
+    /// @param token The address to check the balance of
+    /// @return balance The balance of the tokens in this contract
+    function _getBalance(IERC20 token, address _address) internal view returns (uint256 balance) {
+        balance = token.balanceOf(_address);
+    }
 }

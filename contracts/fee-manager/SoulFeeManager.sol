@@ -10,7 +10,7 @@ import {ISoulFeeManager} from "./ISoulFeeManager.sol";
  * feel free to experiment locally or on testnets.)
  */
 contract SoulFeeManager is ISoulFeeManager {
-    uint256 public DENOMINATOR = 10_000;
+    uint256 public FEE_DENOMINATOR = 10_000;
 
     function getFee(uint256 epochVolume) external view returns (uint256 fee) {
         return 300;

@@ -156,7 +156,7 @@ const config: HardhatUserConfig = {
     hardhat: {
       forking: {
         url: getEnv('FORK_RPC_URL') || '',
-        blockNumber: 49654950
+        blockNumber: 49654950,
       },
       gas: 'auto',
       gasPrice: 'auto',

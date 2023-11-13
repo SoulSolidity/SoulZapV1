@@ -1,16 +1,22 @@
-// import { ethers, network } from 'hardhat'
-// import { DeployableNetworks, getDeployConfig } from '../../scripts/deploy/deploy.config'
+import { ethers } from 'hardhat'
+import { getDeployConfig, DeployableNetworks } from '../../scripts/deploy/deploy.config'
+import { ZERO_ADDRESS } from '../../src'
+import { ChainId } from '../../src/constants'
+export async function deployZapFixture(_ethers: typeof ethers, chain: DeployableNetworks) {
+    // Contracts are deployed using the first signer/account by default
+    const { wNative, admin, dexInfo, hopTokens, feeCollector, protocolFee, proxyAdminAddress, maxFee } = getDeployConfig(chain)
+    const [owner, otherAccount] = await _ethers.getSigners()
 
-// export async function deployRoutingFixture(_ethers: typeof ethers) {
-//   const currentNetwork = network.name as DeployableNetworks
+    const SoulAccessManager = await _ethers.getContractFactory('SoulAccessManager')
+    const soulAccessManager = await SoulAccessManager.deploy(admin)
 
-//   const { wNative, feeCollector, protocolFee } = getDeployConfig(currentNetwork)
+    const SoulFeeManager = await _ethers.getContractFactory('SoulFeeManager')
+    const soulFeeManager = await SoulFeeManager.deploy()
 
-//   // Contracts are deployed using the first signer/account by default
-//   const [owner, otherAccount] = await _ethers.getSigners()
+    const SoulZap_UniV2_Extended_V1 = await _ethers.getContractFactory('SoulZap_UniV2_Extended_V1')
+    const soulZap = await SoulZap_UniV2_Extended_V1.deploy(
+        soulAccessManager.address, wNative, soulFeeManager.address, 0
+    )
 
-//   const SoulZap = await _ethers.getContractFactory('SoulZapFullV1')
-//   const soulZap = await SoulZap.deploy(wNative, feeCollector, protocolFee)
-
-//   return { soulZap, owner, otherAccount }
-// }
+    return { soulAccessManager, soulFeeManager, soulZap }
+}

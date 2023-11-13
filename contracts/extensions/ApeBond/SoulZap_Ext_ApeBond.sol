@@ -42,11 +42,12 @@ abstract contract SoulZap_Ext_ApeBond is SoulZap_UniV2 {
     /// @param maxPrice Max price of treasury bill
     function zapBond(
         ZapParams memory zapParams,
+        SwapPath memory feeSwapPath,
         // TODO: Rebrand to `IApeBond bond`?
         ICustomBillRefillable bill,
         uint256 maxPrice
     ) external nonReentrant {
-        _zapBond(zapParams, false, bill, maxPrice);
+        _zapBond(zapParams, false, feeSwapPath, bill, maxPrice);
     }
 
     /// @notice Zap native token to Treasury Bill
@@ -55,6 +56,7 @@ abstract contract SoulZap_Ext_ApeBond is SoulZap_UniV2 {
     /// @param maxPrice Max price of treasury bill
     function zapBondNative(
         ZapParamsNative memory zapParamsNative,
+        SwapPath memory feeSwapPath,
         ICustomBillRefillable bill,
         uint256 maxPrice
     ) external payable nonReentrant {
@@ -72,14 +74,20 @@ abstract contract SoulZap_Ext_ApeBond is SoulZap_UniV2 {
             deadline: zapParamsNative.deadline
         });
 
-        _zapBond(zapParams, true, bill, maxPrice);
+        _zapBond(zapParams, true, feeSwapPath, bill, maxPrice);
     }
 
     /// -----------------------------------------------------------------------
     /// Private Functions
     /// -----------------------------------------------------------------------
 
-    function _zapBond(ZapParams memory zapParams, bool native, ICustomBillRefillable bill, uint256 maxPrice) private {
+    function _zapBond(
+        ZapParams memory zapParams,
+        bool native,
+        SwapPath memory feeSwapPath,
+        ICustomBillRefillable bill,
+        uint256 maxPrice
+    ) private {
         IUniswapV2Pair pair = IUniswapV2Pair(bill.principalToken());
         // TODO: Will need to expand this because bonds can technically be any token, not just LPs
         require(
@@ -90,7 +98,7 @@ abstract contract SoulZap_Ext_ApeBond is SoulZap_UniV2 {
         address to = zapParams.to;
         zapParams.to = address(this);
         // TODO: getEpochVolume() is experimental. Volume is currently not yet tracked
-        _zap(zapParams, native, soulFeeManager.getFee(getEpochVolume()));
+        _zap(zapParams, native, feeSwapPath, soulFeeManager.getFee(getEpochVolume()));
 
         uint256 balance = pair.balanceOf(address(this));
         pair.approve(address(bill), balance);

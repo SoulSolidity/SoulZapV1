@@ -8,6 +8,8 @@ pragma solidity ^0.8.0;
  * feel free to experiment locally or on testnets.)
  */
 interface ISoulFeeManager {
+    function FEE_DENOMINATOR() external view returns (uint256 denominator);
+
     function getFee(uint256 epochVolume) external view returns (uint256 fee);
 
     function getFeeCollector() external view returns (address fee);

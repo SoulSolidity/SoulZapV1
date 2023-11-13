@@ -94,9 +94,9 @@ interface ISoulZap_UniV2 {
     /// Functions
     /// -----------------------------------------------------------------------
 
-    function zap(ZapParams memory zapParams) external;
+    function zap(ZapParams memory zapParams, SwapPath memory feeSwapPath) external;
 
-    function zapNative(ZapParamsNative memory zapParamsNative) external payable;
+    function zapNative(ZapParamsNative memory zapParamsNative, SwapPath memory feeSwapPath) external payable;
 
     /// -----------------------------------------------------------------------
     /// Helper Structs

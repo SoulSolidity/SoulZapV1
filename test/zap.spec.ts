@@ -1,13 +1,13 @@
 /**
  * hardhat-network-helpers:
- * `mine`: Increase block height
+ * `mine`: Increase block height 
  * `time`: Adjust block timestamp
  */
 import { mine, time, loadFixture } from '@nomicfoundation/hardhat-network-helpers'
-import { deployRoutingFixture } from './fixtures'
-/**
+import { deployRoutingFixture, deployZapFixture } from './fixtures'
+/**  
  * hardhat-chai-matchers reference 
- * https://hardhat.org/hardhat-chai-matchers/docs/reference
+ * https://hardhat.org/hardhat-chai-matchers/docs/reference 
  *
  * The @nomicfoundation/hardhat-chai-matchers plugin is meant to be a drop-in replacement
  * for the @nomiclabs/hardhat-waffle plugin
@@ -20,8 +20,12 @@ import { deployRoutingFixture } from './fixtures'
 import { anyValue } from '@nomicfoundation/hardhat-chai-matchers/withArgs'
 import { expect } from 'chai'
 import { ethers } from 'hardhat'
+import { getDeployConfig, DeployableNetworks } from '../scripts/deploy/deploy.config'
 
-describe('Routing', function () {
+describe('SoulZap', function () {
+
+  const USDC = "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174";
+
   /**
    * Configurable fixture to use for each test file.
    *
@@ -33,16 +37,102 @@ describe('Routing', function () {
    * and resets the Hardhat Network to that snapshot for every test.
    */
   async function fixture() {
-    const routingDeployment = await deployRoutingFixture(ethers)
-    return { ...routingDeployment }
+    const chain: DeployableNetworks = 'polygon';
+    const { wNative, admin, dexInfo, hopTokens, feeCollector, protocolFee, proxyAdminAddress, maxFee } = getDeployConfig(chain)
+    const zapDeploymentApeBond = await deployZapFixture(ethers, chain);
+    const routingDeploymentApeBond = await deployRoutingFixture(ethers, chain, zapDeploymentApeBond.soulZap.address, dexInfo.ApeBond?.router!);
+    const routingDeploymentQuickSwap = await deployRoutingFixture(ethers, chain, zapDeploymentApeBond.soulZap.address, dexInfo.QuickSwap?.router!);
+
+    return {
+      soulZap: zapDeploymentApeBond.soulZap,
+      soulAccessManager: zapDeploymentApeBond.soulAccessManager,
+      soulFeeManager: zapDeploymentApeBond.soulFeeManager,
+      soulZap_ApeBond_Lens: routingDeploymentApeBond.soulZap_Lens,
+      soulZap_Quick_Lens: routingDeploymentQuickSwap.soulZap_Lens
+    }
   }
 
-  describe('Test', function () {
-    it('Should work', async function () {
-      const { soulZap_Lens } = await loadFixture(fixture)
-      const bestRoute = await soulZap_Lens.getPairLength('0x0841BD0B734E4F5853f0dD8d7Ea041c241fb0Da6');
-      // const bestRoute = await soulZap_Lens.getBestRoute('0x603c7f932ED1fc6575303D8Fb018fDCBb0f39a95', '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c', "100000000000000000");
-      console.log(bestRoute);
+  describe('LPs', function () {
+    it('ApeBond Native -> APE USDT-MATIC LP', async function () {
+      const { soulAccessManager, soulFeeManager, soulZap, soulZap_ApeBond_Lens, soulZap_Quick_Lens, } = await loadFixture(fixture)
+      const signer = ethers.provider.getSigner();
+      const amount = '1000000000000000000';
+
+      const bestRoute = await soulZap_ApeBond_Lens.getZapDataNative(amount, '0x65D43B64E3B31965Cd5EA367D4c2b94c03084797', 0, '0x5c7C7246bD8a18DF5f6Ee422f9F8CCDF716A6aD2');
+      console.log(JSON.stringify(bestRoute))
+      const zapTx = await signer.sendTransaction({
+        to: soulZap.address, // Address of the contract
+        data: bestRoute.encodedTx,
+        value: amount
+      });
+    })
+
+    it('ApeBond USDC -> APE USDT-MATIC LP', async function () {
+      const { soulAccessManager, soulFeeManager, soulZap, soulZap_ApeBond_Lens, soulZap_Quick_Lens, } = await loadFixture(fixture)
+      const signer = ethers.provider.getSigner();
+      const amount = '1000000';
+      console.log(await signer.getAddress())
+
+      const usdc = await ethers.getContractAt('ERC20', USDC);
+
+      const accountToImpersonate = "0xf89d7b9c864f589bbF53a82105107622B35EaA40";
+      await ethers.provider.send("hardhat_impersonateAccount", [accountToImpersonate]);
+      const fakeSigner = await ethers.getSigner(accountToImpersonate);
+      console.log('go')
+      const balance = await usdc.balanceOf(accountToImpersonate);
+      console.log(balance.toString())
+      await usdc.connect(fakeSigner).transfer(await signer.getAddress(), amount);
+
+      console.log('done')
+
+      const bestRoute = await soulZap_ApeBond_Lens.getZapData(USDC, amount, '0x65D43B64E3B31965Cd5EA367D4c2b94c03084797', 0, '0x5c7C7246bD8a18DF5f6Ee422f9F8CCDF716A6aD2');
+      console.log(JSON.stringify(bestRoute));
+      await usdc.approve(soulZap.address, amount);
+      const zapTx = await signer.sendTransaction({
+        to: soulZap.address, // Address of the contract
+        data: bestRoute.encodedTx,
+      });
+    })
+
+    it('QS Native -> APE USDT-MATIC LP', async function () {
+      const { soulAccessManager, soulFeeManager, soulZap, soulZap_ApeBond_Lens, soulZap_Quick_Lens, } = await loadFixture(fixture)
+      const signer = ethers.provider.getSigner();
+      const amount = '1000000000000000000';
+
+      const bestRoute = await soulZap_Quick_Lens.getZapDataNative(amount, '0x604229c960e5CACF2aaEAc8Be68Ac07BA9dF81c3', 0, '0x5c7C7246bD8a18DF5f6Ee422f9F8CCDF716A6aD2');
+      console.log(JSON.stringify(bestRoute))
+      const zapTx = await signer.sendTransaction({
+        to: soulZap.address, // Address of the contract
+        data: bestRoute.encodedTx,
+        value: amount
+      });
+    })
+
+    it('QS USDC -> APE USDT-MATIC LP', async function () {
+      const { soulAccessManager, soulFeeManager, soulZap, soulZap_ApeBond_Lens, soulZap_Quick_Lens, } = await loadFixture(fixture)
+      const signer = ethers.provider.getSigner();
+      const amount = '1000000';
+      console.log(await signer.getAddress())
+
+      const usdc = await ethers.getContractAt('ERC20', USDC);
+
+      const accountToImpersonate = "0xf89d7b9c864f589bbF53a82105107622B35EaA40";
+      await ethers.provider.send("hardhat_impersonateAccount", [accountToImpersonate]);
+      const fakeSigner = await ethers.getSigner(accountToImpersonate);
+      console.log('go')
+      const balance = await usdc.balanceOf(accountToImpersonate);
+      console.log(balance.toString())
+      await usdc.connect(fakeSigner).transfer(await signer.getAddress(), amount);
+
+      console.log('done')
+
+      const bestRoute = await soulZap_Quick_Lens.getZapData(USDC, amount, '0x604229c960e5CACF2aaEAc8Be68Ac07BA9dF81c3', 0, '0x5c7C7246bD8a18DF5f6Ee422f9F8CCDF716A6aD2');
+      console.log(JSON.stringify(bestRoute));
+      await usdc.approve(soulZap.address, amount);
+      const zapTx = await signer.sendTransaction({
+        to: soulZap.address, // Address of the contract
+        data: bestRoute.encodedTx,
+      });
     })
   })
-})
+}) 

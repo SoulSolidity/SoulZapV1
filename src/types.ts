@@ -59,3 +59,8 @@ export type ZapBondDataNative = {
   encodedParams: string,
   encodedTx: string
 }
+
+export type ZapParams_Ext_Bonds = {
+  bill: string,
+  maxPrice: number | string
+}
