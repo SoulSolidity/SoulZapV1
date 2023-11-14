@@ -1,3 +1,4 @@
+import { BigNumber } from "ethers";
 import { LPType, SwapType } from "./constants";
 
 export type SwapPath = {
@@ -36,31 +37,28 @@ export type ZapParamsNative = {
   deadline: number | string
 };
 
-export type ZapParamsBond = {
-  zapParams: ZapParams;
-  bill: string;
-  maxPrice: number | string;
-};
+export type zapData =
+  { error: string } |
+  {
+    encodedTx: string,
+    zapParams: ZapParams | ZapParamsNative,
+    feeSwapPath: SwapPath,
+    priceImpactPercentages: BigNumber[]
+  }
 
-export type ZapParamsBondNative = {
-  zapParams: ZapParamsNative;
-  bill: string;
-  maxPrice: number | string;
-};
-
-export type ZapBondData = {
-  params: ZapParamsBond,
-  encodedParams: string,
-  encodedTx: string
-}
-
-export type ZapBondDataNative = {
-  params: ZapParamsBondNative,
-  encodedParams: string,
-  encodedTx: string
-}
 
 export type ZapParams_Ext_Bonds = {
   bill: string,
   maxPrice: number | string
 }
+
+export type zapDataBond =
+  { error: string } |
+  {
+    encodedTx: string,
+    zapParams: ZapParams | ZapParamsNative,
+    feeSwapPath: SwapPath,
+    priceImpactPercentages: BigNumber[],
+    zapParamsBonds: ZapParams_Ext_Bonds
+  }
+

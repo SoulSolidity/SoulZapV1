@@ -1,7 +1,11 @@
 // tests/calculator.spec.tx
 import { assert } from "chai";
 import { providers, utils } from "ethers";
-import { getZapDataBond, getZapDataBondNative } from '../src/index'
+import { SoulZap_UniV2_ApeBond } from '../src/index'
+import { ChainId, DEX, Project } from "../src/constants";
+import { ethers } from "hardhat";
+import { getEnv, Logger, logger, testRunner } from '../hardhat/utils'
+import { zapDataBond } from "../src/index"
 
 // const WMATIC = "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270";
 // const DAI = "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063";
@@ -29,7 +33,37 @@ export const ether = (value: string) =>
 
 describe("SDK - lens contract", () => {
   it("Should return data", async () => {
-    const zapData: any = await getZapDataBondNative("100" + "000000000000000000", "0xB12413a70efd97B827201a071285fBFfCAC436Bc", 50, TO_ADDRESS, "https://binance.llamarpc.com");
-    console.log(zapData.encodedTx)
+    const signer = ethers.provider.getSigner();
+    const rpc = getEnv('POLYGON_RPC_URL')
+    const provider = new ethers.providers.JsonRpcProvider(rpc);
+
+    //Create soulZap object
+    const soulZap = new SoulZap_UniV2_ApeBond(ChainId.POLYGON, provider)
+
+    const amount = "1000000000000000000";
+    const BOND_ADDRESS = "0x4F256deDd156fB1Aa6e485E92FeCeB7bc15EBFcA";
+    const recipient = "0x551DcB2Cf6155CBc4d1a8151576EEC43f3aE5559";
+    const allowedPriceImpactPercentage = 3; //max 3% price impact or it returns an error (for low liquidity or large zaps)
+
+    const zapData = await soulZap.getZapDataBondNative(DEX.APEBOND, amount, BOND_ADDRESS, allowedPriceImpactPercentage, recipient);
+
+    //Error handling
+    if ('error' in zapData) {
+      // Log or handle the error appropriately
+      console.error(zapData.error);
+      return
+    }
+
+    // Data to possibly show on UI
+    zapData.priceImpactPercentages;
+    zapData.zapParams.liquidityPath.minAmountLP0
+    zapData.zapParams.path0.amountOutMin
+
+    //Actual zap tx
+    const soulZapContract = soulZap.getZapContract();
+    const zapTx = await signer.sendTransaction({
+      to: soulZapContract.address, // Address of the contract
+      data: zapData.encodedTx,
+    });
   });
 });
