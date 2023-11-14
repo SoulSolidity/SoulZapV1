@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: BUSL-1.1
-// TODO: Last thing update compiler version to 0.8.23
 pragma solidity 0.8.23;
 
 /*
@@ -53,6 +52,7 @@ import {ISoulFeeManager} from "./fee-manager/ISoulFeeManager.sol";
 import {ISoulZap_UniV2} from "./ISoulZap_UniV2.sol";
 import {TransferHelper} from "./utils/TransferHelper.sol";
 
+// TODO: Remove console.log before production
 import "hardhat/console.sol";
 
 /*
@@ -65,8 +65,8 @@ import "hardhat/console.sol";
  * @dev This contract is an implementation of ISoulZap interface. It includes functionalities for zapping in and out of
  * UniswapV2 type liquidity pools.
  * @notice This contract uses SafeERC20 for safe token transfers.
- * @author Soul Solidity - (Contact for mainnet licensing until 730 days after the deployment transaction. Otherwise
- * feel free to experiment locally or on testnets.)
+ * @author Soul Solidity - Contact for mainnet licensing until 730 days after first deployment transaction with matching bytecode.
+ * Otherwise feel free to experiment locally or on testnets.
  * @notice Do not use this contract for any tokens that do not have a standard ERC20 implementation.
  */
 
@@ -128,23 +128,30 @@ contract SoulZap_UniV2 is
         if (msg.sender != address(WNATIVE)) revert SoulZap_ReceiveOnlyFromWNative();
     }
 
-    // TODO: Just go with `pause` and `unpause`?
-    function pauseAll() public restricted {
+    /// -----------------------------------------------------------------------
+    /// Pausing
+    /// -----------------------------------------------------------------------
+
+    function pause() public restricted {
         _pause();
     }
 
-    function unpauseAll() public restricted {
+    function unpause() public restricted {
         _unpause();
     }
 
+    /// -----------------------------------------------------------------------
+    /// Zap Functions
+    /// -----------------------------------------------------------------------
+
     /// @notice Zap single token to LP
     /// @param zapParams all parameters for zap
-    function zap(ZapParams memory zapParams, SwapPath memory feeSwapPath) external override nonReentrant {
+    function zap(ZapParams memory zapParams, SwapPath memory feeSwapPath) external override nonReentrant whenNotPaused {
         uint256 balanceBefore = _getBalance(zapParams.inputToken);
         zapParams.inputToken.safeTransferFrom(msg.sender, address(this), zapParams.inputAmount);
         zapParams.inputAmount = _getBalance(zapParams.inputToken) - balanceBefore;
 
-        _zap(zapParams, false, feeSwapPath, soulFeeManager.getFee(getEpochVolume()));
+        _zap(zapParams, false, feeSwapPath);
     }
 
     /// @notice Zap native token to LP
@@ -152,7 +159,7 @@ contract SoulZap_UniV2 is
     function zapNative(
         ZapParamsNative memory zapParamsNative,
         SwapPath memory feeSwapPath
-    ) external payable override nonReentrant {
+    ) external payable override nonReentrant whenNotPaused {
         console.log("start zap");
         (IERC20 wNative, uint256 inputAmount) = _wrapNative();
         ZapParams memory zapParams = ZapParams({
@@ -167,7 +174,7 @@ contract SoulZap_UniV2 is
             deadline: zapParamsNative.deadline
         });
 
-        _zap(zapParams, true, feeSwapPath, soulFeeManager.getFee(getEpochVolume()));
+        _zap(zapParams, true, feeSwapPath);
     }
 
     /// @notice Ultimate ZAP function
@@ -195,13 +202,8 @@ contract SoulZap_UniV2 is
     /// to Address which receives the LP Tokens
     /// deadline Latest timestamp this call is valid
     /// @param native Unwrap Wrapped Native tokens before transferring
-    /// @param protocolFee Protocol fee to take
-    function _zap(
-        ZapParams memory zapParams,
-        bool native,
-        SwapPath memory feeSwapPath,
-        uint256 protocolFee
-    ) internal whenNotPaused {
+    function _zap(ZapParams memory zapParams, bool native, SwapPath memory feeSwapPath) internal whenNotPaused {
+        // TODO: Remove console.log before production
         console.log("actual start _zap");
 
         // Verify inputs
@@ -217,34 +219,12 @@ contract SoulZap_UniV2 is
             (zapParams.path0, zapParams.path1) = (zapParams.path1, zapParams.path0);
         }
 
-        console.log("take fee");
-        //Take protocol fee
-        if (protocolFee > 0) {
-            uint256 feeAmount = (zapParams.inputAmount * protocolFee) / soulFeeManager.FEE_DENOMINATOR();
-            console.log("feeAmount", feeAmount, protocolFee, zapParams.inputAmount);
-            zapParams.inputAmount -= feeAmount;
-
-            if (feeSwapPath.path.length >= 2) {
-                console.log("path >= 2", feeSwapPath.path[0]);
-                zapParams.inputToken.approve(feeSwapPath.swapRouter, feeAmount);
-                uint256 usdOutput = _routerSwapFromPath(
-                    feeSwapPath,
-                    feeAmount,
-                    soulFeeManager.getFeeCollector(),
-                    zapParams.deadline
-                );
-                //NOTE/FIXME: we lose price impact :(
-                _accumulateVolume(usdOutput);
-            } else {
-                //inputToken is fee token
-                _transferOut(zapParams.inputToken, feeAmount, soulFeeManager.getFeeCollector(), false);
-                _accumulateVolume(feeAmount);
-            }
-        } else {
-            //NOTE/FIXME: we lose accepted slippage (on 1% * 100) :(
-            _accumulateVolume(feeSwapPath.amountOutMin * 100);
-        }
-        console.log("done taking fee. volume: ", getEpochVolume());
+        zapParams.inputAmount -= _handleFee(
+            zapParams.inputToken,
+            zapParams.inputAmount,
+            feeSwapPath,
+            zapParams.deadline
+        );
 
         /**
          * Setup swap amount0 and amount1
@@ -364,13 +344,70 @@ contract SoulZap_UniV2 is
         uint256 deadline
     ) private {
         if (swapType == SwapType.V2) {
-            // TODO ZapFee: Can use this to take the fee and send to the feeCollector if fee route is passed from lens
-            // Perform UniV2 swap
+            // TODO: console.log
             console.log("router swap", amountIn, amountOutMin, deadline);
             console.log("router swap", _to, path[path.length - 1]);
             IUniswapV2Router02(router).swapExactTokensForTokens(amountIn, amountOutMin, path, _to, deadline);
         } else {
             revert("SoulZap: SwapType not supported");
         }
+    }
+
+    /// -----------------------------------------------------------------------
+    /// Fee functions
+    /// -----------------------------------------------------------------------
+
+    /**
+     * @notice Handles the protocol fee calculation and transfer.
+     * @dev This function calculates the protocol fee based on the input amount and the current epoch volume.
+     * If the protocol fee is not zero, it checks if the output token from the fee swap path is a valid fee token.
+     * If the fee swap path length is greater than or equal to 2, it approves the input token for the swap router and performs a router swap.
+     * If the fee swap path length is less than 2, it transfers out the input token to the fee collector.
+     * The function also accumulates the volume based on the output of the swap or the input fee amount.
+     * @param _inputToken The input token for which the fee is to be calculated.
+     * @param _inputAmount The amount of the input token.
+     * @param _feeSwapPath The swap path for the fee.
+     * @param _deadline The deadline for the swap to occur.
+     * @return inputFeeAmount The calculated fee amount.
+     */
+    function _handleFee(
+        IERC20 _inputToken,
+        uint256 _inputAmount,
+        SwapPath memory _feeSwapPath,
+        uint256 _deadline
+    ) private returns (uint256 inputFeeAmount) {
+        uint256 protocolFee = soulFeeManager.getFee(getEpochVolume());
+        if (protocolFee == 0) {
+            return 0;
+        }
+
+        address outputToken = _feeSwapPath.path[_feeSwapPath.path.length - 1];
+        require(soulFeeManager.isFeeToken(outputToken), "SoulZap: Invalid output token in feeSwapPath");
+        // TODO: Remove console.log before production
+        console.log("take fee");
+        inputFeeAmount = (_inputAmount * protocolFee) / soulFeeManager.FEE_DENOMINATOR();
+        // TODO: Remove console.log before production
+        console.log("feeAmount", inputFeeAmount, protocolFee, _inputAmount);
+
+        if (_feeSwapPath.path.length >= 2) {
+            // TODO: Remove console.log before production
+            console.log("path >= 2", _feeSwapPath.path[0]);
+            _inputToken.approve(_feeSwapPath.swapRouter, inputFeeAmount);
+            uint256 usdOutput = _routerSwapFromPath(
+                _feeSwapPath,
+                inputFeeAmount,
+                soulFeeManager.getFeeCollector(),
+                _deadline
+            );
+            //NOTE/FIXME: we lose price impact :(
+            _accumulateVolume(usdOutput);
+        } else {
+            //inputToken is fee token
+            _transferOut(_inputToken, inputFeeAmount, soulFeeManager.getFeeCollector(), false);
+            _accumulateVolume(inputFeeAmount);
+        }
+
+        // TODO: Remove console.log before production
+        console.log("done taking fee. volume: ", getEpochVolume());
     }
 }

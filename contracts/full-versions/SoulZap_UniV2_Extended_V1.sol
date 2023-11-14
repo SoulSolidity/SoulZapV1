@@ -40,8 +40,8 @@ import {SoulZap_Ext_ApeBond} from "../extensions/ApeBond/SoulZap_Ext_ApeBond.sol
  * @notice This contract has the following features:
  * 1. UniswapV2 Zap In
  * 2. Deposit into ApeBond, Bond contracts.
- * @author Soul Solidity - (Contact for mainnet licensing until 730 days after the deployment transaction. Otherwise
- * feel free to experiment locally or on testnets.)
+ * @author Soul Solidity - Contact for mainnet licensing until 730 days after first deployment transaction with matching bytecode.
+ * Otherwise feel free to experiment locally or on testnets.
  */
 contract SoulZap_UniV2_Extended_V1 is SoulZap_UniV2, SoulZap_Ext_ApeBond {
     constructor(

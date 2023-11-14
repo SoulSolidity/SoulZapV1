@@ -48,7 +48,7 @@ abstract contract SoulZap_Ext_ApeBond_Lens is SoulZap_UniV2_Lens {
         )
     {
         ISoulZap_UniV2.ZapParams memory tempParams;
-        (tempParams, feeSwapPath, priceImpactPercentages, zapParamsBonds) = getZapDataBondInternal(
+        (tempParams, feeSwapPath, priceImpactPercentages, zapParamsBonds) = _getZapDataBond(
             address(WNATIVE),
             amount,
             bill,
@@ -62,8 +62,8 @@ abstract contract SoulZap_Ext_ApeBond_Lens is SoulZap_UniV2_Lens {
             path1: tempParams.path1,
             liquidityPath: tempParams.liquidityPath,
             to: to,
-            //FIXME: timestamp
-            deadline: block.timestamp + 100_000_000_000
+            /// @dev deadline set to 20 minutes
+            deadline: block.timestamp + 20 minutes
         });
         encodedTx = abi.encodeWithSelector(
             ZAPBONDNATIVE_SELECTOR,
@@ -104,7 +104,7 @@ abstract contract SoulZap_Ext_ApeBond_Lens is SoulZap_UniV2_Lens {
             ZapParams_Ext_Bonds memory zapParamsBonds
         )
     {
-        (zapParams, feeSwapPath, priceImpactPercentages, zapParamsBonds) = getZapDataBondInternal(
+        (zapParams, feeSwapPath, priceImpactPercentages, zapParamsBonds) = _getZapDataBond(
             fromToken,
             amount,
             bill,
@@ -127,7 +127,7 @@ abstract contract SoulZap_Ext_ApeBond_Lens is SoulZap_UniV2_Lens {
      * @return priceImpactPercentages The price impact percentages.
      * @return zapParamsBonds zap extension params for bonds
      */
-    function getZapDataBondInternal(
+    function _getZapDataBond(
         address fromToken,
         uint256 amount,
         ICustomBillRefillable bill,
@@ -144,6 +144,7 @@ abstract contract SoulZap_Ext_ApeBond_Lens is SoulZap_UniV2_Lens {
         )
     {
         IUniswapV2Pair lp = IUniswapV2Pair(bill.principalToken());
+        // TODO: Remove console.log before production
         console.log("lp=", address(lp));
         //TODO: add support for bonds with one erc20 token as principal token
         (zapParams, feeSwapPath, priceImpactPercentages) = _getZapDataInternal(fromToken, amount, lp, slippage, to);

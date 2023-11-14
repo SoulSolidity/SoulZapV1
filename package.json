@@ -1,5 +1,5 @@
 {
-  "name": "@defifofum/zap-lab",
+  "name": "@soulsolidity/zap-lab",
   "version": "0.0.1",
   "description": "",
   "main": "./dist/index.js",
@@ -42,15 +42,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/DeFiFoFum/zap-lab.git"
+    "url": "git+https://github.com/soulsolidity/zap-lab.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/DeFiFoFum/zap-lab/issues"
+    "url": "https://github.com/soulsolidity/zap-lab/issues"
   },
-  "homepage": "https://github.com/DeFiFoFum/zap-lab#readme",
+  "homepage": "https://github.com/soulsolidity/zap-lab#readme",
   "resolutions": {
     "got": "^11.8.5",
     "node-fetch": "^2.6.7",

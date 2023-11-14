@@ -29,10 +29,15 @@ pragma solidity ^0.8.0;
  * GitHub:          https:// TODO
  */
 
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "./extensions/ApeBond/lib/ICustomBillRefillable.sol";
+import {IAccessManaged} from "@openzeppelin/contracts/access/manager/IAccessManaged.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ISoulFeeManager} from "./fee-manager/ISoulFeeManager.sol";
 
-interface ISoulZap_UniV2 {
+import {ITransferHelper} from "./utils/ITransferHelper.sol";
+import {IEpochVolumeTracker} from "./utils/IEpochVolumeTracker.sol";
+
+interface ISoulZap_UniV2 is IAccessManaged, ITransferHelper, IEpochVolumeTracker {
     /// -----------------------------------------------------------------------
     /// Swap Path
     /// -----------------------------------------------------------------------
@@ -89,6 +94,12 @@ interface ISoulZap_UniV2 {
         address to;
         uint256 deadline;
     }
+
+    /// -----------------------------------------------------------------------
+    /// Storage Variables
+    /// -----------------------------------------------------------------------
+
+    function soulFeeManager() external view returns (ISoulFeeManager);
 
     /// -----------------------------------------------------------------------
     /// Functions
