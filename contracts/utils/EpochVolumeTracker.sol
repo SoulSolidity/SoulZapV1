@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.23;
 
+import {IEpochVolumeTracker} from "../utils/IEpochVolumeTracker.sol";
+
 /**
  * @title EpochVolumeTracker
  * @dev This contract is used to track the volume of epochs.
- * @author Soul Solidity - (Contact for mainnet licensing until 730 days after the deployment transaction. Otherwise
- * feel free to experiment locally or on testnets.)
+ * @author Soul Solidity - Contact for mainnet licensing until 730 days after first deployment transaction with matching bytecode.
+ * Otherwise feel free to experiment locally or on testnets.
  */
-contract EpochVolumeTracker {
+contract EpochVolumeTracker is IEpochVolumeTracker {
     /// -----------------------------------------------------------------------
     /// Storage variables
     /// -----------------------------------------------------------------------
@@ -15,7 +17,8 @@ contract EpochVolumeTracker {
     uint256 public EPOCH_DURATION = 28 days;
     /// @dev Setting to 1 to reduce gas costs
     uint256 public lifetimeCumulativeVolume = 1;
-    uint256 public currentEpochStartTime;
+    uint256 public lastEpochStartTime;
+    uint256 public initialEpochStartTime;
 
     uint256 private epochStartCumulativeVolume = 1;
 
@@ -34,16 +37,18 @@ contract EpochVolumeTracker {
     /// Constructor
     /// -----------------------------------------------------------------------
 
-    constructor(uint256 _currentEpochStartTime, uint256 _epochDuration) {
-        if (_currentEpochStartTime == 0) {
+    constructor(uint256 _lastEpochStartTime, uint256 _epochDuration) {
+        if (_lastEpochStartTime == 0) {
             /// @dev Default current epoch start time is current block timestamp
-            currentEpochStartTime = block.timestamp;
+            lastEpochStartTime = block.timestamp;
         } else {
             /// @dev Can set the current epoch start time to a past time or future for integration flexibility
             // If epoch start time is too far in the past past, then the epoch will start immediately
             // IF epoch start time is in the future, then the epoch will not start until the epoch start time
-            currentEpochStartTime = _currentEpochStartTime;
+            lastEpochStartTime = _lastEpochStartTime;
         }
+
+        initialEpochStartTime = lastEpochStartTime;
 
         if (_epochDuration == 0) {
             /// @dev Default epoch duration is 28 days
@@ -60,25 +65,35 @@ contract EpochVolumeTracker {
     /// @notice Returns the volume of the current epoch
     /// @return The volume of the current epoch
     function getEpochVolume() public view returns (uint256) {
-        if (_isEpochOver()) {
+        if (_epochNeedsReset()) {
             return 0;
         }
         return lifetimeCumulativeVolume - epochStartCumulativeVolume;
     }
 
-    /// @notice Checks if the current epoch is over
-    /// @return True if the current epoch is over, false otherwise
-    function _isEpochOver() private view returns (bool) {
-        return block.timestamp >= currentEpochStartTime + EPOCH_DURATION;
-    }
-
-    /// @notice Returns the time left in the current epoch
-    /// @return The time left in the current epoch
+    /// @notice Returns the "virtual" time left in the current epoch
+    /// @return The "virtual" time left in the current epoch
     function getTimeLeftInEpoch() public view returns (uint256) {
-        if (_isEpochOver()) {
+        if (block.timestamp < initialEpochStartTime) {
             return 0;
         }
-        return currentEpochStartTime + EPOCH_DURATION - block.timestamp;
+        uint256 timeSinceInitialEpochStart = block.timestamp - initialEpochStartTime;
+        uint256 timeElapsedInCurrentEpoch = timeSinceInitialEpochStart % EPOCH_DURATION;
+        return EPOCH_DURATION - timeElapsedInCurrentEpoch;
+    }
+
+    /// @dev Resets the epoch based on the "virtual" time left in the current epoch
+    function _resetEpoch() internal {
+        // Update epoch start cumulative volume to lifetime cumulative volume
+        epochStartCumulativeVolume = lifetimeCumulativeVolume;
+        // Update current epoch start time based on the "virtual" time left in the current epoch
+        lastEpochStartTime = block.timestamp - ((block.timestamp - initialEpochStartTime) % EPOCH_DURATION);
+    }
+
+    /// @notice Checks if the current epoch is over
+    /// @return True if the current epoch is over, false otherwise
+    function _epochNeedsReset() private view returns (bool) {
+        return block.timestamp >= lastEpochStartTime + EPOCH_DURATION;
     }
 
     /// -----------------------------------------------------------------------
@@ -90,21 +105,16 @@ contract EpochVolumeTracker {
     function _accumulateVolume(uint256 _volume) internal {
         // Epoch start time in future, do not accumulate volume until epoch starts.
         // Allows for setting epoch start time to a future time for configuration flexibility.
-        if (block.timestamp < currentEpochStartTime) {
+        if (block.timestamp < initialEpochStartTime) {
             return;
         }
-        // TODO: There is an issue with the math here where the EPOCHs will only restart when this function is called.
-        // TOOD: To actually have the epochs follow one after the other we need to also keep track of like a virtual epoch which is like a modulo of the time since it's been updated!
-        // TODO: No time currently, I don't think it's the end of the world :thinking:
-        // Check if current epoch is over
-        if (_isEpochOver()) {
-            // Update epoch start cumulative volume to lifetime cumulative volume
-            epochStartCumulativeVolume = lifetimeCumulativeVolume;
-            // Update current epoch start time to current block timestamp
-            currentEpochStartTime = block.timestamp;
+
+        if (_epochNeedsReset()) {
+            _resetEpoch();
         }
+
         // Add the volume to lifetime cumulative volume
         lifetimeCumulativeVolume += _volume;
-        emit AccumulateVolume(_volume, lifetimeCumulativeVolume, epochStartCumulativeVolume, currentEpochStartTime);
+        emit AccumulateVolume(_volume, lifetimeCumulativeVolume, epochStartCumulativeVolume, lastEpochStartTime);
     }
 }
