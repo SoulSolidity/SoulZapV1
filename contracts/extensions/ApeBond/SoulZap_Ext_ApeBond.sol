@@ -18,8 +18,8 @@ import {SoulZap_UniV2} from "../../SoulZap_UniV2.sol";
 /**
  * @title SoulZap_Ext_ApeBond
  * @dev This contract extends the SoulZap_UniV2 contract with additional functionality for ApeBond.
- * @author Soul Solidity - (Contact for mainnet licensing until 730 days after the deployment transaction. Otherwise
- * feel free to experiment locally or on testnets.)
+ * @author Soul Solidity - Contact for mainnet licensing until 730 days after first deployment transaction with matching bytecode.
+ * Otherwise feel free to experiment locally or on testnets.
  * @notice Do not use this contract for any tokens that do not have a standard ERC20 implementation.
  */
 abstract contract SoulZap_Ext_ApeBond is SoulZap_UniV2 {
@@ -46,7 +46,7 @@ abstract contract SoulZap_Ext_ApeBond is SoulZap_UniV2 {
         // TODO: Rebrand to `IApeBond bond`?
         ICustomBillRefillable bill,
         uint256 maxPrice
-    ) external nonReentrant {
+    ) external nonReentrant whenNotPaused {
         _zapBond(zapParams, false, feeSwapPath, bill, maxPrice);
     }
 
@@ -59,7 +59,7 @@ abstract contract SoulZap_Ext_ApeBond is SoulZap_UniV2 {
         SwapPath memory feeSwapPath,
         ICustomBillRefillable bill,
         uint256 maxPrice
-    ) external payable nonReentrant {
+    ) external payable nonReentrant whenNotPaused {
         (IERC20 wNative, uint256 inputAmount) = _wrapNative();
 
         ZapParams memory zapParams = ZapParams({
@@ -97,8 +97,7 @@ abstract contract SoulZap_Ext_ApeBond is SoulZap_UniV2 {
         );
         address to = zapParams.to;
         zapParams.to = address(this);
-        // TODO: getEpochVolume() is experimental. Volume is currently not yet tracked
-        _zap(zapParams, native, feeSwapPath, soulFeeManager.getFee(getEpochVolume()));
+        _zap(zapParams, native, feeSwapPath);
 
         uint256 balance = pair.balanceOf(address(this));
         pair.approve(address(bill), balance);
