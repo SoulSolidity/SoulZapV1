@@ -9,6 +9,10 @@ export {
     LiquidityPath,
     SwapPath,
     ZapParams,
-    ZapParamsBond
+    ZapParamsNative,
+    ZapParams_Ext_Bonds,
+    zapData,
+    zapDataBond
 } from "./types";
-export * from './ApeBond/ApeBondZap';
+export * from './ApeBond/SoulZap_UniV2';
+export * from './ApeBond/SoulZap_UniV2_ApeBond';
