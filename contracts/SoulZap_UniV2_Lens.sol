@@ -15,8 +15,6 @@ import {IUniswapV2Router02} from "@uniswap/v2-periphery/contracts/interfaces/IUn
 /// Internal Imports
 /// -----------------------------------------------------------------------
 import {ISoulZap_UniV2} from "./ISoulZap_UniV2.sol";
-//FIXME: should be from interface
-import {SoulZap_UniV2} from "./SoulZap_UniV2.sol";
 import {ISoulFeeManager} from "./fee-manager/ISoulFeeManager.sol";
 import {IWETH} from "./lib/IWETH.sol";
 
@@ -40,57 +38,41 @@ contract SoulZap_UniV2_Lens is AccessManaged {
     bytes4 private constant ZAPNATIVE_SELECTOR = ISoulZap_UniV2.zapNative.selector;
     bytes4 private constant ZAP_SELECTOR = ISoulZap_UniV2.zap.selector;
 
+    IWETH public immutable WNATIVE;
     IUniswapV2Factory public factory;
     IUniswapV2Router02 public router;
+    ISoulZap_UniV2 public soulZap;
+    // TODO: Refactor into Enumberable set?
     address[] public hopTokens;
-    address public feeStableToken;
-    IWETH public immutable WNATIVE;
+    uint256 public constant DEADLINE = 20 minutes;
+
     //FIXME: do we really need the fee manger AND the zap in here for just logic stuff...
     // and make soulzap the interface instead of the contract. need the epoch interface stuff
     ISoulFeeManager public soulFeeManager;
-    SoulZap_UniV2 public soulZap;
+    uint256 private immutable SOUL_FEE_DENOMINATOR;
 
     /// -----------------------------------------------------------------------
     /// Constructor
     /// -----------------------------------------------------------------------
 
     constructor(
-        SoulZap_UniV2 _soulZap,
-        IWETH _wnative,
-        address _feeStableToken,
+        ISoulZap_UniV2 _soulZap,
+        // TODO: Array of fee tokens should be stored in feeManager contract
+        // address _feeStableToken,
         IUniswapV2Router02 _router,
         address[] memory _hopTokens
     ) AccessManaged(_soulZap.authority()) {
+        require(_router.WETH() == address(_soulZap.WNATIVE()), "SoulZap_UniV2_Lens: WNATIVE != router.WETH()");
+
         router = _router;
         factory = IUniswapV2Factory(_router.factory());
-        WNATIVE = _wnative;
+        // TODO: Create _setHopTokens which validates that the
         hopTokens = _hopTokens;
-        soulZap = _soulZap;
-        feeStableToken = _feeStableToken;
-        soulFeeManager = soulZap.soulFeeManager();
-    }
 
-    /**
-     * @dev Find possible hop tokens for swapping between two specified tokens.
-     * @param _fromToken The source token for the swap.
-     * @param _toToken The target token for the swap.
-     * @return possibleHopTokens An array of possible hop tokens.
-     */
-    function findPossibleHopTokens(
-        address _fromToken,
-        address _toToken
-    ) public view returns (address[] memory possibleHopTokens) {
-        possibleHopTokens = new address[](hopTokens.length);
-        uint count = 0;
-        for (uint i = 0; i < hopTokens.length; i++) {
-            address hopToken = hopTokens[i];
-            bool hop1 = pairExists(_fromToken, hopToken);
-            bool hop2 = pairExists(hopToken, _toToken);
-            if (hop1 && hop2) {
-                possibleHopTokens[count] = hopToken;
-                count++;
-            }
-        }
+        soulZap = _soulZap;
+        WNATIVE = _soulZap.WNATIVE();
+        soulFeeManager = _soulZap.soulFeeManager();
+        SOUL_FEE_DENOMINATOR = soulFeeManager.FEE_DENOMINATOR();
     }
 
     /**
@@ -120,19 +102,6 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         uint reserveIn = pair.token0() == _fromToken ? reserve0 : reserve1;
         uint reserveOut = pair.token0() == _fromToken ? reserve1 : reserve0;
         return router.getAmountOut(_inputAmount, reserveIn, reserveOut);
-    }
-
-    /**
-     * @dev Check if a token is in the hop tokens
-     * @param _token The address of the token
-     */
-    function isInHopTokens(address _token) public view returns (bool) {
-        for (uint i = 0; i < hopTokens.length; i++) {
-            if (hopTokens[i] == _token) {
-                return true;
-            }
-        }
-        return false;
     }
 
     /**
@@ -176,8 +145,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
             path1: tempParams.path1,
             liquidityPath: tempParams.liquidityPath,
             to: to,
-            //FIXME: deadline time addition
-            deadline: block.timestamp + 100_000_000_000
+            deadline: block.timestamp + DEADLINE
         });
         encodedTx = abi.encodeWithSelector(ZAPNATIVE_SELECTOR, zapParams, feeSwapPath);
     }
@@ -240,29 +208,14 @@ contract SoulZap_UniV2_Lens is AccessManaged {
             uint256[] memory priceImpactPercentages
         )
     {
-        //FIXME: chose random extra time, pick a better one
-        zapParams.deadline = block.timestamp + 100_000_000_000;
+        zapParams.deadline = block.timestamp + DEADLINE;
         zapParams.inputAmount = amount;
         zapParams.inputToken = IERC20(fromToken);
         zapParams.to = to;
 
-        //Get path for protocol fee
-        uint256 feePercentage = soulFeeManager.getFee(soulZap.getEpochVolume());
-        uint256 feeAmount = (amount * feePercentage) / soulFeeManager.FEE_DENOMINATOR();
-        if (feeAmount > 0) {
-            //Remove protocol fee from amount for finding the best path so amounts are correct
-            amount -= feeAmount;
-        }
-        if (feePercentage == 0) {
-            //If no fee, take 1% so we can still calculate volume
-            feeAmount = amount / 100;
-        }
-        (address[] memory path, uint256 amountOutMin) = getBestPath(fromToken, feeStableToken, feeAmount);
-        feeSwapPath.swapRouter = address(router);
-        feeSwapPath.swapType = ISoulZap_UniV2.SwapType.V2;
-        feeSwapPath.path = path;
-        feeSwapPath.amountOutMin = (amountOutMin * (10_000 - slippage)) / 10_000;
-        console.log("feeswappath done");
+        FeeVars memory feeVars;
+        (feeSwapPath, feeVars) = _getFeeSwapPath(fromToken, amount, slippage);
+        amount -= feeVars.feeAmount;
 
         address token0;
         address token1;
@@ -285,8 +238,18 @@ contract SoulZap_UniV2_Lens is AccessManaged {
             zapParams.token0 = token0;
             zapParams.token1 = token1;
             priceImpactPercentages = new uint256[](2);
-            (zapParams.path0, priceImpactPercentages[0]) = getBestRoute(fromToken, token0, halfAmount, slippage);
-            (zapParams.path1, priceImpactPercentages[1]) = getBestRoute(fromToken, token1, halfAmount, slippage);
+            (zapParams.path0, priceImpactPercentages[0]) = getBestSwapPathWithImpact(
+                fromToken,
+                token0,
+                halfAmount,
+                slippage
+            );
+            (zapParams.path1, priceImpactPercentages[1]) = getBestSwapPathWithImpact(
+                fromToken,
+                token1,
+                halfAmount,
+                slippage
+            );
             zapParams.liquidityPath = _getLiquidityPath(
                 IUniswapV2Pair(lp),
                 zapParams.path0.amountOutMin,
@@ -331,7 +294,6 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         });
     }
 
-    //FIXME: bad naming. getBestPath and getBestRoute are bad. Suggestions?
     function getBestPath(
         address _fromToken,
         address _toToken,
@@ -364,8 +326,8 @@ contract SoulZap_UniV2_Lens is AccessManaged {
                 break;
             }
             path[1] = possibleHopTokens[i];
-            // TODO: Remove console.log before production
             uint[] memory amounts = router.getAmountsOut(_amountIn, path);
+            // TODO: Remove console.log before production
             console.log(path[1], amounts[amounts.length - 1]);
             if (amounts[amounts.length - 1] > bestAmountOutMin) {
                 console.log(path[0], path[1], path[2]);
@@ -391,7 +353,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
      * @return bestPath An array of addresses representing the best route.
      * @return priceImpactPercentage The price impact for the swap.
      */
-    function getBestRoute(
+    function getBestSwapPathWithImpact(
         address _fromToken,
         address _toToken,
         uint _amountIn,
@@ -409,6 +371,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
 
         (address[] memory bestPathAddresses, uint256 bestAmountOutMin) = getBestPath(_fromToken, _toToken, _amountIn);
         bestPath.path = bestPathAddresses;
+        // TODO: Hardcoded 10_000
         bestPath.amountOutMin = (bestAmountOutMin * (10_000 - _slippage)) / 10_000;
 
         //TODO maybe: add a double hop check so both tokens only need to have a pair with any one of the blue chip hop tokens instead of both with the same one
@@ -419,6 +382,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         // TODO: 10_000 hardcoded
         //With a denominator of 10_000. 100 = 1% price impact, 1000 = 10% price impact.
         uint256 actualPrice = _amountIn;
+        // TODO: Remove console.log before production
         console.log("actualPrice", actualPrice);
         for (uint256 i = 0; i < bestPath.path.length - 1; i++) {
             address token0 = bestPath.path[i];
@@ -427,8 +391,11 @@ contract SoulZap_UniV2_Lens is AccessManaged {
             if (token0 > token1) {
                 (reserveA, reserveB) = (reserveB, reserveA);
             }
+            // TODO: Remove console.log before production
             console.log(factory.getPair(token0, token1), reserveB, reserveA, (reserveB * 1e18) / reserveA);
+            // Multiply the actual price by the ratio of reserveB to reserveA, scaled by 1e18 to maintain precision
             actualPrice *= (reserveB * 1e18) / reserveA;
+            // If this is not the first iteration, divide the actual price by 1e18 to correct the scaling
             if (i > 0) {
                 actualPrice /= 1e18;
             }
@@ -442,24 +409,61 @@ contract SoulZap_UniV2_Lens is AccessManaged {
     }
 
     /// -----------------------------------------------------------------------
-    /// Restricted functions
+    /// Hop token functions
     /// -----------------------------------------------------------------------
 
-    function changeFeeStableToken(address _feeStableToken) public restricted {
-        feeStableToken = _feeStableToken;
+    /**
+     * @dev Check if a token is in the hop tokens
+     * @param _token The address of the token
+     */
+    function isInHopTokens(address _token) public view returns (bool) {
+        for (uint i = 0; i < hopTokens.length; i++) {
+            if (hopTokens[i] == _token) {
+                return true;
+            }
+        }
+        return false;
     }
 
-    function addHopTokens(address[] memory tokens) public restricted {
+    /**
+     * @dev Find possible hop tokens for swapping between two specified tokens.
+     * @param _fromToken The source token for the swap.
+     * @param _toToken The target token for the swap.
+     * @return possibleHopTokens An array of possible hop tokens.
+     */
+    function findPossibleHopTokens(
+        address _fromToken,
+        address _toToken
+    ) public view returns (address[] memory possibleHopTokens) {
+        possibleHopTokens = new address[](hopTokens.length);
+        uint count = 0;
+        for (uint i = 0; i < hopTokens.length; i++) {
+            address hopToken = hopTokens[i];
+            bool hop1 = pairExists(_fromToken, hopToken);
+            bool hop2 = pairExists(hopToken, _toToken);
+            if (hop1 && hop2) {
+                possibleHopTokens[count] = hopToken;
+                count++;
+            }
+        }
+    }
+
+    /// -----------------------------------------------------------------------
+    /// Hope token - Restricted functions
+    /// -----------------------------------------------------------------------
+    // TODO: Add validation
+    // TODO: Ideally add Enumberable set
+    function addHopTokens(address[] memory tokens) external restricted {
         for (uint256 i = 0; i < tokens.length; i++) {
             hopTokens.push(tokens[i]);
         }
     }
 
-    function addHopToken(address token) public restricted {
+    function addHopToken(address token) external restricted {
         hopTokens.push(token);
     }
 
-    function removeHopToken(address token) public restricted {
+    function removeHopToken(address token) external restricted {
         for (uint256 i = 0; i < hopTokens.length; i++) {
             if (hopTokens[i] == token) {
                 if (i != hopTokens.length - 1) {
@@ -470,5 +474,43 @@ contract SoulZap_UniV2_Lens is AccessManaged {
                 break;
             }
         }
+    }
+
+    /// -----------------------------------------------------------------------
+    /// Fee Functions
+    /// -----------------------------------------------------------------------
+
+    struct FeeVars {
+        uint256 feePercentage;
+        address feeToken;
+        uint256 feeAmount;
+    }
+
+    function _getFeeSwapPath(
+        address _fromToken,
+        uint256 _amountIn,
+        uint256 _slippage
+    ) internal view returns (ISoulZap_UniV2.SwapPath memory feeSwapPath, FeeVars memory feeVars) {
+        //Get path for protocol fee
+        feeVars.feePercentage = soulFeeManager.getFee(soulZap.getEpochVolume());
+        // TODO: Currently taking feeToken 0 from feeManager
+        feeVars.feeToken = soulFeeManager.getFeeToken(0);
+        feeVars.feeAmount = (_amountIn * feeVars.feePercentage) / SOUL_FEE_DENOMINATOR;
+
+        if (feeVars.feePercentage == 0) {
+            // TODO: In SoulZap no longer accumulating volume, so we should skip this
+            //If no fee, take 1% so we can still calculate volume
+            feeVars.feeAmount = _amountIn / 100;
+        }
+
+        (address[] memory path, uint256 amountOutMin) = getBestPath(_fromToken, feeVars.feeToken, feeVars.feeAmount);
+
+        feeSwapPath.swapRouter = address(router);
+        feeSwapPath.swapType = ISoulZap_UniV2.SwapType.V2;
+        feeSwapPath.path = path;
+
+        // TODO: Hardcoded 10_000: Move to Constants.sol where Lens and Zap contracts can both import
+        feeSwapPath.amountOutMin = (amountOutMin * (10_000 - _slippage)) / 10_000;
+        console.log("feeswappath done");
     }
 }
