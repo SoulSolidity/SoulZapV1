@@ -26,8 +26,8 @@ import "hardhat/console.sol";
  * @dev This contract is an implementation of AccessManaged interface. It includes functionalities for managing access to
  * SoulZap_UniV2 contracts.
  * @notice This contract uses AccessManaged for managing access.
- * @author Soul Solidity - (Contact for mainnet licensing until 730 days after the deployment transaction. Otherwise
- * feel free to experiment locally or on testnets.)
+ * @author Soul Solidity - Contact for mainnet licensing until 730 days after first deployment transaction with matching bytecode.
+ * Otherwise feel free to experiment locally or on testnets.
  * @notice Do not use this contract for any tokens that do not have a standard ERC20 implementation.
  */
 contract SoulZap_UniV2_Lens is AccessManaged {

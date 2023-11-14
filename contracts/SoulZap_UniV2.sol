@@ -65,8 +65,8 @@ import "hardhat/console.sol";
  * @dev This contract is an implementation of ISoulZap interface. It includes functionalities for zapping in and out of
  * UniswapV2 type liquidity pools.
  * @notice This contract uses SafeERC20 for safe token transfers.
- * @author Soul Solidity - (Contact for mainnet licensing until 730 days after the deployment transaction. Otherwise
- * feel free to experiment locally or on testnets.)
+ * @author Soul Solidity - Contact for mainnet licensing until 730 days after first deployment transaction with matching bytecode.
+ * Otherwise feel free to experiment locally or on testnets.
  * @notice Do not use this contract for any tokens that do not have a standard ERC20 implementation.
  */
 
