@@ -28,7 +28,6 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {IUniswapV2Router02} from "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 
 // Internal route directory imports
-import {IWETH} from "../lib/IWETH.sol";
 import {ISoulFeeManager} from "../fee-manager/ISoulFeeManager.sol";
 import {SoulZap_UniV2_Lens} from "../SoulZap_UniV2_Lens.sol";
 import {SoulZap_UniV2} from "../SoulZap_UniV2.sol";
@@ -41,15 +40,13 @@ import {SoulZap_Ext_ApeBond_Lens} from "../extensions/ApeBond/SoulZap_Ext_ApeBon
  * @notice This contract has the following features:
  * 1. UniswapV2 Zap In
  * 2. Deposit into ApeBond, Bond contracts.
- * @author Soul Solidity - (Contact for mainnet licensing until 730 days after the deployment transaction. Otherwise
- * feel free to experiment locally or on testnets.)
+ * @author Soul Solidity - Contact for mainnet licensing until 730 days after first deployment transaction with matching bytecode.
+ * Otherwise feel free to experiment locally or on testnets.
  */
 contract SoulZap_UniV2_Extended_Lens_V1 is SoulZap_UniV2_Lens, SoulZap_Ext_ApeBond_Lens {
     constructor(
         SoulZap_UniV2 _soulZap,
-        IWETH _wnative,
-        address _feeStableToken,
         IUniswapV2Router02 _router,
         address[] memory _hopTokens
-    ) SoulZap_UniV2_Lens(_soulZap, _wnative, _feeStableToken, _router, _hopTokens) SoulZap_Ext_ApeBond_Lens() {}
+    ) SoulZap_UniV2_Lens(_soulZap, _router, _hopTokens) SoulZap_Ext_ApeBond_Lens() {}
 }
