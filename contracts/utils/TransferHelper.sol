@@ -2,9 +2,10 @@
 pragma solidity 0.8.23;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ITransferHelper} from "../utils/ITransferHelper.sol";
 import {IWETH} from "../lib/IWETH.sol";
 
-contract TransferHelper {
+contract TransferHelper is ITransferHelper {
     using SafeERC20 for IERC20;
 
     /// -----------------------------------------------------------------------
