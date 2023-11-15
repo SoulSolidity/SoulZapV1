@@ -363,9 +363,11 @@ contract SoulZap_UniV2_Lens is AccessManaged {
                 path[2] = toTokenHopTokens[j];
                 path[3] = _toToken;
                 /// @dev Code duplication in sharedHopTokens section
+                // FIXME: cc - this is where it's failing
                 // Calculate the output amount for this path
-                uint[] memory amounts = router.getAmountsOut(_amountIn, path);
-                uint256 amountOut = amounts[amounts.length - 1];
+                // uint[] memory amounts = router.getAmountsOut(_amountIn, path);
+                // uint256 amountOut = amounts[amounts.length - 1];
+                uint256 amountOut = 0;
 
                 // Update the best path and best amount out min if this path is better
                 if (amountOut > bestAmountOutMin) {
@@ -484,17 +486,17 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         uint toCount = 0;
         for (uint i = 0; i < hopTokens.length; i++) {
             address hopToken = hopTokens[i];
-            bool hop1 = pairExists(_fromToken, hopToken);
-            if (hop1) {
+            bool fromHop = pairExists(_fromToken, hopToken);
+            if (fromHop) {
                 fromHopTokens[fromCount] = hopToken;
                 fromCount++;
             }
-            bool hop2 = pairExists(hopToken, _toToken);
-            if (hop2) {
+            bool toHop = pairExists(hopToken, _toToken);
+            if (toHop) {
                 toHopTokens[toCount] = hopToken;
                 toCount++;
             }
-            if (hop1 && hop2) {
+            if (fromHop && toHop) {
                 sharedHopTokens[sharedCount] = hopToken;
                 sharedCount++;
             }
