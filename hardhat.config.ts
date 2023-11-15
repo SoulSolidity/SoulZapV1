@@ -154,10 +154,7 @@ const config: HardhatUserConfig = {
   networks: {
     ...networkConfig,
     hardhat: {
-      forking: {
-        url: getEnv('FORK_RPC_URL') || '',
-        blockNumber: 49654950,
-      },
+      // NOTE: Use hardhat-fork.config.ts, test-fork and yarn test:fork
       gas: 'auto',
       gasPrice: 'auto',
     },
@@ -178,9 +175,7 @@ const config: HardhatUserConfig = {
   typechain: {
     // outDir: 'src/types', // defaults to './typechain-types/'
     target: 'ethers-v5',
-    externalArtifacts: [
-      // './artifacts-custom/**/*.json'
-    ], // optional array of glob patterns with external artifacts to process (for example external libs from node_modules)
+    externalArtifacts: ['./artifacts-external/**/*.json'], // optional array of glob patterns with external artifacts to process (for example external libs from node_modules)
     alwaysGenerateOverloads: false, // should overloads with full signatures like deposit(uint256) be generated always, even if there are no overloads?
     dontOverrideCompile: false, // defaults to false
   },
