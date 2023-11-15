@@ -131,13 +131,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         )
     {
         ISoulZap_UniV2.ZapParams memory tempParams;
-        (tempParams, feeSwapPath, priceImpactPercentages) = _getZapDataInternal(
-            address(WNATIVE),
-            amount,
-            lp,
-            slippage,
-            to
-        );
+        (tempParams, feeSwapPath, priceImpactPercentages) = _getZapData(address(WNATIVE), amount, lp, slippage, to);
         zapParams = ISoulZap_UniV2.ZapParamsNative({
             token0: tempParams.token0,
             token1: tempParams.token1,
@@ -178,7 +172,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
             uint256[] memory priceImpactPercentages
         )
     {
-        (zapParams, feeSwapPath, priceImpactPercentages) = _getZapDataInternal(fromToken, amount, lp, slippage, to);
+        (zapParams, feeSwapPath, priceImpactPercentages) = _getZapData(fromToken, amount, lp, slippage, to);
         encodedTx = abi.encodeWithSelector(ZAP_SELECTOR, zapParams, feeSwapPath);
     }
 
@@ -193,7 +187,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
      * @return feeSwapPath SwapPath for protocol fees
      * @return priceImpactPercentages The price impact percentages.
      */
-    function _getZapDataInternal(
+    function _getZapData(
         address fromToken,
         uint256 amount,
         IUniswapV2Pair lp,
@@ -294,15 +288,19 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         });
     }
 
-    function getBestPath(
+    function _getBestPath(
         address _fromToken,
         address _toToken,
         uint _amountIn
     ) internal view returns (address[] memory bestPath, uint256 bestAmountOutMin) {
         if (_fromToken == _toToken) {
+            // TEST: Should this be empty or [_fromToken, _toToken]
             return (bestPath, _amountIn);
         }
 
+        // -----------------------------------------------------------------------
+        // Check if fromToken and toToken share a pair - 2 paths
+        // -----------------------------------------------------------------------
         /// @dev If pair exists, then we will note the output amount and path to compare
         if (pairExists(_fromToken, _toToken)) {
             bestPath = new address[](2);
@@ -312,35 +310,74 @@ contract SoulZap_UniV2_Lens is AccessManaged {
             bestAmountOutMin = amounts[amounts.length - 1];
         }
 
-        address[] memory possibleHopTokens = findPossibleHopTokens(_fromToken, _toToken);
-        if (possibleHopTokens.length == 0) {
-            return (bestPath, 0);
+        // Find all pairs between input token and hop tokens
+        (
+            address[] memory sharedHopTokens,
+            address[] memory fromTokenHopTokens,
+            address[] memory toTokenHopTokens
+        ) = findPossibleHopTokens(_toToken, _fromToken);
+        // If there are no hop tokens, return the best path
+        if (fromTokenHopTokens.length == 0 || toTokenHopTokens.length == 0) {
+            return (bestPath, bestAmountOutMin);
         }
 
-        address[] memory path = new address[](3);
-        path[0] = _fromToken;
-        path[2] = _toToken;
-        bool first = true;
-        for (uint i = 0; i < possibleHopTokens.length; i++) {
-            if (possibleHopTokens[i] == address(0)) {
-                break;
-            }
-            path[1] = possibleHopTokens[i];
-            uint[] memory amounts = router.getAmountsOut(_amountIn, path);
-            // TODO: Remove console.log before production
-            console.log(path[1], amounts[amounts.length - 1]);
-            if (amounts[amounts.length - 1] > bestAmountOutMin) {
-                console.log(path[0], path[1], path[2]);
-                if (first) {
-                    bestPath = new address[](3);
-                    bestPath[0] = path[0];
-                    bestPath[2] = path[2];
-                    first = false;
+        // -----------------------------------------------------------------------
+        // sharedHopTokens - 3 paths
+        // -----------------------------------------------------------------------
+        if (sharedHopTokens.length > 0) {
+            // If there are shared hop tokens, we will check if any of them are better than the current best path
+            for (uint i = 0; i < sharedHopTokens.length; i++) {
+                // Construct the path through the shared hop token
+                address[] memory path = new address[](3);
+                path[0] = _fromToken;
+                path[1] = sharedHopTokens[i];
+                path[2] = _toToken;
+                /// @dev Code duplication in twoHopTokens section
+                // Calculate the output amount for this path
+                uint[] memory amounts = router.getAmountsOut(_amountIn, path);
+                uint256 amountOut = amounts[amounts.length - 1];
+
+                // Update the best path and best amount out min if this path is better
+                if (amountOut > bestAmountOutMin) {
+                    bestPath = path;
+                    bestAmountOutMin = amountOut;
                 }
-                bestPath[1] = path[1];
-                bestAmountOutMin = amounts[amounts.length - 1];
             }
         }
+
+        // -----------------------------------------------------------------------
+        // twoHopTokens - 4 paths
+        // -----------------------------------------------------------------------
+        // Iterate through all possible pairs to find the best path
+        for (uint i = 0; i < fromTokenHopTokens.length; i++) {
+            for (uint j = 0; j < toTokenHopTokens.length; j++) {
+                // Skip if they equal each other as this is handled in the sharedHopTokens section
+                if (fromTokenHopTokens[i] == toTokenHopTokens[j]) {
+                    continue;
+                }
+
+                // Construct the path through the two hop tokens
+                address[] memory path = new address[](4);
+                path[0] = _fromToken;
+                path[1] = fromTokenHopTokens[i];
+                path[2] = toTokenHopTokens[j];
+                path[3] = _toToken;
+                /// @dev Code duplication in sharedHopTokens section
+                // FIXME: cc - this is where it's failing
+                // Calculate the output amount for this path
+                // uint[] memory amounts = router.getAmountsOut(_amountIn, path);
+                // uint256 amountOut = amounts[amounts.length - 1];
+                uint256 amountOut = 0;
+
+                // Update the best path and best amount out min if this path is better
+                if (amountOut > bestAmountOutMin) {
+                    bestPath = path;
+                    bestAmountOutMin = amountOut;
+                }
+            }
+        }
+
+        return (bestPath, bestAmountOutMin);
     }
 
     /**
@@ -369,7 +406,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         bestPath.swapType = ISoulZap_UniV2.SwapType.V2;
         bestPath.swapRouter = address(router);
 
-        (address[] memory bestPathAddresses, uint256 bestAmountOutMin) = getBestPath(_fromToken, _toToken, _amountIn);
+        (address[] memory bestPathAddresses, uint256 bestAmountOutMin) = _getBestPath(_fromToken, _toToken, _amountIn);
         bestPath.path = bestPathAddresses;
         // TODO: Hardcoded 10_000
         bestPath.amountOutMin = (bestAmountOutMin * (10_000 - _slippage)) / 10_000;
@@ -429,27 +466,51 @@ contract SoulZap_UniV2_Lens is AccessManaged {
      * @dev Find possible hop tokens for swapping between two specified tokens.
      * @param _fromToken The source token for the swap.
      * @param _toToken The target token for the swap.
-     * @return possibleHopTokens An array of possible hop tokens.
+     * @return sharedHopTokens An array of shared hop tokens.
+     * @return fromHopTokens An array of hop tokens from the source token.
+     * @return toHopTokens An array of hop tokens to the target token.
      */
     function findPossibleHopTokens(
         address _fromToken,
         address _toToken
-    ) public view returns (address[] memory possibleHopTokens) {
-        possibleHopTokens = new address[](hopTokens.length);
-        uint count = 0;
+    )
+        public
+        view
+        returns (address[] memory sharedHopTokens, address[] memory fromHopTokens, address[] memory toHopTokens)
+    {
+        sharedHopTokens = new address[](hopTokens.length);
+        fromHopTokens = new address[](hopTokens.length);
+        toHopTokens = new address[](hopTokens.length);
+        uint sharedCount = 0;
+        uint fromCount = 0;
+        uint toCount = 0;
         for (uint i = 0; i < hopTokens.length; i++) {
             address hopToken = hopTokens[i];
-            bool hop1 = pairExists(_fromToken, hopToken);
-            bool hop2 = pairExists(hopToken, _toToken);
-            if (hop1 && hop2) {
-                possibleHopTokens[count] = hopToken;
-                count++;
+            bool fromHop = pairExists(_fromToken, hopToken);
+            if (fromHop) {
+                fromHopTokens[fromCount] = hopToken;
+                fromCount++;
             }
+            bool toHop = pairExists(hopToken, _toToken);
+            if (toHop) {
+                toHopTokens[toCount] = hopToken;
+                toCount++;
+            }
+            if (fromHop && toHop) {
+                sharedHopTokens[sharedCount] = hopToken;
+                sharedCount++;
+            }
+        }
+        // Update the length of the array to match the count
+        assembly {
+            mstore(sharedHopTokens, sharedCount)
+            mstore(fromHopTokens, fromCount)
+            mstore(toHopTokens, toCount)
         }
     }
 
     /// -----------------------------------------------------------------------
-    /// Hope token - Restricted functions
+    /// Hop token - Restricted functions
     /// -----------------------------------------------------------------------
     // TODO: Add validation
     // TODO: Ideally add Enumberable set
@@ -503,7 +564,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
             feeVars.feeAmount = _amountIn / 100;
         }
 
-        (address[] memory path, uint256 amountOutMin) = getBestPath(_fromToken, feeVars.feeToken, feeVars.feeAmount);
+        (address[] memory path, uint256 amountOutMin) = _getBestPath(_fromToken, feeVars.feeToken, feeVars.feeAmount);
 
         feeSwapPath.swapRouter = address(router);
         feeSwapPath.swapType = ISoulZap_UniV2.SwapType.V2;
@@ -511,6 +572,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
 
         // TODO: Hardcoded 10_000: Move to Constants.sol where Lens and Zap contracts can both import
         feeSwapPath.amountOutMin = (amountOutMin * (10_000 - _slippage)) / 10_000;
+        // TODO: remove console.log or
         console.log("feeswappath done");
     }
 }
