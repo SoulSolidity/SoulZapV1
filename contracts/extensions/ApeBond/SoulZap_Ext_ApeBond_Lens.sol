@@ -147,7 +147,7 @@ abstract contract SoulZap_Ext_ApeBond_Lens is SoulZap_UniV2_Lens {
         // TODO: Remove console.log before production
         console.log("lp=", address(lp));
         //TODO: add support for bonds with one erc20 token as principal token
-        (zapParams, feeSwapPath, priceImpactPercentages) = _getZapDataInternal(fromToken, amount, lp, slippage, to);
+        (zapParams, feeSwapPath, priceImpactPercentages) = _getZapData(fromToken, amount, lp, slippage, to);
 
         //TODO: what's this slippage and how to add it properly? seperate from routing slippage.
         //is trueBillPrice the right one?
