@@ -1,7 +1,7 @@
 import { ethers } from 'hardhat'
 import { getDeployConfig, DeployableNetworks } from '../../scripts/deploy/deploy.config'
 import { ZERO_ADDRESS } from '../../src'
-import { ChainId } from '../../src/constants'
+import { ChainId, WRAPPED_NATIVE } from '../../src/constants'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { logger } from '../../hardhat/utils'
 
@@ -10,7 +10,7 @@ export async function deployZapFixture_Fork(_ethers: typeof ethers, chain: Deplo
   const { wNative, admin, dexInfo, feeCollector, protocolFee, proxyAdminAddress, maxFee } = getDeployConfig(chain)
   const [owner, otherAccount] = await _ethers.getSigners()
 
-  const { soulAccessManager, soulFeeManager } = await deployZapSetup_Mock(_ethers, admin)
+  const { soulAccessManager, soulFeeManager } = await deployZapSetup_Mock(_ethers, admin, "TODO: add fee token")
 
   const SoulZap_UniV2_Extended_V1 = await _ethers.getContractFactory('SoulZap_UniV2_Extended_V1')
   const soulZap = await SoulZap_UniV2_Extended_V1.deploy(soulAccessManager.address, wNative, soulFeeManager.address, 0)
@@ -18,12 +18,12 @@ export async function deployZapFixture_Fork(_ethers: typeof ethers, chain: Deplo
   return { soulAccessManager, soulFeeManager, soulZap }
 }
 
-export async function deployZapSetup_Mock(_ethers: typeof ethers, accessManagerAdmin: string) {
+export async function deployZapSetup_Mock(_ethers: typeof ethers, accessManagerAdmin: string, feeToken: string) {
   const SoulAccessManager = await _ethers.getContractFactory('SoulAccessManager')
   const soulAccessManager = await SoulAccessManager.deploy(accessManagerAdmin)
 
   const SoulFeeManager = await _ethers.getContractFactory('SoulFeeManagerMock')
-  const soulFeeManager = await SoulFeeManager.deploy()
+  const soulFeeManager = await SoulFeeManager.deploy(feeToken)
 
   return { soulAccessManager, soulFeeManager }
 }
@@ -33,10 +33,11 @@ export async function deployZap_UniV2_Extended_V1(
   adminAddress: string,
   wNativeAddress: string,
   routerAddress: string,
-  hopTokens: string[]
+  hopTokens: string[],
+  feeToken: string
 ) {
   logger.log(`Deploying Zap_UniV2_Extended_V1`, '📈')
-  const { soulAccessManager, soulFeeManager } = await deployZapSetup_Mock(_ethers, adminAddress)
+  const { soulAccessManager, soulFeeManager } = await deployZapSetup_Mock(_ethers, adminAddress, feeToken)
 
   const SoulZap_UniV2_Extended_V1 = await _ethers.getContractFactory('SoulZap_UniV2_Extended_V1')
 

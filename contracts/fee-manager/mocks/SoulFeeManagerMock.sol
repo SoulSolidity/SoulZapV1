@@ -6,6 +6,12 @@ import {ISoulFeeManager} from "../ISoulFeeManager.sol";
 contract SoulFeeManagerMock is ISoulFeeManager {
     uint256 public FEE_DENOMINATOR = 10_000;
 
+    address public feeToken;
+
+    constructor(address _feeToken) {
+        feeToken = _feeToken;
+    }
+
     function getFee(uint256 epochVolume) external view returns (uint256 fee) {
         return 300;
     }
@@ -19,11 +25,13 @@ contract SoulFeeManagerMock is ISoulFeeManager {
     }
 
     function getFeeTokens() external view returns (address[] memory tokens) {
-        return new address[](69);
+        address[] memory feeTokens = new address[](1);
+        feeTokens[0] = feeToken;
+        return feeTokens;
     }
 
     function getFeeToken(uint256 index) external view returns (address token) {
-        return address(69);
+        return feeToken;
     }
 
     function isFeeToken(address _token) external view returns (bool valid) {

@@ -35,7 +35,8 @@ async function fixture() {
     owner.address,
     mockWBNB.address,
     dexRouter.address,
-    hopTokens.map((token) => token.address)
+    hopTokens.map((token) => token.address),
+    hopTokens[0].address //feeToken
   )
 
   return {

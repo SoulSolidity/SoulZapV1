@@ -315,7 +315,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
             address[] memory sharedHopTokens,
             address[] memory fromTokenHopTokens,
             address[] memory toTokenHopTokens
-        ) = findPossibleHopTokens(_toToken, _fromToken);
+        ) = findPossibleHopTokens(_fromToken, _toToken);
         // If there are no hop tokens, return the best path
         if (fromTokenHopTokens.length == 0 || toTokenHopTokens.length == 0) {
             return (bestPath, bestAmountOutMin);
@@ -365,9 +365,8 @@ contract SoulZap_UniV2_Lens is AccessManaged {
                 /// @dev Code duplication in sharedHopTokens section
                 // FIXME: cc - this is where it's failing
                 // Calculate the output amount for this path
-                // uint[] memory amounts = router.getAmountsOut(_amountIn, path);
-                // uint256 amountOut = amounts[amounts.length - 1];
-                uint256 amountOut = 0;
+                uint[] memory amounts = router.getAmountsOut(_amountIn, path);
+                uint256 amountOut = amounts[amounts.length - 1];
 
                 // Update the best path and best amount out min if this path is better
                 if (amountOut > bestAmountOutMin) {
