@@ -83,6 +83,7 @@ export async function deployUniV2Dex(
   _ethers: HardhatEthersHelpers,
   [owner, feeTo]: [SignerWithAddress, SignerWithAddress]
 ) {
+  logger.log(`Deploying UniV2Dex`, '📈')
   const { UniswapV2Factory, UniswapV2Router, WNative } = await getUniswapV2ContractFactories(_ethers)
 
   // Setup DEX factory
@@ -139,9 +140,6 @@ export async function createLPPairs(
   dexRouter: UniswapV2Router02,
   pairsToCreate: TokenLpInfo[]
 ) {
-  // FIXME: log
-  console.log(`in createLPPairs`)
-
   const { UniswapV2Factory, UniswapV2Pair } = await getUniswapV2ContractFactories(_ethers)
   const dexFactory = await UniswapV2Factory.attach(await dexRouter.factory())
 
@@ -163,8 +161,8 @@ export async function createLPPairs(
       '9999999999' // deadline
     )
     const pairCreated = await UniswapV2Pair.attach(await dexFactory.getPair(token0.address, token1.address))
-    // FIXME: log
-    // console.log(`createLPPairs`, { pairCreated: `${pairCreated.address}` })
+    // NOTE: Log
+    // logger.log(`pairCreated: ${pairCreated.address}`, '🍐')
     createdDexPairs.push(pairCreated)
   }
 
