@@ -69,6 +69,27 @@ interface ISoulZap_UniV2 is IAccessManaged, ITransferHelper, IEpochVolumeTracker
     }
 
     /// -----------------------------------------------------------------------
+    /// Swap Params
+    /// -----------------------------------------------------------------------
+
+    struct SwapParams {
+        IERC20 inputToken;
+        uint256 inputAmount;
+        /// @dev Common interface below between SwapParamsNative
+        address token;
+        SwapPath path;
+        address to;
+        uint256 deadline;
+    }
+
+    struct SwapParamsNative {
+        address token;
+        SwapPath path;
+        address to;
+        uint256 deadline;
+    }
+
+    /// -----------------------------------------------------------------------
     /// Zap Params
     /// -----------------------------------------------------------------------
 
@@ -104,6 +125,10 @@ interface ISoulZap_UniV2 is IAccessManaged, ITransferHelper, IEpochVolumeTracker
     /// -----------------------------------------------------------------------
     /// Functions
     /// -----------------------------------------------------------------------
+
+    function swap(SwapParams memory swapParams, SwapPath memory feeSwapPath) external;
+
+    function swapNative(SwapParamsNative memory swapParamsNative, SwapPath memory feeSwapPath) external payable;
 
     function zap(ZapParams memory zapParams, SwapPath memory feeSwapPath) external;
 

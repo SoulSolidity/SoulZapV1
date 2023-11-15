@@ -111,7 +111,6 @@ abstract contract SoulZap_Ext_ApeBond_Lens is SoulZap_UniV2_Lens {
             slippage,
             to
         );
-        //TODO
         encodedTx = abi.encodeWithSelector(ZAPBOND_SELECTOR, zapParams, feeSwapPath, bill, zapParamsBonds.maxPrice);
     }
 
@@ -143,15 +142,50 @@ abstract contract SoulZap_Ext_ApeBond_Lens is SoulZap_UniV2_Lens {
             ZapParams_Ext_Bonds memory zapParamsBonds
         )
     {
-        IUniswapV2Pair lp = IUniswapV2Pair(bill.principalToken());
-        // TODO: Remove console.log before production
-        console.log("lp=", address(lp));
-        //TODO: add support for bonds with one erc20 token as principal token
-        (zapParams, feeSwapPath, priceImpactPercentages) = _getZapData(fromToken, amount, lp, slippage, to);
+        IUniswapV2Pair bondPrincipalToken = IUniswapV2Pair(bill.principalToken());
 
-        //TODO: what's this slippage and how to add it properly? seperate from routing slippage.
-        //is trueBillPrice the right one?
-        uint256 maxPrice = (bill.trueBillPrice() * (10_000 + slippage)) / 10_000;
+        //Check if bond principal token is single token or lp
+        bool isSingleTokenBond = true;
+        try IUniswapV2Pair(bondPrincipalToken).token0() returns (address /*_token0*/) {
+            isSingleTokenBond = false;
+        } catch (bytes memory) {}
+
+        if (isSingleTokenBond) {
+            priceImpactPercentages = new uint256[](2);
+
+            ISoulZap_UniV2.SwapParams memory swapParams;
+            (swapParams, feeSwapPath, priceImpactPercentages[0]) = _getSwapData(
+                fromToken,
+                amount,
+                address(bondPrincipalToken),
+                slippage,
+                to
+            );
+
+            ISoulZap_UniV2.SwapPath memory emptySwapPath;
+            ISoulZap_UniV2.LiquidityPath memory emptyLiquidityPath;
+            zapParams = ISoulZap_UniV2.ZapParams({
+                inputToken: swapParams.inputToken,
+                inputAmount: swapParams.inputAmount,
+                token0: swapParams.token,
+                token1: address(0),
+                path0: swapParams.path,
+                path1: emptySwapPath,
+                liquidityPath: emptyLiquidityPath,
+                to: swapParams.to,
+                deadline: swapParams.deadline
+            });
+        } else {
+            (zapParams, feeSwapPath, priceImpactPercentages) = _getZapData(
+                fromToken,
+                amount,
+                bondPrincipalToken,
+                slippage,
+                to
+            );
+        }
+
+        uint256 maxPrice = bill.trueBillPrice();
         zapParamsBonds = ZapParams_Ext_Bonds({bill: bill, maxPrice: maxPrice});
     }
 }

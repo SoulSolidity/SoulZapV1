@@ -29,6 +29,8 @@ abstract contract SoulZap_Ext_ApeBond is SoulZap_UniV2 {
 
     event ZapBond(ZapParams zapParams, ICustomBillRefillable bill, uint256 maxPrice);
     event ZapBondNative(ZapParams zapParams, ICustomBillRefillable bill, uint256 maxPrice);
+    event ZapBond(SwapParams swapParams, ICustomBillRefillable bill, uint256 maxPrice);
+    event ZapBondNative(SwapParams swapParams, ICustomBillRefillable bill, uint256 maxPrice);
 
     constructor() {}
 
@@ -88,21 +90,44 @@ abstract contract SoulZap_Ext_ApeBond is SoulZap_UniV2 {
         ICustomBillRefillable bill,
         uint256 maxPrice
     ) private {
-        IUniswapV2Pair pair = IUniswapV2Pair(bill.principalToken());
-        // TODO: Will need to expand this because bonds can technically be any token, not just LPs
-        require(
-            (zapParams.token0 == pair.token0() && zapParams.token1 == pair.token1()) ||
-                (zapParams.token1 == pair.token0() && zapParams.token0 == pair.token1()),
-            "ApeBond: Wrong LP pair for Bond"
-        );
-        address to = zapParams.to;
-        zapParams.to = address(this);
-        _zap(zapParams, native, feeSwapPath);
+        IUniswapV2Pair bondPrincipalToken = IUniswapV2Pair(bill.principalToken());
 
-        uint256 balance = pair.balanceOf(address(this));
-        pair.approve(address(bill), balance);
+        //Check if bond principal token is single token or lp
+        bool isSingleTokenBond = true;
+        try IUniswapV2Pair(bondPrincipalToken).token0() returns (address /*_token0*/) {
+            isSingleTokenBond = false;
+        } catch (bytes memory) {}
+
+        address to;
+        if (isSingleTokenBond) {
+            SwapParams memory swapParams = SwapParams({
+                inputToken: zapParams.inputToken,
+                inputAmount: zapParams.inputAmount,
+                token: zapParams.token0,
+                path: zapParams.path0,
+                to: zapParams.to,
+                deadline: zapParams.deadline
+            });
+            require(swapParams.token == address(bondPrincipalToken), "ApeBond: Wrong token for Bond");
+            to = swapParams.to;
+            swapParams.to = address(this);
+            _swap(swapParams, native, feeSwapPath);
+        } else {
+            require(
+                (zapParams.token0 == bondPrincipalToken.token0() && zapParams.token1 == bondPrincipalToken.token1()) ||
+                    (zapParams.token1 == bondPrincipalToken.token0() &&
+                        zapParams.token0 == bondPrincipalToken.token1()),
+                "ApeBond: Wrong LP bondPrincipalToken for Bond"
+            );
+            to = zapParams.to;
+            zapParams.to = address(this);
+            _zap(zapParams, native, feeSwapPath);
+        }
+
+        uint256 balance = bondPrincipalToken.balanceOf(address(this));
+        bondPrincipalToken.approve(address(bill), balance);
         bill.deposit(balance, maxPrice, to);
-        pair.approve(address(bill), 0);
+        bondPrincipalToken.approve(address(bill), 0);
 
         if (native) {
             emit ZapBondNative(zapParams, bill, maxPrice);
