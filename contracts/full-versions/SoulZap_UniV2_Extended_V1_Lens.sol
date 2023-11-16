@@ -43,7 +43,7 @@ import {SoulZap_Ext_ApeBond_Lens} from "../extensions/ApeBond/SoulZap_Ext_ApeBon
  * @author Soul Solidity - Contact for mainnet licensing until 730 days after first deployment transaction with matching bytecode.
  * Otherwise feel free to experiment locally or on testnets.
  */
-contract SoulZap_UniV2_Extended_Lens_V1 is SoulZap_UniV2_Lens, SoulZap_Ext_ApeBond_Lens {
+contract SoulZap_UniV2_Extended_V1_Lens is SoulZap_UniV2_Lens, SoulZap_Ext_ApeBond_Lens {
     constructor(
         SoulZap_UniV2 _soulZap,
         IUniswapV2Router02 _router,

@@ -29,6 +29,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 /// -----------------------------------------------------------------------
 /// Local Imports (alphabetical)
 /// -----------------------------------------------------------------------
+import {Constants} from "./utils/Constants.sol";
 import {IWETH} from "./lib/IWETH.sol";
 import {EpochVolumeTracker} from "./utils/EpochVolumeTracker.sol";
 import {ISoulFeeManager} from "./fee-manager/ISoulFeeManager.sol";
@@ -104,26 +105,23 @@ contract SoulZap_UniV2 is
     }
 
     /**
-     * @dev This function checks if the transaction includes Ether (msg.value > 0).
+     * @dev This modifier checks if the transaction includes Ether (msg.value > 0).
      * If it does, it ensures that the input token is Wrapped Native (WNATIVE) and the input amount is 0.
      * It then wraps the Ether into WNATIVE and returns the amount of WNATIVE.
      *
      * @param _inputToken The token that the user wants to use for the transaction.
      * @param _inputAmount The amount of the token that the user wants to use for the transaction.
-     * @return wrappedAmount The amount of WNATIVE if Ether was sent with the transaction, otherwise it does not return anything.
      */
-    function _verifyMsgValueAndWrap(IERC20 _inputToken, uint256 _inputAmount) internal returns (uint256 wrappedAmount) {
+    modifier verifyMsgValueAndWrap(IERC20 _inputToken, uint256 _inputAmount) {
         if (msg.value > 0) {
-            require(address(_inputToken) == address(WNATIVE), "SoulZap: inputToken must be WNATIVE with msg.value");
-            (, wrappedAmount) = _wrapNative();
-            /// @dev Verify that the input amount is 0 or equal to the wrapped amount to prevent mix ups
             require(
-                _inputAmount == 0 || _inputAmount == wrappedAmount,
-                "SoulZap: inputAmount must be 0 or equal to wrappedAmount"
+                address(_inputToken) == address(Constants.NATIVE_ADDRESS),
+                "SoulZap: inputToken MUST be NATIVE_ADDRESS with msg.value"
             );
-        } else {
-            wrappedAmount = 0;
+            (, uint256 wrappedAmount) = _wrapNative();
+            require(_inputAmount == wrappedAmount, "SoulZap: inputAmount not equal to wrappedAmount");
         }
+        _;
     }
 
     /// -----------------------------------------------------------------------
@@ -148,35 +146,31 @@ contract SoulZap_UniV2 is
     function swap(
         SwapParams memory swapParams,
         SwapPath memory feeSwapPath
-    ) external payable override nonReentrant whenNotPaused {
-        // This is sort of like a modifier, but condenses some logic and allows for a return value
-        uint256 wrappedAmount = _verifyMsgValueAndWrap(swapParams.inputToken, swapParams.inputAmount);
-
-        if (wrappedAmount > 0) {
-            // Swap with msg.value
-            swapParams.inputAmount = wrappedAmount;
-            _swap(swapParams, true, feeSwapPath);
-        } else {
-            // No msg.value
-            uint256 balanceBefore = _getBalance(swapParams.inputToken);
-            swapParams.inputToken.safeTransferFrom(msg.sender, address(this), swapParams.inputAmount);
-            swapParams.inputAmount = _getBalance(swapParams.inputToken) - balanceBefore;
-            _swap(swapParams, false, feeSwapPath);
-        }
+    )
+        external
+        payable
+        override
+        nonReentrant
+        whenNotPaused
+        verifyMsgValueAndWrap(swapParams.inputToken, swapParams.inputAmount)
+    {
+        _swap(swapParams, feeSwapPath);
     }
 
     /// @notice Ultimate ZAP function
     /// @dev Assumes tokens are already transferred to this contract.
     /// - whenNotPaused: Only works when not paused which also pauses all other extensions which extend this
     /// @param swapParams all parameters for zap
-    /// @param native Unwrap Wrapped Native tokens before transferring
     /// @param feeSwapPath swap path for protocol fee
-    function _swap(SwapParams memory swapParams, bool native, SwapPath memory feeSwapPath) internal whenNotPaused {
+    function _swap(SwapParams memory swapParams, SwapPath memory feeSwapPath) internal whenNotPaused {
         // Verify inputs
         require(swapParams.inputAmount > 0, "SoulZap: inputAmount must be > 0");
         require(swapParams.to != address(0), "SoulZap: Can't zap to null address");
         require(swapParams.token != address(0), "SoulZap: token can't be address(0)");
         require(address(swapParams.inputToken) != swapParams.token, "SoulZap: tokens can't be the same");
+
+        bool native = address(swapParams.inputToken) == address(Constants.NATIVE_ADDRESS);
+        if (native) swapParams.inputToken == WNATIVE;
 
         swapParams.inputAmount -= _handleFee(
             swapParams.inputToken,
@@ -209,30 +203,26 @@ contract SoulZap_UniV2 is
     /// -----------------------------------------------------------------------
 
     /// @notice Zap single token to LP
-    /// @param zapParams all parameters for zap
+    /// @param zapParams parameters for Zap
+    /// @param feeSwapPath swap path for protocol fee
     function zap(
         ZapParams memory zapParams,
         SwapPath memory feeSwapPath
-    ) external payable override nonReentrant whenNotPaused {
-        // This is sort of like a modifier, but condenses some logic and allows for a return value
-        uint256 wrappedAmount = _verifyMsgValueAndWrap(zapParams.inputToken, zapParams.inputAmount);
-
-        if (wrappedAmount > 0) {
-            // Swap with msg.value
-            zapParams.inputAmount = wrappedAmount;
-            _zap(zapParams, true, feeSwapPath);
-        } else {
-            uint256 balanceBefore = _getBalance(zapParams.inputToken);
-            zapParams.inputToken.safeTransferFrom(msg.sender, address(this), zapParams.inputAmount);
-            zapParams.inputAmount = _getBalance(zapParams.inputToken) - balanceBefore;
-
-            _zap(zapParams, false, feeSwapPath);
-        }
+    )
+        external
+        payable
+        override
+        nonReentrant
+        whenNotPaused
+        verifyMsgValueAndWrap(zapParams.inputToken, zapParams.inputAmount)
+    {
+        _zap(zapParams, feeSwapPath);
     }
 
     /// @notice Ultimate ZAP function
     /// @dev Assumes tokens are already transferred to this contract.
     /// - whenNotPaused: Only works when not paused which also pauses all other extensions which extend this
+    /// - Native input zap MUST be done with Constants.NATIVE_ADDRESS
     /// @param zapParams all parameters for zap
     /// swapRouter swap router
     /// swapType type of swap zap
@@ -254,8 +244,7 @@ contract SoulZap_UniV2 is
     /// uniV3PoolLPFee pool fee of LP for when lp type is Arrakis or V3
     /// to Address which receives the LP Tokens
     /// deadline Latest timestamp this call is valid
-    /// @param native Unwrap Wrapped Native tokens before transferring
-    function _zap(ZapParams memory zapParams, bool native, SwapPath memory feeSwapPath) internal whenNotPaused {
+    function _zap(ZapParams memory zapParams, SwapPath memory feeSwapPath) internal whenNotPaused {
         // TODO: Remove console.log before production
         console.log("actual start _zap");
 
@@ -265,6 +254,10 @@ contract SoulZap_UniV2 is
         require(zapParams.liquidityPath.lpRouter != address(0), "SoulZap: lp router can not be address(0)");
         require(zapParams.token0 != address(0), "SoulZap: token0 can not be address(0)");
         require(zapParams.token1 != address(0), "SoulZap: token1 can not be address(0)");
+
+        bool native = address(zapParams.inputToken) == address(Constants.NATIVE_ADDRESS);
+        if (native) zapParams.inputToken == WNATIVE;
+
         // Setup struct to prevent stack overflow
         LocalVarsLib.LocalVars memory vars;
         // Ensure token addresses and paths are in ascending numerical order

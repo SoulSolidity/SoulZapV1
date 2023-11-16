@@ -17,6 +17,7 @@ pragma solidity 0.8.23;
 /// -----------------------------------------------------------------------
 
 import {AccessManaged} from "@openzeppelin/contracts/access/manager/AccessManaged.sol";
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IUniswapV2Factory} from "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 import {IUniswapV2Pair} from "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
@@ -25,6 +26,7 @@ import {IUniswapV2Router02} from "@uniswap/v2-periphery/contracts/interfaces/IUn
 /// -----------------------------------------------------------------------
 /// Internal Imports
 /// -----------------------------------------------------------------------
+import {Constants} from "./utils/Constants.sol";
 import {ISoulZap_UniV2} from "./ISoulZap_UniV2.sol";
 import {ISoulFeeManager} from "./fee-manager/ISoulFeeManager.sol";
 import {IWETH} from "./lib/IWETH.sol";
@@ -42,26 +44,35 @@ import "hardhat/console.sol";
  * @notice Do not use this contract for any tokens that do not have a standard ERC20 implementation.
  */
 contract SoulZap_UniV2_Lens is AccessManaged {
+    using EnumerableSet for EnumerableSet.AddressSet;
+
     /// -----------------------------------------------------------------------
-    /// Storage variables
+    /// Storage variables public
+    /// -----------------------------------------------------------------------
+
+    IWETH public immutable WNATIVE;
+    IUniswapV2Factory public factory;
+    IUniswapV2Router02 public router;
+    ISoulZap_UniV2 public soulZap;
+
+    uint256 public constant MAX_HOP_TOKENS = 20;
+    uint256 public constant DEADLINE = 20 minutes;
+
+    // FIXME: do we really need the fee manger AND the zap in here for just logic stuff...
+    // and make soulzap the interface instead of the contract. need the epoch interface stuff
+    // FIXME: This is actually a problem because the soulFeeManager can be changed in soulZap and it wont be affected here. At minimum need to pull it from the zap
+    ISoulFeeManager public soulFeeManager;
+    // FIXME: This could change also. Was trying to save some gas
+    uint256 private immutable SOUL_FEE_DENOMINATOR;
+
+    /// -----------------------------------------------------------------------
+    /// Storage variables internal/private
     /// -----------------------------------------------------------------------
 
     bytes4 private constant ZAP_SELECTOR = ISoulZap_UniV2.zap.selector;
     bytes4 private constant SWAP_SELECTOR = ISoulZap_UniV2.swap.selector;
 
-    address internal immutable NATIVE_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-    IWETH public immutable WNATIVE;
-    IUniswapV2Factory public factory;
-    IUniswapV2Router02 public router;
-    ISoulZap_UniV2 public soulZap;
-    // TODO: Refactor into Enumberable set?
-    address[] public hopTokens;
-    uint256 public constant DEADLINE = 20 minutes;
-
-    // FIXME: do we really need the fee manger AND the zap in here for just logic stuff...
-    // and make soulzap the interface instead of the contract. need the epoch interface stuff
-    ISoulFeeManager public soulFeeManager;
-    uint256 private immutable SOUL_FEE_DENOMINATOR;
+    EnumerableSet.AddressSet private _hopTokens;
 
     /// -----------------------------------------------------------------------
     /// Constructor
@@ -72,14 +83,14 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         // TODO: Array of fee tokens should be stored in feeManager contract
         // address _feeStableToken,
         IUniswapV2Router02 _router,
-        address[] memory _hopTokens
+        address[] memory _startingHopTokens
     ) AccessManaged(_soulZap.authority()) {
         require(_router.WETH() == address(_soulZap.WNATIVE()), "SoulZap_UniV2_Lens: WNATIVE != router.WETH()");
 
         router = _router;
         factory = IUniswapV2Factory(_router.factory());
-        // TODO: Create _setHopTokens which validates that the
-        hopTokens = _hopTokens;
+        // Verify and add hop tokens
+        _addHopTokens(_startingHopTokens);
 
         soulZap = _soulZap;
         WNATIVE = _soulZap.WNATIVE();
@@ -178,7 +189,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
             uint256 priceImpactPercentage
         )
     {
-        bool nativeSwap = fromToken == NATIVE_ADDRESS;
+        bool nativeSwap = fromToken == Constants.NATIVE_ADDRESS;
         if (nativeSwap) {
             fromToken = address(WNATIVE);
         }
@@ -190,13 +201,15 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         ISoulZap_UniV2.SwapPath memory swapPath;
         (swapPath, priceImpactPercentage) = getBestSwapPathWithImpact(fromToken, toToken, amount, slippage);
 
-        swapParams.inputToken = IERC20(fromToken);
-        /// @dev Protection if user doesn't send value. Otherwise msg.value becomes the inputAmount
-        swapParams.inputAmount = nativeSwap ? 0 : amount;
-        swapParams.token = toToken;
-        swapParams.to = to;
-        swapParams.deadline = block.timestamp + DEADLINE;
-        swapParams.path = swapPath;
+        swapParams = ISoulZap_UniV2.SwapParams({
+            // Set input token to NATIVE_ADDRESS if nativeSwap
+            inputToken: nativeSwap ? IERC20(Constants.NATIVE_ADDRESS) : IERC20(fromToken),
+            inputAmount: amount,
+            token: toToken,
+            to: to,
+            deadline: block.timestamp + DEADLINE,
+            path: swapPath
+        });
     }
 
     /// -----------------------------------------------------------------------
@@ -261,15 +274,15 @@ contract SoulZap_UniV2_Lens is AccessManaged {
             uint256[] memory priceImpactPercentages
         )
     {
-        bool nativeZap = fromToken == NATIVE_ADDRESS;
+        bool nativeZap = fromToken == Constants.NATIVE_ADDRESS;
         if (nativeZap) {
             fromToken = address(WNATIVE);
         }
 
         zapParams.deadline = block.timestamp + DEADLINE;
-        /// @dev Protection if user doesn't send value. Otherwise msg.value becomes the inputAmount
-        zapParams.inputAmount = nativeZap ? 0 : amount;
-        zapParams.inputToken = IERC20(fromToken);
+        zapParams.inputAmount = amount;
+        // Set input token to NATIVE_ADDRESS if nativeZap
+        zapParams.inputToken = nativeZap ? IERC20(Constants.NATIVE_ADDRESS) : IERC20(fromToken);
         zapParams.to = to;
 
         FeeVars memory feeVars;
@@ -516,13 +529,25 @@ contract SoulZap_UniV2_Lens is AccessManaged {
      * @dev Check if a token is in the hop tokens
      * @param _token The address of the token
      */
-    function isInHopTokens(address _token) public view returns (bool) {
-        for (uint i = 0; i < hopTokens.length; i++) {
-            if (hopTokens[i] == _token) {
-                return true;
-            }
-        }
-        return false;
+    function isHopToken(address _token) public view returns (bool) {
+        return _hopTokens.contains(_token);
+    }
+
+    /**
+     * @dev Returns the length of the hop tokens array.
+     * @return The length of the hop tokens array.
+     */
+    function getHopTokensLength() public view returns (uint256) {
+        return _hopTokens.length();
+    }
+
+    /**
+     * @dev Returns the hop token at the specified index.
+     * @param _index The index of the hop token.
+     * @return The hop token at the specified index.
+     */
+    function getHopTokenAtIndex(uint256 _index) public view returns (address) {
+        return _hopTokens.at(_index);
     }
 
     /**
@@ -541,14 +566,15 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         view
         returns (address[] memory sharedHopTokens, address[] memory fromHopTokens, address[] memory toHopTokens)
     {
-        sharedHopTokens = new address[](hopTokens.length);
-        fromHopTokens = new address[](hopTokens.length);
-        toHopTokens = new address[](hopTokens.length);
+        uint256 hopTokensLength = getHopTokensLength();
+        sharedHopTokens = new address[](hopTokensLength);
+        fromHopTokens = new address[](hopTokensLength);
+        toHopTokens = new address[](hopTokensLength);
         uint sharedCount = 0;
         uint fromCount = 0;
         uint toCount = 0;
-        for (uint i = 0; i < hopTokens.length; i++) {
-            address hopToken = hopTokens[i];
+        for (uint i = 0; i < hopTokensLength; i++) {
+            address hopToken = getHopTokenAtIndex(i);
             bool fromHop = pairExists(_fromToken, hopToken);
             if (fromHop) {
                 fromHopTokens[fromCount] = hopToken;
@@ -572,31 +598,27 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         }
     }
 
-    /// -----------------------------------------------------------------------
-    /// Hop token - Restricted functions
-    /// -----------------------------------------------------------------------
-    // TODO: Add validation
-    // TODO: Ideally add Enumberable set
-    function addHopTokens(address[] memory tokens) external restricted {
+    function _addHopTokens(address[] memory tokens) internal {
+        /// @dev Gas consideration
+        require(tokens.length + _hopTokens.length() <= MAX_HOP_TOKENS, "Exceeded maximum hop tokens limit");
         for (uint256 i = 0; i < tokens.length; i++) {
-            hopTokens.push(tokens[i]);
+            address currentToken = tokens[i];
+            require(currentToken != address(0), "Hop Token cannot be address(0)");
+            require(!isHopToken(currentToken), "Hop Token already included");
+            _hopTokens.add(currentToken);
         }
     }
 
-    function addHopToken(address token) external restricted {
-        hopTokens.push(token);
+    /// -----------------------------------------------------------------------
+    /// Hop token - Restricted functions
+    /// -----------------------------------------------------------------------
+    function addHopTokens(address[] memory _tokens) external restricted {
+        _addHopTokens(_tokens);
     }
 
-    function removeHopToken(address token) external restricted {
-        for (uint256 i = 0; i < hopTokens.length; i++) {
-            if (hopTokens[i] == token) {
-                if (i != hopTokens.length - 1) {
-                    // Swap the element to remove with the last element
-                    hopTokens[i] = hopTokens[hopTokens.length - 1];
-                }
-                hopTokens.pop();
-                break;
-            }
+    function removeHopTokens(address[] memory _tokens) external restricted {
+        for (uint256 i = 0; i < _tokens.length; i++) {
+            _hopTokens.remove(_tokens[i]);
         }
     }
 

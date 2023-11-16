@@ -8,6 +8,9 @@ import "../../SoulZap_UniV2_Lens.sol";
 import "../../ISoulZap_UniV2.sol";
 import "./lib/ICustomBillRefillable.sol";
 import "./SoulZap_Ext_ApeBond.sol";
+import "../../utils/Constants.sol";
+
+// TODO: Remove before production
 import "hardhat/console.sol";
 
 abstract contract SoulZap_Ext_ApeBond_Lens is SoulZap_UniV2_Lens {
@@ -32,7 +35,7 @@ abstract contract SoulZap_Ext_ApeBond_Lens is SoulZap_UniV2_Lens {
      * @return zapParamsBonds zap extension params for bonds
      */
     function getZapDataBond(
-        address fromToken,
+        address fromToken, // Pass Constants.NATIVE_ADDRESS for native token input
         uint256 amount,
         ICustomBillRefillable bill,
         uint256 slippage, // 1 = 0.01%, 100 = 1%
@@ -86,7 +89,7 @@ abstract contract SoulZap_Ext_ApeBond_Lens is SoulZap_UniV2_Lens {
             ZapParams_Ext_Bonds memory zapParamsBonds
         )
     {
-        bool nativeZap = fromToken == NATIVE_ADDRESS;
+        bool nativeZap = fromToken == Constants.NATIVE_ADDRESS;
         if (nativeZap) {
             fromToken = address(WNATIVE);
         }
@@ -115,9 +118,9 @@ abstract contract SoulZap_Ext_ApeBond_Lens is SoulZap_UniV2_Lens {
             ISoulZap_UniV2.LiquidityPath memory emptyLiquidityPath;
             zapParams = ISoulZap_UniV2.ZapParams({
                 inputToken: swapParams.inputToken,
-                /// @dev Protection if user doesn't send value. Otherwise msg.value becomes the inputAmount
-                inputAmount: nativeZap ? 0 : swapParams.inputAmount,
+                inputAmount: swapParams.inputAmount,
                 token0: swapParams.token,
+                /// @dev token1 is not used for single token bonds
                 token1: address(0),
                 path0: swapParams.path,
                 path1: emptySwapPath,
@@ -135,6 +138,10 @@ abstract contract SoulZap_Ext_ApeBond_Lens is SoulZap_UniV2_Lens {
             );
         }
 
+        if (nativeZap) {
+            /// @dev Zaps with msg.value are passed as Constants.NATIVE_ADDRESS
+            zapParams.inputToken = IERC20(Constants.NATIVE_ADDRESS);
+        }
         uint256 maxPrice = bill.trueBillPrice();
         zapParamsBonds = ZapParams_Ext_Bonds({bill: bill, maxPrice: maxPrice});
     }
