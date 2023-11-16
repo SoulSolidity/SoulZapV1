@@ -19,46 +19,6 @@ abstract contract SoulZap_Ext_ApeBond_Lens is SoulZap_UniV2_Lens {
     bytes4 private constant ZAP_BOND_SELECTOR = SoulZap_Ext_ApeBond.zapBond.selector;
 
     /**
-     * @dev Get the Zap data for a bond transaction with a native token.
-     * @param amount The amount of tokens to zap.
-     * @param bill The custom bill refillable contract.
-     * @param slippage The slippage tolerance (1 = 0.01%, 100 = 1%).
-     * @param to The address to receive the zapped tokens.
-     * @return zapParams zapParams structure containing relevant data.
-     * @return encodedTx Encoded transaction with the given parameters.
-     * @return feeSwapPath swap path for protocol fee.
-     * @return priceImpactPercentages The price impact percentages.
-     * @return zapParamsBonds zap extension params for bonds
-     */
-    function getZapDataBondNative(
-        uint256 amount,
-        ICustomBillRefillable bill,
-        uint256 slippage, // 1 = 0.01%, 100 = 1%
-        address to
-    )
-        public
-        view
-        returns (
-            ISoulZap_UniV2.ZapParams memory zapParams,
-            bytes memory encodedTx,
-            ISoulZap_UniV2.SwapPath memory feeSwapPath,
-            uint256[] memory priceImpactPercentages,
-            ZapParams_Ext_Bonds memory zapParamsBonds
-        )
-    {
-        (zapParams, feeSwapPath, priceImpactPercentages, zapParamsBonds) = _getZapDataBond(
-            address(WNATIVE),
-            amount,
-            bill,
-            slippage,
-            to
-        );
-        /// @dev Protection if user doesn't send value. Otherwise msg.value becomes the inputAmount
-        zapParams.inputAmount = 0;
-        encodedTx = abi.encodeWithSelector(ZAP_BOND_SELECTOR, zapParams, feeSwapPath, bill, zapParamsBonds.maxPrice);
-    }
-
-    /**
      * @dev Get the Zap data for a bond transaction with a specified token.
      * @param fromToken The source token for the zap.
      * @param amount The amount of tokens to zap.
@@ -126,6 +86,11 @@ abstract contract SoulZap_Ext_ApeBond_Lens is SoulZap_UniV2_Lens {
             ZapParams_Ext_Bonds memory zapParamsBonds
         )
     {
+        bool nativeZap = fromToken == NATIVE_ADDRESS;
+        if (nativeZap) {
+            fromToken = address(WNATIVE);
+        }
+
         IUniswapV2Pair bondPrincipalToken = IUniswapV2Pair(bill.principalToken());
 
         //Check if bond principal token is single token or lp
@@ -150,7 +115,8 @@ abstract contract SoulZap_Ext_ApeBond_Lens is SoulZap_UniV2_Lens {
             ISoulZap_UniV2.LiquidityPath memory emptyLiquidityPath;
             zapParams = ISoulZap_UniV2.ZapParams({
                 inputToken: swapParams.inputToken,
-                inputAmount: swapParams.inputAmount,
+                /// @dev Protection if user doesn't send value. Otherwise msg.value becomes the inputAmount
+                inputAmount: nativeZap ? 0 : swapParams.inputAmount,
                 token0: swapParams.token,
                 token1: address(0),
                 path0: swapParams.path,
