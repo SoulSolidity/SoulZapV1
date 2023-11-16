@@ -1,6 +1,17 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.23;
 
+/*
+░██████╗░█████╗░██╗░░░██╗██╗░░░░░  ░██████╗░█████╗░██╗░░░░░██╗██████╗░██╗████████╗██╗░░░██╗
+██╔════╝██╔══██╗██║░░░██║██║░░░░░  ██╔════╝██╔══██╗██║░░░░░██║██╔══██╗██║╚══██╔══╝╚██╗░██╔╝
+╚█████╗░██║░░██║██║░░░██║██║░░░░░  ╚█████╗░██║░░██║██║░░░░░██║██║░░██║██║░░░██║░░░░╚████╔╝░
+░╚═══██╗██║░░██║██║░░░██║██║░░░░░  ░╚═══██╗██║░░██║██║░░░░░██║██║░░██║██║░░░██║░░░░░╚██╔╝░░
+██████╔╝╚█████╔╝╚██████╔╝███████╗  ██████╔╝╚█████╔╝███████╗██║██████╔╝██║░░░██║░░░░░░██║░░░
+╚═════╝░░╚════╝░░╚═════╝░╚══════╝  ╚═════╝░░╚════╝░╚══════╝╚═╝╚═════╝░╚═╝░░░╚═╝░░░░░░╚═╝░░░
+
+ * GitHub: https://github.com/SoulSolidity
+ */
+
 /// -----------------------------------------------------------------------
 /// Package Imports
 /// -----------------------------------------------------------------------
@@ -46,7 +57,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
     address[] public hopTokens;
     uint256 public constant DEADLINE = 20 minutes;
 
-    //FIXME: do we really need the fee manger AND the zap in here for just logic stuff...
+    // FIXME: do we really need the fee manger AND the zap in here for just logic stuff...
     // and make soulzap the interface instead of the contract. need the epoch interface stuff
     ISoulFeeManager public soulFeeManager;
     uint256 private immutable SOUL_FEE_DENOMINATOR;
