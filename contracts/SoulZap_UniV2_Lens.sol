@@ -36,8 +36,8 @@ import "hardhat/console.sol";
 
 /**
  * @title SoulZap_UniV2_Lens
- * @dev This contract is an implementation of AccessManaged interface. It includes functionalities for managing access to
- * SoulZap_UniV2 contracts.
+ * @dev This contract is an implementation of AccessManaged interface. It includes functionalities for managing
+ *   access to SoulZap_UniV2 contracts.
  * @notice This contract uses AccessManaged for managing access.
  * @author Soul Solidity - Contact for mainnet licensing until 730 days after first deployment transaction with matching bytecode.
  * Otherwise feel free to experiment locally or on testnets.
@@ -63,14 +63,14 @@ contract SoulZap_UniV2_Lens is AccessManaged {
     // FIXME: This is actually a problem because the soulFeeManager can be changed in soulZap and it wont be affected here. At minimum need to pull it from the zap
     ISoulFeeManager public soulFeeManager;
     // FIXME: This could change also. Was trying to save some gas
-    uint256 private immutable SOUL_FEE_DENOMINATOR;
+    uint256 private immutable _SOUL_FEE_DENOMINATOR;
 
     /// -----------------------------------------------------------------------
     /// Storage variables internal/private
     /// -----------------------------------------------------------------------
 
-    bytes4 private constant ZAP_SELECTOR = ISoulZap_UniV2.zap.selector;
-    bytes4 private constant SWAP_SELECTOR = ISoulZap_UniV2.swap.selector;
+    bytes4 private constant _ZAP_SELECTOR = ISoulZap_UniV2.zap.selector;
+    bytes4 private constant _SWAP_SELECTOR = ISoulZap_UniV2.swap.selector;
 
     EnumerableSet.AddressSet private _hopTokens;
 
@@ -95,7 +95,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         soulZap = _soulZap;
         WNATIVE = _soulZap.WNATIVE();
         soulFeeManager = _soulZap.soulFeeManager();
-        SOUL_FEE_DENOMINATOR = soulFeeManager.FEE_DENOMINATOR();
+        _SOUL_FEE_DENOMINATOR = soulFeeManager.FEE_DENOMINATOR();
     }
 
     /**
@@ -160,7 +160,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         )
     {
         (swapParams, feeSwapPath, priceImpactPercentage) = _getSwapData(fromToken, amount, toToken, slippage, to);
-        encodedTx = abi.encodeWithSelector(SWAP_SELECTOR, swapParams, feeSwapPath);
+        encodedTx = abi.encodeWithSelector(_SWAP_SELECTOR, swapParams, feeSwapPath);
     }
 
     /**
@@ -245,7 +245,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         )
     {
         (zapParams, feeSwapPath, priceImpactPercentages) = _getZapData(fromToken, amount, lp, slippage, to);
-        encodedTx = abi.encodeWithSelector(ZAP_SELECTOR, zapParams, feeSwapPath);
+        encodedTx = abi.encodeWithSelector(_ZAP_SELECTOR, zapParams, feeSwapPath);
     }
 
     /**
@@ -464,8 +464,8 @@ contract SoulZap_UniV2_Lens is AccessManaged {
      * @param _fromToken The source token for the swap.
      * @param _toToken The target token for the swap.
      * @param _amountIn The input amount for the swap.
-     * @param _slippage amountOutMin slippage. This is front run slippage and for the small time difference between read and write tx
-     *          AND NOT FOR ACTUAL PRICE IMPACT. Denominator 10_000
+     * @param _slippage amountOutMin slippage. This is front run slippage and for the small time difference
+     * between read and write tx AND NOT FOR ACTUAL PRICE IMPACT.
      * @return bestPath An array of addresses representing the best route.
      * @return priceImpactPercentage The price impact for the swap.
      */
@@ -490,10 +490,11 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         // TODO: Hardcoded 10_000
         bestPath.amountOutMin = (bestAmountOutMin * (10_000 - _slippage)) / 10_000;
 
-        //Calculation of price impact. actual price is the current actual price which does not take slippage into account for less liquid pairs.
-        //It calculates the impact between actual price and price after slippage.
+        // Calculation of price impact.
+        // Actual price is the current actual price which does not take slippage into account for less liquid pairs.
+        // Calculation of price impact between actual price and price after slippage.
         // TODO: 10_000 hardcoded
-        //With a denominator of 10_000. 100 = 1% price impact, 1000 = 10% price impact.
+        // With a denominator of 10_000. 100 = 1% price impact, 1000 = 10% price impact.
         uint256 actualPrice = _amountIn;
         // TODO: Remove console.log before production
         console.log("actualPrice", actualPrice);
@@ -641,7 +642,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         feeVars.feePercentage = soulFeeManager.getFee(soulZap.getEpochVolume());
         // TODO: Currently taking feeToken 0 from feeManager
         feeVars.feeToken = soulFeeManager.getFeeToken(0);
-        feeVars.feeAmount = (_amountIn * feeVars.feePercentage) / SOUL_FEE_DENOMINATOR;
+        feeVars.feeAmount = (_amountIn * feeVars.feePercentage) / _SOUL_FEE_DENOMINATOR;
 
         if (feeVars.feePercentage == 0) {
             // TODO: In SoulZap no longer accumulating volume, so we should skip this

@@ -10,7 +10,7 @@ export async function deployZapFixture_Fork(_ethers: typeof ethers, chain: Deplo
   const { wNative, admin, dexInfo, feeCollector, protocolFee, proxyAdminAddress, maxFee } = getDeployConfig(chain)
   const [owner, otherAccount] = await _ethers.getSigners()
 
-  const { soulAccessManager, soulFeeManager } = await deployZapSetup_Mock(_ethers, admin, "TODO: add fee token")
+  const { soulAccessManager, soulFeeManager } = await deployZapSetup_Mock(_ethers, admin, 'TODO: add fee token')
 
   const SoulZap_UniV2_Extended_V1 = await _ethers.getContractFactory('SoulZap_UniV2_Extended_V1')
   const soulZap = await SoulZap_UniV2_Extended_V1.deploy(soulAccessManager.address, wNative, soulFeeManager.address, 0)
@@ -48,8 +48,8 @@ export async function deployZap_UniV2_Extended_V1(
     0
   )
 
-  const SoulZap_UniV2_Extended_Lens_V1 = await _ethers.getContractFactory('SoulZap_UniV2_Extended_Lens_V1')
-  const soulZap_Lens = await SoulZap_UniV2_Extended_Lens_V1.deploy(soulZap.address, routerAddress, hopTokens)
+  const SoulZap_UniV2_Extended_V1_Lens = await _ethers.getContractFactory('SoulZap_UniV2_Extended_V1_Lens')
+  const soulZap_Lens = await SoulZap_UniV2_Extended_V1_Lens.deploy(soulZap.address, routerAddress, hopTokens)
 
   return { soulAccessManager, soulFeeManager, soulZap, soulZap_Lens }
 }

@@ -48,9 +48,10 @@ import "hardhat/console.sol";
 /**
  * @title SoulZap_UniV2
  * @dev This contract is an implementation of ISoulZap interface. It includes functionalities for zapping in and out of
- * UniswapV2 type liquidity pools.
+ *   UniswapV2 type liquidity pools.
  * @notice This contract uses SafeERC20 for safe token transfers.
- * @author Soul Solidity - Contact for mainnet licensing until 730 days after first deployment transaction with matching bytecode.
+ * @author Soul Solidity - Contact for mainnet licensing until 730 days after first deployment
+ *   transaction with matching bytecode.
  * Otherwise feel free to experiment locally or on testnets.
  * @notice Do not use this contract for any tokens that do not have a standard ERC20 implementation.
  */
@@ -408,7 +409,8 @@ contract SoulZap_UniV2 is
      * @notice Handles the protocol fee calculation and transfer.
      * @dev This function calculates the protocol fee based on the input amount and the current epoch volume.
      * If the protocol fee is not zero, it checks if the output token from the fee swap path is a valid fee token.
-     * If the fee swap path length is greater than or equal to 2, it approves the input token for the swap router and performs a router swap.
+     * If the fee swap path length is greater than or equal to 2, it approves the input token for the swap router
+     *   and performs a router swap.
      * If the fee swap path length is less than 2, it transfers out the input token to the fee collector.
      * The function also accumulates the volume based on the output of the swap or the input fee amount.
      * @param _inputToken The input token for which the fee is to be calculated.

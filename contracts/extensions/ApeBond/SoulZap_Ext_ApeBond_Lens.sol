@@ -19,7 +19,7 @@ abstract contract SoulZap_Ext_ApeBond_Lens is SoulZap_UniV2_Lens {
         uint256 maxPrice;
     }
 
-    bytes4 private constant ZAP_BOND_SELECTOR = SoulZap_Ext_ApeBond.zapBond.selector;
+    bytes4 private constant _ZAP_BOND_SELECTOR = SoulZap_Ext_ApeBond.zapBond.selector;
 
     /**
      * @dev Get the Zap data for a bond transaction with a specified token.
@@ -58,7 +58,7 @@ abstract contract SoulZap_Ext_ApeBond_Lens is SoulZap_UniV2_Lens {
             slippage,
             to
         );
-        encodedTx = abi.encodeWithSelector(ZAP_BOND_SELECTOR, zapParams, feeSwapPath, bill, zapParamsBonds.maxPrice);
+        encodedTx = abi.encodeWithSelector(_ZAP_BOND_SELECTOR, zapParams, feeSwapPath, bill, zapParamsBonds.maxPrice);
     }
 
     /**
