@@ -7,6 +7,7 @@ pragma solidity ^0.8.0;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IUniswapV2Pair} from "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import {IUniswapV2Router02} from "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /// -----------------------------------------------------------------------
 /// Local Imports (alphabetical)
@@ -24,6 +25,8 @@ import {SoulZap_UniV2} from "../../SoulZap_UniV2.sol";
  * @notice Do not use this contract for any tokens that do not have a standard ERC20 implementation.
  */
 abstract contract SoulZap_Ext_ApeBond is SoulZap_UniV2 {
+    using SafeERC20 for IERC20;
+
     /// -----------------------------------------------------------------------
     /// Events
     /// -----------------------------------------------------------------------
@@ -50,7 +53,14 @@ abstract contract SoulZap_Ext_ApeBond is SoulZap_UniV2 {
         ICustomBillRefillable bill,
         uint256 maxPrice
     ) external payable nonReentrant whenNotPaused verifyMsgValueAndWrap(zapParams.inputToken, zapParams.inputAmount) {
-        _zapBond(zapParams, feeSwapPath, bill, maxPrice);
+        if (address(zapParams.inputToken) == address(Constants.NATIVE_ADDRESS)) {
+            _zapBond(zapParams, feeSwapPath, bill, maxPrice);
+        } else {
+            uint256 balanceBefore = _getBalance(zapParams.inputToken);
+            zapParams.inputToken.safeTransferFrom(msg.sender, address(this), zapParams.inputAmount);
+            zapParams.inputAmount = _getBalance(zapParams.inputToken) - balanceBefore;
+            _zapBond(zapParams, feeSwapPath, bill, maxPrice);
+        }
     }
 
     /// -----------------------------------------------------------------------

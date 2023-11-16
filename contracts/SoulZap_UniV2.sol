@@ -155,7 +155,15 @@ contract SoulZap_UniV2 is
         whenNotPaused
         verifyMsgValueAndWrap(swapParams.inputToken, swapParams.inputAmount)
     {
-        _swap(swapParams, feeSwapPath);
+        if (address(swapParams.inputToken) == address(Constants.NATIVE_ADDRESS)) {
+            _swap(swapParams, feeSwapPath);
+        } else {
+            // No msg.value
+            uint256 balanceBefore = _getBalance(swapParams.inputToken);
+            swapParams.inputToken.safeTransferFrom(msg.sender, address(this), swapParams.inputAmount);
+            swapParams.inputAmount = _getBalance(swapParams.inputToken) - balanceBefore;
+            _swap(swapParams, feeSwapPath);
+        }
     }
 
     /// @notice Ultimate ZAP function
@@ -171,7 +179,7 @@ contract SoulZap_UniV2 is
         require(address(swapParams.inputToken) != swapParams.token, "SoulZap: tokens can't be the same");
 
         bool native = address(swapParams.inputToken) == address(Constants.NATIVE_ADDRESS);
-        if (native) swapParams.inputToken == WNATIVE;
+        if (native) swapParams.inputToken = WNATIVE;
 
         swapParams.inputAmount -= _handleFee(
             swapParams.inputToken,
@@ -217,34 +225,22 @@ contract SoulZap_UniV2 is
         whenNotPaused
         verifyMsgValueAndWrap(zapParams.inputToken, zapParams.inputAmount)
     {
-        _zap(zapParams, feeSwapPath);
+        if (address(zapParams.inputToken) == address(Constants.NATIVE_ADDRESS)) {
+            _zap(zapParams, feeSwapPath);
+        } else {
+            uint256 balanceBefore = _getBalance(zapParams.inputToken);
+            zapParams.inputToken.safeTransferFrom(msg.sender, address(this), zapParams.inputAmount);
+            zapParams.inputAmount = _getBalance(zapParams.inputToken) - balanceBefore;
+            _zap(zapParams, feeSwapPath);
+        }
     }
 
     /// @notice Ultimate ZAP function
     /// @dev Assumes tokens are already transferred to this contract.
     /// - whenNotPaused: Only works when not paused which also pauses all other extensions which extend this
     /// - Native input zap MUST be done with Constants.NATIVE_ADDRESS
-    /// @param zapParams all parameters for zap
-    /// swapRouter swap router
-    /// swapType type of swap zap
-    /// lpRouter lp router
-    /// lpType type of lp zap
-    /// arrakisFactory Arrakis factory
-    /// inputToken Address of token to turn into an LP Token
-    /// inputAmount Amount of inputToken to deposit into LP
-    /// token0 first underlying token of LP
-    /// token1 second underlying token of LP
-    /// path0 path from input token to first underlying token of LP
-    /// amountOutMin0 min amount of token0 to receive after swap
-    /// uniV3PoolFees0 pool fees for path0 for when type of swap is V3
-    /// path1 path from input token to second underlying token of LP
-    /// amountOutMin1 min amount of token1 to receive after swap
-    /// uniV3PoolFees1 pool fees for path1 for when type of swap is V3
-    /// minAmountLP0 min amount of token0 to use when adding liquidity
-    /// minAmountLP1 min amount of token1 to use when adding liquidity
-    /// uniV3PoolLPFee pool fee of LP for when lp type is Arrakis or V3
-    /// to Address which receives the LP Tokens
-    /// deadline Latest timestamp this call is valid
+    /// @param zapParams see ISoulZap_UniV2.ZapParams struct
+    /// @param feeSwapPath see ISoulZap_UniV2.SwapPath struct
     function _zap(ZapParams memory zapParams, SwapPath memory feeSwapPath) internal whenNotPaused {
         // TODO: Remove console.log before production
         console.log("actual start _zap");
@@ -257,7 +253,7 @@ contract SoulZap_UniV2 is
         require(zapParams.token1 != address(0), "SoulZap: token1 can not be address(0)");
 
         bool native = address(zapParams.inputToken) == address(Constants.NATIVE_ADDRESS);
-        if (native) zapParams.inputToken == WNATIVE;
+        if (native) zapParams.inputToken = WNATIVE;
 
         // Setup struct to prevent stack overflow
         LocalVarsLib.LocalVars memory vars;
