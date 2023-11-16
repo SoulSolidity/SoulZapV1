@@ -49,34 +49,14 @@ abstract contract SoulZap_Ext_ApeBond is SoulZap_UniV2 {
         ICustomBillRefillable bill,
         uint256 maxPrice
     ) external nonReentrant whenNotPaused {
-        _zapBond(zapParams, false, feeSwapPath, bill, maxPrice);
-    }
-
-    /// @notice Zap native token to Treasury Bill
-    /// @param zapParamsNative ISoulZap.ZapParamsNative
-    /// @param bill Treasury bill address
-    /// @param maxPrice Max price of treasury bill
-    function zapBondNative(
-        ZapParamsNative memory zapParamsNative,
-        SwapPath memory feeSwapPath,
-        ICustomBillRefillable bill,
-        uint256 maxPrice
-    ) external payable nonReentrant whenNotPaused {
-        (IERC20 wNative, uint256 inputAmount) = _wrapNative();
-
-        ZapParams memory zapParams = ZapParams({
-            inputToken: wNative,
-            inputAmount: inputAmount,
-            token0: zapParamsNative.token0,
-            token1: zapParamsNative.token1,
-            path0: zapParamsNative.path0,
-            path1: zapParamsNative.path1,
-            liquidityPath: zapParamsNative.liquidityPath,
-            to: zapParamsNative.to,
-            deadline: zapParamsNative.deadline
-        });
-
-        _zapBond(zapParams, true, feeSwapPath, bill, maxPrice);
+        // This is sort of like a modifier, but condenses some logic and allows for a return value
+        uint256 wrappedAmount = _verifyMsgValueAndWrap(zapParams.inputToken, zapParams.inputAmount);
+        if (wrappedAmount > 0) {
+            zapParams.inputAmount = wrappedAmount;
+            _zapBond(zapParams, true, feeSwapPath, bill, maxPrice);
+        } else {
+            _zapBond(zapParams, false, feeSwapPath, bill, maxPrice);
+        }
     }
 
     /// -----------------------------------------------------------------------

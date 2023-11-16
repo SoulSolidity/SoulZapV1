@@ -16,8 +16,7 @@ abstract contract SoulZap_Ext_ApeBond_Lens is SoulZap_UniV2_Lens {
         uint256 maxPrice;
     }
 
-    bytes4 private constant ZAPBONDNATIVE_SELECTOR = SoulZap_Ext_ApeBond.zapBondNative.selector;
-    bytes4 private constant ZAPBOND_SELECTOR = SoulZap_Ext_ApeBond.zapBond.selector;
+    bytes4 private constant ZAP_BOND_SELECTOR = SoulZap_Ext_ApeBond.zapBond.selector;
 
     /**
      * @dev Get the Zap data for a bond transaction with a native token.
@@ -40,38 +39,23 @@ abstract contract SoulZap_Ext_ApeBond_Lens is SoulZap_UniV2_Lens {
         public
         view
         returns (
-            ISoulZap_UniV2.ZapParamsNative memory zapParams,
+            ISoulZap_UniV2.ZapParams memory zapParams,
             bytes memory encodedTx,
             ISoulZap_UniV2.SwapPath memory feeSwapPath,
             uint256[] memory priceImpactPercentages,
             ZapParams_Ext_Bonds memory zapParamsBonds
         )
     {
-        ISoulZap_UniV2.ZapParams memory tempParams;
-        (tempParams, feeSwapPath, priceImpactPercentages, zapParamsBonds) = _getZapDataBond(
+        (zapParams, feeSwapPath, priceImpactPercentages, zapParamsBonds) = _getZapDataBond(
             address(WNATIVE),
             amount,
             bill,
             slippage,
             to
         );
-        zapParams = ISoulZap_UniV2.ZapParamsNative({
-            token0: tempParams.token0,
-            token1: tempParams.token1,
-            path0: tempParams.path0,
-            path1: tempParams.path1,
-            liquidityPath: tempParams.liquidityPath,
-            to: to,
-            /// @dev deadline set to 20 minutes
-            deadline: block.timestamp + 20 minutes
-        });
-        encodedTx = abi.encodeWithSelector(
-            ZAPBONDNATIVE_SELECTOR,
-            zapParams,
-            feeSwapPath,
-            bill,
-            zapParamsBonds.maxPrice
-        );
+        /// @dev Protection if user doesn't send value. Otherwise msg.value becomes the inputAmount
+        zapParams.inputAmount = 0;
+        encodedTx = abi.encodeWithSelector(ZAP_BOND_SELECTOR, zapParams, feeSwapPath, bill, zapParamsBonds.maxPrice);
     }
 
     /**
@@ -111,7 +95,7 @@ abstract contract SoulZap_Ext_ApeBond_Lens is SoulZap_UniV2_Lens {
             slippage,
             to
         );
-        encodedTx = abi.encodeWithSelector(ZAPBOND_SELECTOR, zapParams, feeSwapPath, bill, zapParamsBonds.maxPrice);
+        encodedTx = abi.encodeWithSelector(ZAP_BOND_SELECTOR, zapParams, feeSwapPath, bill, zapParamsBonds.maxPrice);
     }
 
     /**

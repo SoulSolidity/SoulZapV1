@@ -35,9 +35,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
     /// Storage variables
     /// -----------------------------------------------------------------------
 
-    bytes4 private constant ZAPNATIVE_SELECTOR = ISoulZap_UniV2.zapNative.selector;
     bytes4 private constant ZAP_SELECTOR = ISoulZap_UniV2.zap.selector;
-    bytes4 private constant SWAPNATIVE_SELECTOR = ISoulZap_UniV2.swapNative.selector;
     bytes4 private constant SWAP_SELECTOR = ISoulZap_UniV2.swap.selector;
 
     IWETH public immutable WNATIVE;
@@ -130,27 +128,22 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         public
         view
         returns (
-            ISoulZap_UniV2.SwapParamsNative memory swapParams,
+            ISoulZap_UniV2.SwapParams memory swapParams,
             bytes memory encodedTx,
             ISoulZap_UniV2.SwapPath memory feeSwapPath,
             uint256 priceImpactPercentage
         )
     {
-        ISoulZap_UniV2.SwapParams memory tempParams;
-        (tempParams, feeSwapPath, priceImpactPercentage) = _getSwapData(
+        (swapParams, feeSwapPath, priceImpactPercentage) = _getSwapData(
             address(WNATIVE),
             amount,
             toToken,
             slippage,
             to
         );
-        swapParams = ISoulZap_UniV2.SwapParamsNative({
-            token: tempParams.token,
-            path: tempParams.path,
-            to: to,
-            deadline: block.timestamp + DEADLINE
-        });
-        encodedTx = abi.encodeWithSelector(SWAPNATIVE_SELECTOR, swapParams, feeSwapPath);
+        /// @dev Protection if user doesn't send value. Otherwise msg.value becomes the inputAmount
+        swapParams.inputAmount = 0;
+        encodedTx = abi.encodeWithSelector(SWAP_SELECTOR, swapParams, feeSwapPath);
     }
 
     /**
@@ -250,24 +243,16 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         public
         view
         returns (
-            ISoulZap_UniV2.ZapParamsNative memory zapParams,
+            ISoulZap_UniV2.ZapParams memory zapParams,
             bytes memory encodedTx,
             ISoulZap_UniV2.SwapPath memory feeSwapPath,
             uint256[] memory priceImpactPercentages
         )
     {
-        ISoulZap_UniV2.ZapParams memory tempParams;
-        (tempParams, feeSwapPath, priceImpactPercentages) = _getZapData(address(WNATIVE), amount, lp, slippage, to);
-        zapParams = ISoulZap_UniV2.ZapParamsNative({
-            token0: tempParams.token0,
-            token1: tempParams.token1,
-            path0: tempParams.path0,
-            path1: tempParams.path1,
-            liquidityPath: tempParams.liquidityPath,
-            to: to,
-            deadline: block.timestamp + DEADLINE
-        });
-        encodedTx = abi.encodeWithSelector(ZAPNATIVE_SELECTOR, zapParams, feeSwapPath);
+        (zapParams, feeSwapPath, priceImpactPercentages) = _getZapData(address(WNATIVE), amount, lp, slippage, to);
+        /// @dev Protection if user doesn't send value. Otherwise msg.value becomes the inputAmount
+        zapParams.inputAmount = 0;
+        encodedTx = abi.encodeWithSelector(ZAP_SELECTOR, zapParams, feeSwapPath);
     }
 
     /**
@@ -489,7 +474,6 @@ contract SoulZap_UniV2_Lens is AccessManaged {
                 path[2] = toTokenHopTokens[j];
                 path[3] = _toToken;
                 /// @dev Code duplication in sharedHopTokens section
-                // FIXME: cc - this is where it's failing
                 // Calculate the output amount for this path
                 uint[] memory amounts = router.getAmountsOut(_amountIn, path);
                 uint256 amountOut = amounts[amounts.length - 1];
