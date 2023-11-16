@@ -37,6 +37,8 @@ contract SoulZap_UniV2_Lens is AccessManaged {
 
     bytes4 private constant ZAPNATIVE_SELECTOR = ISoulZap_UniV2.zapNative.selector;
     bytes4 private constant ZAP_SELECTOR = ISoulZap_UniV2.zap.selector;
+    bytes4 private constant SWAPNATIVE_SELECTOR = ISoulZap_UniV2.swapNative.selector;
+    bytes4 private constant SWAP_SELECTOR = ISoulZap_UniV2.swap.selector;
 
     IWETH public immutable WNATIVE;
     IUniswapV2Factory public factory;
@@ -103,6 +105,130 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         uint reserveOut = pair.token0() == _fromToken ? reserve1 : reserve0;
         return router.getAmountOut(_inputAmount, reserveIn, reserveOut);
     }
+
+    /// -----------------------------------------------------------------------
+    /// Swap Functions
+    /// -----------------------------------------------------------------------
+
+    /**
+     * @dev Get the Zap data for a transaction with a specified token.
+     * @param amount The amount of tokens to swap.
+     * @param toToken The output token of swap.
+     * @param slippage The slippage tolerance (1 = 0.01%, 100 = 1%).
+     * @param to The address to receive the swapped tokens.
+     * @return swapParams SwapParams structure containing relevant data.
+     * @return encodedTx Encoded transaction with the given parameters.
+     * @return feeSwapPath SwapPath for protocol fees
+     * @return priceImpactPercentage The price impact percentages.
+     */
+    function getSwapDataNative(
+        uint256 amount,
+        address toToken,
+        uint256 slippage, // Denominator of 10_000. 1 = 0.01%, 100 = 1%
+        address to
+    )
+        public
+        view
+        returns (
+            ISoulZap_UniV2.SwapParamsNative memory swapParams,
+            bytes memory encodedTx,
+            ISoulZap_UniV2.SwapPath memory feeSwapPath,
+            uint256 priceImpactPercentage
+        )
+    {
+        ISoulZap_UniV2.SwapParams memory tempParams;
+        (tempParams, feeSwapPath, priceImpactPercentage) = _getSwapData(
+            address(WNATIVE),
+            amount,
+            toToken,
+            slippage,
+            to
+        );
+        swapParams = ISoulZap_UniV2.SwapParamsNative({
+            token: tempParams.token,
+            path: tempParams.path,
+            to: to,
+            deadline: block.timestamp + DEADLINE
+        });
+        encodedTx = abi.encodeWithSelector(SWAPNATIVE_SELECTOR, swapParams, feeSwapPath);
+    }
+
+    /**
+     * @dev Get the Zap data for a transaction with a specified token.
+     * @param fromToken The source token for the swap.
+     * @param amount The amount of tokens to swap.
+     * @param toToken The output token of swap.
+     * @param slippage The slippage tolerance (1 = 0.01%, 100 = 1%).
+     * @param to The address to receive the swapped tokens.
+     * @return swapParams SwapParams structure containing relevant data.
+     * @return encodedTx Encoded transaction with the given parameters.
+     * @return feeSwapPath SwapPath for protocol fees
+     * @return priceImpactPercentage The price impact percentages.
+     */
+    function getSwapData(
+        address fromToken,
+        uint256 amount,
+        address toToken,
+        uint256 slippage, // Denominator of 10_000. 1 = 0.01%, 100 = 1%
+        address to
+    )
+        public
+        view
+        returns (
+            ISoulZap_UniV2.SwapParams memory swapParams,
+            bytes memory encodedTx,
+            ISoulZap_UniV2.SwapPath memory feeSwapPath,
+            uint256 priceImpactPercentage
+        )
+    {
+        (swapParams, feeSwapPath, priceImpactPercentage) = _getSwapData(fromToken, amount, toToken, slippage, to);
+        encodedTx = abi.encodeWithSelector(SWAP_SELECTOR, swapParams, feeSwapPath);
+    }
+
+    /**
+     * @dev Get the Zap data for a transaction with a specified token.
+     * @param fromToken The source token for the swap.
+     * @param amount The amount of tokens to swap.
+     * @param toToken The output token of swap.
+     * @param slippage The slippage tolerance (1 = 0.01%, 100 = 1%).
+     * @param to The address to receive the swapped tokens.
+     * @return swapParams SwapParams structure containing relevant data.
+     * @return feeSwapPath SwapPath for protocol fees
+     * @return priceImpactPercentage The price impact percentages.
+     */
+    function _getSwapData(
+        address fromToken,
+        uint256 amount,
+        address toToken,
+        uint256 slippage, // Denominator of 10_000. 1 = 0.01%, 100 = 1%
+        address to
+    )
+        internal
+        view
+        returns (
+            ISoulZap_UniV2.SwapParams memory swapParams,
+            ISoulZap_UniV2.SwapPath memory feeSwapPath,
+            uint256 priceImpactPercentage
+        )
+    {
+        FeeVars memory feeVars;
+        (feeSwapPath, feeVars) = _getFeeSwapPath(fromToken, amount, slippage);
+        amount -= feeVars.feeAmount;
+
+        ISoulZap_UniV2.SwapPath memory swapPath;
+        (swapPath, priceImpactPercentage) = getBestSwapPathWithImpact(fromToken, toToken, amount, slippage);
+
+        swapParams.inputToken = IERC20(fromToken);
+        swapParams.inputAmount = amount;
+        swapParams.token = toToken;
+        swapParams.to = to;
+        swapParams.deadline = block.timestamp + DEADLINE;
+        swapParams.path = swapPath;
+    }
+
+    /// -----------------------------------------------------------------------
+    /// Zap Functions
+    /// -----------------------------------------------------------------------
 
     /**
      * @dev Get the Zap data for a transaction with a native token.

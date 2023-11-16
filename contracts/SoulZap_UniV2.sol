@@ -92,6 +92,8 @@ contract SoulZap_UniV2 is
     /// Events
     /// -----------------------------------------------------------------------
 
+    event Swap(SwapParams swapParams);
+    event SwapNative(SwapParams swapParams);
     event Zap(ZapParams zapParams);
     event ZapNative(ZapParams zapParams);
 
@@ -138,6 +140,82 @@ contract SoulZap_UniV2 is
 
     function unpause() public restricted {
         _unpause();
+    }
+
+    /// -----------------------------------------------------------------------
+    /// Swap Functions
+    /// -----------------------------------------------------------------------
+
+    /// @notice Zap single token to LP
+    /// @param swapParams all parameters for zap
+    /// @param feeSwapPath swap path for protocol fee
+    function swap(
+        SwapParams memory swapParams,
+        SwapPath memory feeSwapPath
+    ) external override nonReentrant whenNotPaused {
+        uint256 balanceBefore = _getBalance(swapParams.inputToken);
+        swapParams.inputToken.safeTransferFrom(msg.sender, address(this), swapParams.inputAmount);
+        swapParams.inputAmount = _getBalance(swapParams.inputToken) - balanceBefore;
+
+        _swap(swapParams, false, feeSwapPath);
+    }
+
+    /// @notice Zap native token to LP
+    /// @param swapParamsNative all parameters for native zap
+    /// @param feeSwapPath swap path for protocol fee
+    function swapNative(
+        SwapParamsNative memory swapParamsNative,
+        SwapPath memory feeSwapPath
+    ) external payable override nonReentrant whenNotPaused {
+        (IERC20 wNative, uint256 inputAmount) = _wrapNative();
+        SwapParams memory swapParams = SwapParams({
+            inputToken: wNative,
+            inputAmount: inputAmount,
+            token: swapParamsNative.token,
+            path: swapParamsNative.path,
+            to: swapParamsNative.to,
+            deadline: swapParamsNative.deadline
+        });
+
+        _swap(swapParams, true, feeSwapPath);
+    }
+
+    /// @notice Ultimate ZAP function
+    /// @dev Assumes tokens are already transferred to this contract.
+    /// - whenNotPaused: Only works when not paused which also pauses all other extensions which extend this
+    /// @param swapParams all parameters for zap
+    /// @param native Unwrap Wrapped Native tokens before transferring
+    /// @param feeSwapPath swap path for protocol fee
+    function _swap(SwapParams memory swapParams, bool native, SwapPath memory feeSwapPath) internal whenNotPaused {
+        // Verify inputs
+        require(swapParams.to != address(0), "SoulZap: Can't zap to null address");
+        require(swapParams.token != address(0), "SoulZap: token can't be address(0)");
+        require(address(swapParams.inputToken) != swapParams.token, "SoulZap: tokens can't be the same");
+
+        swapParams.inputAmount -= _handleFee(
+            swapParams.inputToken,
+            swapParams.inputAmount,
+            feeSwapPath,
+            swapParams.deadline
+        );
+
+        /**
+         * Handle token Swap
+         */
+        require(swapParams.path.swapRouter != address(0), "SoulZap: swap router can not be address(0)");
+        require(swapParams.path.path[0] == address(swapParams.inputToken), "SoulZap: wrong path path[0]");
+        require(
+            swapParams.path.path[swapParams.path.path.length - 1] == swapParams.token,
+            "SoulZap: wrong path path[-1]"
+        );
+        swapParams.inputToken.approve(swapParams.path.swapRouter, swapParams.inputAmount);
+        _routerSwapFromPath(swapParams.path, swapParams.inputAmount, swapParams.to, swapParams.deadline);
+
+        if (native) {
+            emit SwapNative(swapParams);
+        } else {
+            emit Swap(swapParams);
+        }
     }
 
     /// -----------------------------------------------------------------------
