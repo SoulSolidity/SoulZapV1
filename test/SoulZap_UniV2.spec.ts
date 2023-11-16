@@ -6,7 +6,7 @@ import '@nomicfoundation/hardhat-chai-matchers'
 
 import { deployDexAndHopTokens } from './fixtures/deployDexAndHopTokens'
 import { deployZap_UniV2_Extended_V1 } from './fixtures/deployZap_Mock'
-import { formatBNValueToString } from './utils'
+import { ADDRESS_NATIVE, formatBNValueToString } from './utils'
 import { ether } from './fixtures/UniV2/deployUniV2Dex'
 
 /**
@@ -98,7 +98,63 @@ describe('SoulZap_UniV2.sol Tests', function () {
     await inputTokens[0].connect(tokensOwner).approve(soulZap.address, inputAmount)
     // FIXME: log
     console.log(`Sending Zap Transaction`)
-    await tokensOwner.sendTransaction({ to: soulZap.address, data: zapData.encodedTx })
+    await tokensOwner.sendTransaction({ to: soulZap.address, data: zapData.encodedTx, value: inputToken == ADDRESS_NATIVE ? inputAmount : 0 })
+
+    // Check zapReceiver balance after
+    const afterBalance = await lpToken.balanceOf(zapReceiver.address)
+    console.dir({ afterBalance: formatBNValueToString(afterBalance) })
+    // Assert that afterBalance is greater than beforeBalance
+    expect(afterBalance).to.be.gt(beforeBalance)
+    // FIXME: log
+    console.dir('Zap Successful')
+  })
+
+  it('Should be able to zap native input tokens', async () => {
+    const {
+      dexAndHopTokens_deployment: {
+        baseTokens: { inputTokens },
+        pairs,
+      },
+      ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
+      accounts: [owner, feeTo, tokensOwner, zapReceiver],
+    } = await loadFixture(fixture)
+
+    const inputAmount = ether('.001')
+    const slippage = 100 // 1%
+    const inputToken = ADDRESS_NATIVE
+    const lpToken = pairs.hopLpPairs[5]
+
+    // TODO: hardcoded
+    const zapData = await soulZap_Lens.getZapData(
+      inputToken,
+      inputAmount,
+      lpToken.address,
+      slippage,
+      zapReceiver.address
+    )
+
+    // FIXME: log
+    console.dir(
+      {
+        zapData: formatBNValueToString(zapData),
+        inputToken: inputToken,
+        inputAmount: formatBNValueToString(inputAmount),
+        lpToken: lpToken.address,
+        slippage: formatBNValueToString(slippage),
+        zapReceiver: zapReceiver.address,
+      },
+      { depth: 4 }
+    )
+
+    // Check zapReceiver balance before
+    const beforeBalance = await lpToken.balanceOf(zapReceiver.address)
+    console.dir({ beforeBalance: formatBNValueToString(beforeBalance) })
+
+    // Your code here
+    await inputTokens[0].connect(tokensOwner).approve(soulZap.address, inputAmount)
+    // FIXME: log
+    console.log(`Sending Zap Transaction`)
+    await tokensOwner.sendTransaction({ to: soulZap.address, data: zapData.encodedTx, value: inputToken == ADDRESS_NATIVE ? inputAmount : 0 })
 
     // Check zapReceiver balance after
     const afterBalance = await lpToken.balanceOf(zapReceiver.address)

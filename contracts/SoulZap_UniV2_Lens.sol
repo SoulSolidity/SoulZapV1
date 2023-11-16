@@ -383,6 +383,9 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         ) = findPossibleHopTokens(_fromToken, _toToken);
         // If there are no hop tokens, return the best path
         if (fromTokenHopTokens.length == 0 || toTokenHopTokens.length == 0) {
+            if (!pairExists(_fromToken, _toToken)) {
+                revert("No swap path found");
+            }
             return (bestPath, bestAmountOutMin);
         }
 
@@ -473,9 +476,6 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         bestPath.path = bestPathAddresses;
         // TODO: Hardcoded 10_000
         bestPath.amountOutMin = (bestAmountOutMin * (10_000 - _slippage)) / 10_000;
-
-        //TODO maybe: add a double hop check so both tokens only need to have a pair with any one of the blue chip hop tokens instead of both with the same one
-        //Probably only if no single hope exists to save gas if it's not needed
 
         //Calculation of price impact. actual price is the current actual price which does not take slippage into account for less liquid pairs.
         //It calculates the impact between actual price and price after slippage.
