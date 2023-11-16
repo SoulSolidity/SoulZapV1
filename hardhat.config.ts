@@ -157,6 +157,9 @@ const config: HardhatUserConfig = {
       // NOTE: Use hardhat-fork.config.ts, test-fork and yarn test:fork
       gas: 'auto',
       gasPrice: 'auto',
+      accounts: {
+        accountsBalance: '1000000000000000000000000000000', // 1 Trillion ETH
+      },
     },
   },
   gasReporter: {
@@ -169,8 +172,7 @@ const config: HardhatUserConfig = {
   docgen: {
     path: './docs',
     clear: true,
-    // TODO: Enable for each compile (disabled for template to avoid unnecessary generation)
-    runOnCompile: false,
+    runOnCompile: true,
   },
   typechain: {
     // outDir: 'src/types', // defaults to './typechain-types/'
