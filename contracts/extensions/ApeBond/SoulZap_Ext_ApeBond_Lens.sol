@@ -62,6 +62,37 @@ abstract contract SoulZap_Ext_ApeBond_Lens is SoulZap_UniV2_Lens {
     }
 
     /**
+     * @dev Get the Zap data for a bond transaction with the Native token.
+     * @param amount The amount of tokens to zap.
+     * @param bill The custom bill refillable contract.
+     * @param slippage The slippage tolerance (1 = 0.01%, 100 = 1%).
+     * @param to The address to receive the zapped tokens.
+     * @return zapParams zapParams structure containing relevant data.
+     * @return encodedTx Encoded transaction with the given parameters.
+     * @return feeSwapPath swap path for protocol fee.
+     * @return priceImpactPercentages The price impact percentages.
+     * @return zapParamsBonds zap extension params for bonds
+     */
+    function getZapDataBondNative(
+        uint256 amount,
+        ICustomBillRefillable bill,
+        uint256 slippage, // 1 = 0.01%, 100 = 1%
+        address to
+    )
+        public
+        view
+        returns (
+            ISoulZap_UniV2.ZapParams memory zapParams,
+            bytes memory encodedTx,
+            ISoulZap_UniV2.SwapPath memory feeSwapPath,
+            uint256[] memory priceImpactPercentages,
+            ZapParams_Ext_Bonds memory zapParamsBonds
+        )
+    {
+        return getZapDataBond(Constants.NATIVE_ADDRESS, amount, bill, slippage, to);
+    }
+
+    /**
      * @dev Get the Zap data for a bond transaction with a specified token (internal function).
      * @param fromToken The source token for the zap.
      * @param amount The amount of tokens to zap.
