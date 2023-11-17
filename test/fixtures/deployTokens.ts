@@ -1,7 +1,7 @@
 import { ethers } from 'hardhat'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { BigNumber, BigNumberish } from 'ethers'
-import { ERC20Mock } from '../../typechain-types/contracts/mocks'
+import { ERC20Mock } from '../../typechain-types'
 
 interface TokenInfo {
   address?: string
@@ -27,7 +27,7 @@ export async function deployMockTokens(
   { initialSupply = BigNumber.from(1e12) } = {}
 ) {
   const ERC20Mock = await _ethers.getContractFactory('ERC20Mock')
-  const mockTokens = []
+  const mockTokens: ERC20Mock[] = []
 
   // NOTE: Only using name, symbol, and decimals from TokenInfo
   for (const token of mockTokenInfo) {
@@ -41,8 +41,6 @@ export async function deployMockTokens(
     )) as ERC20Mock
     if (toAddress) {
       await mockToken.transfer(toAddress.address, tokenInitialSupply)
-      // FIXME: log
-      // console.log(`deployMockTokens`, (await mockToken.balanceOf(toAddress.address)).toString())
     }
     mockTokens.push(mockToken)
   }

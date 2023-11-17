@@ -7,10 +7,12 @@ pragma solidity ^0.8.0;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IUniswapV2Pair} from "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import {IUniswapV2Router02} from "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /// -----------------------------------------------------------------------
 /// Local Imports (alphabetical)
 /// -----------------------------------------------------------------------
+import {Constants} from "../../utils/Constants.sol";
 import {ICustomBillRefillable} from "./lib/ICustomBillRefillable.sol";
 import {ISoulFeeManager} from "../../fee-manager/ISoulFeeManager.sol";
 import {SoulZap_UniV2} from "../../SoulZap_UniV2.sol";
@@ -23,6 +25,8 @@ import {SoulZap_UniV2} from "../../SoulZap_UniV2.sol";
  * @notice Do not use this contract for any tokens that do not have a standard ERC20 implementation.
  */
 abstract contract SoulZap_Ext_ApeBond is SoulZap_UniV2 {
+    using SafeERC20 for IERC20;
+
     /// -----------------------------------------------------------------------
     /// Events
     /// -----------------------------------------------------------------------
@@ -48,14 +52,14 @@ abstract contract SoulZap_Ext_ApeBond is SoulZap_UniV2 {
         // TODO: Rebrand to `IApeBond bond`?
         ICustomBillRefillable bill,
         uint256 maxPrice
-    ) external nonReentrant whenNotPaused {
-        // This is sort of like a modifier, but condenses some logic and allows for a return value
-        uint256 wrappedAmount = _verifyMsgValueAndWrap(zapParams.inputToken, zapParams.inputAmount);
-        if (wrappedAmount > 0) {
-            zapParams.inputAmount = wrappedAmount;
-            _zapBond(zapParams, true, feeSwapPath, bill, maxPrice);
+    ) external payable nonReentrant whenNotPaused verifyMsgValueAndWrap(zapParams.inputToken, zapParams.inputAmount) {
+        if (address(zapParams.inputToken) == address(Constants.NATIVE_ADDRESS)) {
+            _zapBond(zapParams, feeSwapPath, bill, maxPrice);
         } else {
-            _zapBond(zapParams, false, feeSwapPath, bill, maxPrice);
+            uint256 balanceBefore = _getBalance(zapParams.inputToken);
+            zapParams.inputToken.safeTransferFrom(msg.sender, address(this), zapParams.inputAmount);
+            zapParams.inputAmount = _getBalance(zapParams.inputToken) - balanceBefore;
+            _zapBond(zapParams, feeSwapPath, bill, maxPrice);
         }
     }
 
@@ -65,12 +69,13 @@ abstract contract SoulZap_Ext_ApeBond is SoulZap_UniV2 {
 
     function _zapBond(
         ZapParams memory zapParams,
-        bool native,
         SwapPath memory feeSwapPath,
         ICustomBillRefillable bill,
         uint256 maxPrice
     ) private {
         IUniswapV2Pair bondPrincipalToken = IUniswapV2Pair(bill.principalToken());
+        /// @dev Not changing  zapParams.inputToken to WNATIVE as that is handled in the lower level _zap function
+        bool native = address(zapParams.inputToken) == address(Constants.NATIVE_ADDRESS);
 
         //Check if bond principal token is single token or lp
         bool isSingleTokenBond = true;
@@ -91,7 +96,7 @@ abstract contract SoulZap_Ext_ApeBond is SoulZap_UniV2 {
             require(swapParams.token == address(bondPrincipalToken), "ApeBond: Wrong token for Bond");
             to = swapParams.to;
             swapParams.to = address(this);
-            _swap(swapParams, native, feeSwapPath);
+            _swap(swapParams, feeSwapPath);
         } else {
             require(
                 (zapParams.token0 == bondPrincipalToken.token0() && zapParams.token1 == bondPrincipalToken.token1()) ||
@@ -101,7 +106,7 @@ abstract contract SoulZap_Ext_ApeBond is SoulZap_UniV2 {
             );
             to = zapParams.to;
             zapParams.to = address(this);
-            _zap(zapParams, native, feeSwapPath);
+            _zap(zapParams, feeSwapPath);
         }
 
         uint256 balance = bondPrincipalToken.balanceOf(address(this));
