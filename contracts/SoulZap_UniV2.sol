@@ -79,9 +79,7 @@ contract SoulZap_UniV2 is
     /// -----------------------------------------------------------------------
 
     event Swap(SwapParams swapParams);
-    event SwapNative(SwapParams swapParams);
     event Zap(ZapParams zapParams);
-    event ZapNative(ZapParams zapParams);
 
     /// -----------------------------------------------------------------------
     /// Constructor
@@ -200,11 +198,7 @@ contract SoulZap_UniV2 is
         swapParams.inputToken.approve(swapParams.path.swapRouter, swapParams.inputAmount);
         _routerSwapFromPath(swapParams.path, swapParams.inputAmount, swapParams.to, swapParams.deadline);
 
-        if (native) {
-            emit SwapNative(swapParams);
-        } else {
-            emit Swap(swapParams);
-        }
+        emit Swap(swapParams);
     }
 
     /// -----------------------------------------------------------------------
@@ -350,11 +344,7 @@ contract SoulZap_UniV2 is
             _transferOut(IERC20(zapParams.token1), vars.amount1Out - vars.amount1Lp, msg.sender, native);
         }
 
-        if (native) {
-            emit ZapNative(zapParams);
-        } else {
-            emit Zap(zapParams);
-        }
+        emit Zap(zapParams);
     }
 
     function _routerSwapFromPath(
@@ -421,8 +411,8 @@ contract SoulZap_UniV2 is
         SwapPath memory _feeSwapPath,
         uint256 _deadline
     ) private returns (uint256 inputFeeAmount) {
-        uint256 protocolFee = soulFeeManager.getFee(getEpochVolume());
-        if (protocolFee == 0) {
+        uint256 feePercentage = soulFeeManager.getFee(getEpochVolume());
+        if (feePercentage == 0) {
             return 0;
         }
 
@@ -430,26 +420,23 @@ contract SoulZap_UniV2 is
         require(soulFeeManager.isFeeToken(outputToken), "SoulZap: Invalid output token in feeSwapPath");
         // TODO: Remove console.log before production
         console.log("take fee");
-        inputFeeAmount = (_inputAmount * protocolFee) / soulFeeManager.FEE_DENOMINATOR();
+        inputFeeAmount = (_inputAmount * feePercentage) / soulFeeManager.FEE_DENOMINATOR();
         // TODO: Remove console.log before production
-        console.log("feeAmount", inputFeeAmount, protocolFee, _inputAmount);
+        console.log("feeAmount", inputFeeAmount, feePercentage, _inputAmount);
 
         if (_feeSwapPath.path.length >= 2) {
-            // TODO: Remove console.log before production
-            console.log("path >= 2", _feeSwapPath.path[0]);
             _inputToken.approve(_feeSwapPath.swapRouter, inputFeeAmount);
-            uint256 usdOutput = _routerSwapFromPath(
+            uint256 amountOut = _routerSwapFromPath(
                 _feeSwapPath,
                 inputFeeAmount,
                 soulFeeManager.getFeeCollector(),
                 _deadline
             );
-            //NOTE// FIXME: we lose price impact :(
-            _accumulateVolume(usdOutput);
+            _accumulateFeeVolume(amountOut);
         } else {
             //inputToken is fee token
             _transferOut(_inputToken, inputFeeAmount, soulFeeManager.getFeeCollector(), false);
-            _accumulateVolume(inputFeeAmount);
+            _accumulateFeeVolume(inputFeeAmount);
         }
 
         // TODO: Remove console.log before production

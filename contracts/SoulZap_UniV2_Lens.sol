@@ -546,13 +546,11 @@ contract SoulZap_UniV2_Lens is AccessManaged {
 
         (address[] memory bestPathAddresses, uint256 bestAmountOutMin) = _getBestPath(_fromToken, _toToken, _amountIn);
         bestPath.path = bestPathAddresses;
-        // TODO: Hardcoded 10_000
-        bestPath.amountOutMin = (bestAmountOutMin * (10_000 - _slippage)) / 10_000;
+        bestPath.amountOutMin = (bestAmountOutMin * (Constants.DENOMINATOR - _slippage)) / Constants.DENOMINATOR;
 
         // Calculation of price impact.
         // Actual price is the current actual price which does not take slippage into account for less liquid pairs.
         // Calculation of price impact between actual price and price after slippage.
-        // TODO: 10_000 hardcoded
         // With a denominator of 10_000. 100 = 1% price impact, 1000 = 10% price impact.
         uint256 actualPrice = _amountIn;
         // TODO: Remove console.log before production
@@ -564,20 +562,18 @@ contract SoulZap_UniV2_Lens is AccessManaged {
             if (token0 > token1) {
                 (reserveA, reserveB) = (reserveB, reserveA);
             }
-            // TODO: Remove console.log before production
-            console.log(factory.getPair(token0, token1), reserveB, reserveA, (reserveB * 1e18) / reserveA);
-            // Multiply the actual price by the ratio of reserveB to reserveA, scaled by 1e18 to maintain precision
-            actualPrice *= (reserveB * 1e18) / reserveA;
-            // If this is not the first iteration, divide the actual price by 1e18 to correct the scaling
+            // Multiply the actual price by the ratio of reserveB to reserveA, scaled by precision to maintain precision
+            actualPrice *= (reserveB * Constants.PRECISION) / reserveA;
+            // If this is not the first iteration, divide the actual price by precision to correct the scaling
             if (i > 0) {
-                actualPrice /= 1e18;
+                actualPrice /= Constants.PRECISION;
             }
             // TODO: Remove console.log before production
             console.log("actualPrice", actualPrice);
         }
-        // TODO: Hardcoded 10_000, also we should probably add in some more granularity here
-        // NOTE: hardcoded 1e22 (because 1e22/1e18=10_000)
-        priceImpactPercentage = 10_000 - ((bestPath.amountOutMin * 1e22) / actualPrice);
+        priceImpactPercentage =
+            Constants.DENOMINATOR -
+            ((bestPath.amountOutMin * (Constants.DENOMINATOR * Constants.PRECISION)) / actualPrice);
         console.log("price impact", priceImpactPercentage);
     }
 
@@ -703,10 +699,9 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         feeVars.feeToken = soulFeeManager.getFeeToken(0);
         feeVars.feeAmount = (_amountIn * feeVars.feePercentage) / _SOUL_FEE_DENOMINATOR;
 
+        //If no fees just return
         if (feeVars.feePercentage == 0) {
-            // TODO: In SoulZap no longer accumulating volume, so we should skip this
-            //If no fee, take 1% so we can still calculate volume
-            feeVars.feeAmount = _amountIn / 100;
+            return (feeSwapPath, feeVars);
         }
 
         (address[] memory path, uint256 amountOutMin) = _getBestPath(_fromToken, feeVars.feeToken, feeVars.feeAmount);
@@ -715,8 +710,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         feeSwapPath.swapType = ISoulZap_UniV2.SwapType.V2;
         feeSwapPath.path = path;
 
-        // TODO: Hardcoded 10_000: Move to Constants.sol where Lens and Zap contracts can both import
-        feeSwapPath.amountOutMin = (amountOutMin * (10_000 - _slippage)) / 10_000;
+        feeSwapPath.amountOutMin = (amountOutMin * (Constants.DENOMINATOR - _slippage)) / Constants.DENOMINATOR;
         // TODO: remove console.log or
         console.log("feeswappath done");
     }
