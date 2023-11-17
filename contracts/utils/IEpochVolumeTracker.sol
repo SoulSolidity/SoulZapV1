@@ -3,20 +3,33 @@ pragma solidity ^0.8.0;
 
 interface IEpochVolumeTracker {
     /// -----------------------------------------------------------------------
-    /// Storage variables
+    /// Events
     /// -----------------------------------------------------------------------
 
-    function EPOCH_DURATION() external view returns (uint256);
-
-    function lifetimeCumulativeVolume() external view returns (uint256);
-
-    function lastEpochStartTime() external view returns (uint256);
+    event AccumulateVolume(
+        uint256 volumeAccumulated,
+        uint256 lifetimeCumulativeVolume,
+        uint256 epochStartCumulativeVolume,
+        uint256 currentEpochStartTime
+    );
 
     /// -----------------------------------------------------------------------
-    /// Epoch functions
+    /// Public/External functions
     /// -----------------------------------------------------------------------
 
     function getEpochVolume() external view returns (uint256);
 
     function getTimeLeftInEpoch() external view returns (uint256);
+
+    function getEpochVolumeInfo()
+        external
+        view
+        returns (
+            uint256 epochVolume,
+            uint256 lifetimeCumulativeVolume,
+            uint256 epochStartCumulativeVolume,
+            uint256 lastEpochStartTime,
+            uint256 timeLeftInEpoch,
+            uint256 epochDuration
+        );
 }

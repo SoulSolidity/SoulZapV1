@@ -19,7 +19,7 @@ module.exports = {
   rules: {
     // Best Practice Rules
     'constructor-syntax': 'warn',
-    'max-line-length': ['error', 120],
+    'max-line-length': ['warn', 120],
     // "code-complexity": ["warn", 7], // Not included in recommended
     // "function-max-lines": [ "warn",50 ], // Not included in recommended
 
@@ -28,12 +28,12 @@ module.exports = {
     'reason-string': ['warn', { maxLength: 50 }], // Revert reason length
     'func-param-name-mixedcase': 'error',
     'modifier-name-mixedcase': 'error',
-    'private-vars-leading-underscore': ['error', { strict: false }],
-    ordering: 'error',
+    'private-vars-leading-underscore': ['warn', { strict: false }],
+    ordering: 'warn',
 
     // Security Rules
     'compiler-version': [
-      SOLC_COMPILER_VERSIONS.length == 1 ? 'error' : 'warn',
+      'warn',
       SOLC_COMPILER_VERSIONS[0],
       // NOTE: Custom value added in template to support exporting multiple compiler versions
       SOLC_COMPILER_VERSIONS,

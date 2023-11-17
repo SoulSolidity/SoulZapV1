@@ -75,14 +75,6 @@ interface ISoulZap_UniV2 is IAccessManaged, ITransferHelper, IEpochVolumeTracker
     struct SwapParams {
         IERC20 inputToken;
         uint256 inputAmount;
-        /// @dev Common interface below between SwapParamsNative
-        address token;
-        SwapPath path;
-        address to;
-        uint256 deadline;
-    }
-
-    struct SwapParamsNative {
         address token;
         SwapPath path;
         address to;
@@ -96,17 +88,6 @@ interface ISoulZap_UniV2 is IAccessManaged, ITransferHelper, IEpochVolumeTracker
     struct ZapParams {
         IERC20 inputToken;
         uint256 inputAmount;
-        /// @dev Common interface below between ZapParamsNative
-        address token0;
-        address token1;
-        SwapPath path0;
-        SwapPath path1;
-        LiquidityPath liquidityPath;
-        address to;
-        uint256 deadline;
-    }
-
-    struct ZapParamsNative {
         address token0;
         address token1;
         SwapPath path0;
@@ -126,24 +107,7 @@ interface ISoulZap_UniV2 is IAccessManaged, ITransferHelper, IEpochVolumeTracker
     /// Functions
     /// -----------------------------------------------------------------------
 
-    function swap(SwapParams memory swapParams, SwapPath memory feeSwapPath) external;
+    function swap(SwapParams memory swapParams, SwapPath memory feeSwapPath) external payable;
 
-    function swapNative(SwapParamsNative memory swapParamsNative, SwapPath memory feeSwapPath) external payable;
-
-    function zap(ZapParams memory zapParams, SwapPath memory feeSwapPath) external;
-
-    function zapNative(ZapParamsNative memory zapParamsNative, SwapPath memory feeSwapPath) external payable;
-
-    /// -----------------------------------------------------------------------
-    /// Helper Structs
-    /// -----------------------------------------------------------------------
-
-    struct LocalVars {
-        uint256 amount0In;
-        uint256 amount1In;
-        uint256 amount0Out;
-        uint256 amount1Out;
-        uint256 amount0Lp;
-        uint256 amount1Lp;
-    }
+    function zap(ZapParams memory zapParams, SwapPath memory feeSwapPath) external payable;
 }
