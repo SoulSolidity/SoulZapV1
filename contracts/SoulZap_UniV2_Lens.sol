@@ -1,11 +1,23 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.23;
 
+/*
+░██████╗░█████╗░██╗░░░██╗██╗░░░░░  ░██████╗░█████╗░██╗░░░░░██╗██████╗░██╗████████╗██╗░░░██╗
+██╔════╝██╔══██╗██║░░░██║██║░░░░░  ██╔════╝██╔══██╗██║░░░░░██║██╔══██╗██║╚══██╔══╝╚██╗░██╔╝
+╚█████╗░██║░░██║██║░░░██║██║░░░░░  ╚█████╗░██║░░██║██║░░░░░██║██║░░██║██║░░░██║░░░░╚████╔╝░
+░╚═══██╗██║░░██║██║░░░██║██║░░░░░  ░╚═══██╗██║░░██║██║░░░░░██║██║░░██║██║░░░██║░░░░░╚██╔╝░░
+██████╔╝╚█████╔╝╚██████╔╝███████╗  ██████╔╝╚█████╔╝███████╗██║██████╔╝██║░░░██║░░░░░░██║░░░
+╚═════╝░░╚════╝░░╚═════╝░╚══════╝  ╚═════╝░░╚════╝░╚══════╝╚═╝╚═════╝░╚═╝░░░╚═╝░░░░░░╚═╝░░░
+
+ * GitHub: https://github.com/SoulSolidity
+ */
+
 /// -----------------------------------------------------------------------
 /// Package Imports
 /// -----------------------------------------------------------------------
 
 import {AccessManaged} from "@openzeppelin/contracts/access/manager/AccessManaged.sol";
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IUniswapV2Factory} from "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 import {IUniswapV2Pair} from "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
@@ -14,6 +26,7 @@ import {IUniswapV2Router02} from "@uniswap/v2-periphery/contracts/interfaces/IUn
 /// -----------------------------------------------------------------------
 /// Internal Imports
 /// -----------------------------------------------------------------------
+import {Constants} from "./utils/Constants.sol";
 import {ISoulZap_UniV2} from "./ISoulZap_UniV2.sol";
 import {ISoulFeeManager} from "./fee-manager/ISoulFeeManager.sol";
 import {IWETH} from "./lib/IWETH.sol";
@@ -23,35 +36,43 @@ import "hardhat/console.sol";
 
 /**
  * @title SoulZap_UniV2_Lens
- * @dev This contract is an implementation of AccessManaged interface. It includes functionalities for managing access to
- * SoulZap_UniV2 contracts.
+ * @dev This contract is an implementation of AccessManaged interface. It includes functionalities for managing
+ *   access to SoulZap_UniV2 contracts.
  * @notice This contract uses AccessManaged for managing access.
  * @author Soul Solidity - Contact for mainnet licensing until 730 days after first deployment transaction with matching bytecode.
  * Otherwise feel free to experiment locally or on testnets.
  * @notice Do not use this contract for any tokens that do not have a standard ERC20 implementation.
  */
 contract SoulZap_UniV2_Lens is AccessManaged {
-    /// -----------------------------------------------------------------------
-    /// Storage variables
-    /// -----------------------------------------------------------------------
+    using EnumerableSet for EnumerableSet.AddressSet;
 
-    bytes4 private constant ZAPNATIVE_SELECTOR = ISoulZap_UniV2.zapNative.selector;
-    bytes4 private constant ZAP_SELECTOR = ISoulZap_UniV2.zap.selector;
-    bytes4 private constant SWAPNATIVE_SELECTOR = ISoulZap_UniV2.swapNative.selector;
-    bytes4 private constant SWAP_SELECTOR = ISoulZap_UniV2.swap.selector;
+    /// -----------------------------------------------------------------------
+    /// Storage variables public
+    /// -----------------------------------------------------------------------
 
     IWETH public immutable WNATIVE;
     IUniswapV2Factory public factory;
     IUniswapV2Router02 public router;
     ISoulZap_UniV2 public soulZap;
-    // TODO: Refactor into Enumberable set?
-    address[] public hopTokens;
+
+    uint256 public constant MAX_HOP_TOKENS = 20;
     uint256 public constant DEADLINE = 20 minutes;
 
-    //FIXME: do we really need the fee manger AND the zap in here for just logic stuff...
+    // FIXME: do we really need the fee manger AND the zap in here for just logic stuff...
     // and make soulzap the interface instead of the contract. need the epoch interface stuff
+    // FIXME: This is actually a problem because the soulFeeManager can be changed in soulZap and it wont be affected here. At minimum need to pull it from the zap
     ISoulFeeManager public soulFeeManager;
-    uint256 private immutable SOUL_FEE_DENOMINATOR;
+    // FIXME: This could change also. Was trying to save some gas
+    uint256 private immutable _SOUL_FEE_DENOMINATOR;
+
+    /// -----------------------------------------------------------------------
+    /// Storage variables internal/private
+    /// -----------------------------------------------------------------------
+
+    bytes4 private constant _ZAP_SELECTOR = ISoulZap_UniV2.zap.selector;
+    bytes4 private constant _SWAP_SELECTOR = ISoulZap_UniV2.swap.selector;
+
+    EnumerableSet.AddressSet private _hopTokens;
 
     /// -----------------------------------------------------------------------
     /// Constructor
@@ -62,19 +83,19 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         // TODO: Array of fee tokens should be stored in feeManager contract
         // address _feeStableToken,
         IUniswapV2Router02 _router,
-        address[] memory _hopTokens
+        address[] memory _startingHopTokens
     ) AccessManaged(_soulZap.authority()) {
         require(_router.WETH() == address(_soulZap.WNATIVE()), "SoulZap_UniV2_Lens: WNATIVE != router.WETH()");
 
         router = _router;
         factory = IUniswapV2Factory(_router.factory());
-        // TODO: Create _setHopTokens which validates that the
-        hopTokens = _hopTokens;
+        // Verify and add hop tokens
+        _addHopTokens(_startingHopTokens);
 
         soulZap = _soulZap;
         WNATIVE = _soulZap.WNATIVE();
         soulFeeManager = _soulZap.soulFeeManager();
-        SOUL_FEE_DENOMINATOR = soulFeeManager.FEE_DENOMINATOR();
+        _SOUL_FEE_DENOMINATOR = soulFeeManager.FEE_DENOMINATOR();
     }
 
     /**
@@ -112,49 +133,6 @@ contract SoulZap_UniV2_Lens is AccessManaged {
 
     /**
      * @dev Get the Zap data for a transaction with a specified token.
-     * @param amount The amount of tokens to swap.
-     * @param toToken The output token of swap.
-     * @param slippage The slippage tolerance (1 = 0.01%, 100 = 1%).
-     * @param to The address to receive the swapped tokens.
-     * @return swapParams SwapParams structure containing relevant data.
-     * @return encodedTx Encoded transaction with the given parameters.
-     * @return feeSwapPath SwapPath for protocol fees
-     * @return priceImpactPercentage The price impact percentages.
-     */
-    function getSwapDataNative(
-        uint256 amount,
-        address toToken,
-        uint256 slippage, // Denominator of 10_000. 1 = 0.01%, 100 = 1%
-        address to
-    )
-        public
-        view
-        returns (
-            ISoulZap_UniV2.SwapParamsNative memory swapParams,
-            bytes memory encodedTx,
-            ISoulZap_UniV2.SwapPath memory feeSwapPath,
-            uint256 priceImpactPercentage
-        )
-    {
-        ISoulZap_UniV2.SwapParams memory tempParams;
-        (tempParams, feeSwapPath, priceImpactPercentage) = _getSwapData(
-            address(WNATIVE),
-            amount,
-            toToken,
-            slippage,
-            to
-        );
-        swapParams = ISoulZap_UniV2.SwapParamsNative({
-            token: tempParams.token,
-            path: tempParams.path,
-            to: to,
-            deadline: block.timestamp + DEADLINE
-        });
-        encodedTx = abi.encodeWithSelector(SWAPNATIVE_SELECTOR, swapParams, feeSwapPath);
-    }
-
-    /**
-     * @dev Get the Zap data for a transaction with a specified token.
      * @param fromToken The source token for the swap.
      * @param amount The amount of tokens to swap.
      * @param toToken The output token of swap.
@@ -182,7 +160,36 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         )
     {
         (swapParams, feeSwapPath, priceImpactPercentage) = _getSwapData(fromToken, amount, toToken, slippage, to);
-        encodedTx = abi.encodeWithSelector(SWAP_SELECTOR, swapParams, feeSwapPath);
+        encodedTx = abi.encodeWithSelector(_SWAP_SELECTOR, swapParams, feeSwapPath);
+    }
+
+    /**
+     * @dev Get the Zap data for a transaction with a specified token.
+     * @param amount The amount of tokens to zap.
+     * @param toToken The output token of swap.
+     * @param slippage The slippage tolerance (Denominator 10_000. 1 = 0.01%, 100 = 1%).
+     * @param to The address to receive the zapped tokens.
+     * @return swapParams SwapParams structure containing relevant data.
+     * @return encodedTx Encoded transaction with the given parameters.
+     * @return feeSwapPath SwapPath for protocol fees
+     * @return priceImpactPercentage The price impact percentages.
+     */
+    function getSwapDataNative(
+        uint256 amount,
+        address toToken,
+        uint256 slippage, // Denominator of 10_000. 1 = 0.01%, 100 = 1%
+        address to
+    )
+        public
+        view
+        returns (
+            ISoulZap_UniV2.SwapParams memory swapParams,
+            bytes memory encodedTx,
+            ISoulZap_UniV2.SwapPath memory feeSwapPath,
+            uint256 priceImpactPercentage
+        )
+    {
+        return getSwapData(Constants.NATIVE_ADDRESS, amount, toToken, slippage, to);
     }
 
     /**
@@ -211,64 +218,32 @@ contract SoulZap_UniV2_Lens is AccessManaged {
             uint256 priceImpactPercentage
         )
     {
+        bool nativeSwap = fromToken == Constants.NATIVE_ADDRESS;
+        if (nativeSwap) {
+            fromToken = address(WNATIVE);
+        }
+
         FeeVars memory feeVars;
         (feeSwapPath, feeVars) = _getFeeSwapPath(fromToken, amount, slippage);
-        amount -= feeVars.feeAmount;
+        uint256 amountAfterFee = amount - feeVars.feeAmount;
 
         ISoulZap_UniV2.SwapPath memory swapPath;
-        (swapPath, priceImpactPercentage) = getBestSwapPathWithImpact(fromToken, toToken, amount, slippage);
+        (swapPath, priceImpactPercentage) = _getBestSwapPathWithImpact(fromToken, toToken, amountAfterFee, slippage);
 
-        swapParams.inputToken = IERC20(fromToken);
-        swapParams.inputAmount = amount;
-        swapParams.token = toToken;
-        swapParams.to = to;
-        swapParams.deadline = block.timestamp + DEADLINE;
-        swapParams.path = swapPath;
+        swapParams = ISoulZap_UniV2.SwapParams({
+            // Set input token to NATIVE_ADDRESS if nativeSwap
+            inputToken: nativeSwap ? IERC20(Constants.NATIVE_ADDRESS) : IERC20(fromToken),
+            inputAmount: amount, // Use full input amount here
+            token: toToken,
+            to: to,
+            deadline: block.timestamp + DEADLINE,
+            path: swapPath
+        });
     }
 
     /// -----------------------------------------------------------------------
     /// Zap Functions
     /// -----------------------------------------------------------------------
-
-    /**
-     * @dev Get the Zap data for a transaction with a native token.
-     * @param amount The amount of tokens to zap.
-     * @param lp The Uniswap V2 pair contract.
-     * @param slippage The slippage tolerance (1 = 0.01%, 100 = 1%).
-     * @param to The address to receive the zapped tokens.
-     * @return zapParams ZapParamsNative structure containing relevant data.
-     * @return encodedTx Encoded transaction with the given parameters.
-     * @return feeSwapPath SwapPath for protocol fees
-     * @return priceImpactPercentages The price impact percentages.
-     */
-    function getZapDataNative(
-        uint256 amount,
-        IUniswapV2Pair lp,
-        uint256 slippage, // 1 = 0.01%, 100 = 1%
-        address to
-    )
-        public
-        view
-        returns (
-            ISoulZap_UniV2.ZapParamsNative memory zapParams,
-            bytes memory encodedTx,
-            ISoulZap_UniV2.SwapPath memory feeSwapPath,
-            uint256[] memory priceImpactPercentages
-        )
-    {
-        ISoulZap_UniV2.ZapParams memory tempParams;
-        (tempParams, feeSwapPath, priceImpactPercentages) = _getZapData(address(WNATIVE), amount, lp, slippage, to);
-        zapParams = ISoulZap_UniV2.ZapParamsNative({
-            token0: tempParams.token0,
-            token1: tempParams.token1,
-            path0: tempParams.path0,
-            path1: tempParams.path1,
-            liquidityPath: tempParams.liquidityPath,
-            to: to,
-            deadline: block.timestamp + DEADLINE
-        });
-        encodedTx = abi.encodeWithSelector(ZAPNATIVE_SELECTOR, zapParams, feeSwapPath);
-    }
 
     /**
      * @dev Get the Zap data for a transaction with a specified token.
@@ -299,7 +274,36 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         )
     {
         (zapParams, feeSwapPath, priceImpactPercentages) = _getZapData(fromToken, amount, lp, slippage, to);
-        encodedTx = abi.encodeWithSelector(ZAP_SELECTOR, zapParams, feeSwapPath);
+        encodedTx = abi.encodeWithSelector(_ZAP_SELECTOR, zapParams, feeSwapPath);
+    }
+
+    /**
+     * @dev Get the Zap data for a transaction with a specified token.
+     * @param amount The amount of tokens to zap.
+     * @param lp The Uniswap V2 pair contract.
+     * @param slippage The slippage tolerance (Denominator 10_000. 1 = 0.01%, 100 = 1%).
+     * @param to The address to receive the zapped tokens.
+     * @return zapParams ZapParams structure containing relevant data.
+     * @return encodedTx Encoded transaction with the given parameters.
+     * @return feeSwapPath SwapPath for protocol fees
+     * @return priceImpactPercentages The price impact percentages.
+     */
+    function getZapDataNative(
+        uint256 amount,
+        IUniswapV2Pair lp,
+        uint256 slippage, // Denominator of 10_000. 1 = 0.01%, 100 = 1%
+        address to
+    )
+        public
+        view
+        returns (
+            ISoulZap_UniV2.ZapParams memory zapParams,
+            bytes memory encodedTx,
+            ISoulZap_UniV2.SwapPath memory feeSwapPath,
+            uint256[] memory priceImpactPercentages
+        )
+    {
+        return getZapData(Constants.NATIVE_ADDRESS, amount, lp, slippage, to);
     }
 
     /**
@@ -328,14 +332,20 @@ contract SoulZap_UniV2_Lens is AccessManaged {
             uint256[] memory priceImpactPercentages
         )
     {
+        bool nativeZap = fromToken == Constants.NATIVE_ADDRESS;
+        if (nativeZap) {
+            fromToken = address(WNATIVE);
+        }
+
         zapParams.deadline = block.timestamp + DEADLINE;
-        zapParams.inputAmount = amount;
-        zapParams.inputToken = IERC20(fromToken);
+        zapParams.inputAmount = amount; // Use full input amount here
+        // Set input token to NATIVE_ADDRESS if nativeZap
+        zapParams.inputToken = nativeZap ? IERC20(Constants.NATIVE_ADDRESS) : IERC20(fromToken);
         zapParams.to = to;
 
         FeeVars memory feeVars;
         (feeSwapPath, feeVars) = _getFeeSwapPath(fromToken, amount, slippage);
-        amount -= feeVars.feeAmount;
+        uint256 amountAfterFee = amount - feeVars.feeAmount;
 
         address token0;
         address token1;
@@ -354,17 +364,17 @@ contract SoulZap_UniV2_Lens is AccessManaged {
 
         if (token0 != address(0) && token1 != address(0)) {
             //LP
-            uint256 halfAmount = amount / 2;
+            uint256 halfAmount = amountAfterFee / 2;
             zapParams.token0 = token0;
             zapParams.token1 = token1;
             priceImpactPercentages = new uint256[](2);
-            (zapParams.path0, priceImpactPercentages[0]) = getBestSwapPathWithImpact(
+            (zapParams.path0, priceImpactPercentages[0]) = _getBestSwapPathWithImpact(
                 fromToken,
                 token0,
                 halfAmount,
                 slippage
             );
-            (zapParams.path1, priceImpactPercentages[1]) = getBestSwapPathWithImpact(
+            (zapParams.path1, priceImpactPercentages[1]) = _getBestSwapPathWithImpact(
                 fromToken,
                 token1,
                 halfAmount,
@@ -444,6 +454,10 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         ) = findPossibleHopTokens(_fromToken, _toToken);
         // If there are no hop tokens, return the best path
         if (fromTokenHopTokens.length == 0 || toTokenHopTokens.length == 0) {
+            if (!pairExists(_fromToken, _toToken)) {
+                // TODO: Fail gracefully?
+                revert("No swap path found");
+            }
             return (bestPath, bestAmountOutMin);
         }
 
@@ -489,7 +503,6 @@ contract SoulZap_UniV2_Lens is AccessManaged {
                 path[2] = toTokenHopTokens[j];
                 path[3] = _toToken;
                 /// @dev Code duplication in sharedHopTokens section
-                // FIXME: cc - this is where it's failing
                 // Calculate the output amount for this path
                 uint[] memory amounts = router.getAmountsOut(_amountIn, path);
                 uint256 amountOut = amounts[amounts.length - 1];
@@ -510,17 +523,17 @@ contract SoulZap_UniV2_Lens is AccessManaged {
      * @param _fromToken The source token for the swap.
      * @param _toToken The target token for the swap.
      * @param _amountIn The input amount for the swap.
-     * @param _slippage amountOutMin slippage. This is front run slippage and for the small time difference between read and write tx
-     *          AND NOT FOR ACTUAL PRICE IMPACT. Denominator 10_000
+     * @param _slippage amountOutMin slippage. This is front run slippage and for the small time difference
+     * between read and write tx AND NOT FOR ACTUAL PRICE IMPACT.
      * @return bestPath An array of addresses representing the best route.
      * @return priceImpactPercentage The price impact for the swap.
      */
-    function getBestSwapPathWithImpact(
+    function _getBestSwapPathWithImpact(
         address _fromToken,
         address _toToken,
         uint _amountIn,
         uint256 _slippage //Denominator 10_000 1 = 0.01%, 100 = 1%
-    ) public view returns (ISoulZap_UniV2.SwapPath memory bestPath, uint256 priceImpactPercentage) {
+    ) internal view returns (ISoulZap_UniV2.SwapPath memory bestPath, uint256 priceImpactPercentage) {
         if (_fromToken == _toToken) {
             //amountOutMin == amountIn if token is the same (needed for liquidity path)
             bestPath.amountOutMin = _amountIn;
@@ -536,13 +549,11 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         // TODO: Hardcoded 10_000
         bestPath.amountOutMin = (bestAmountOutMin * (10_000 - _slippage)) / 10_000;
 
-        //TODO maybe: add a double hop check so both tokens only need to have a pair with any one of the blue chip hop tokens instead of both with the same one
-        //Probably only if no single hope exists to save gas if it's not needed
-
-        //Calculation of price impact. actual price is the current actual price which does not take slippage into account for less liquid pairs.
-        //It calculates the impact between actual price and price after slippage.
+        // Calculation of price impact.
+        // Actual price is the current actual price which does not take slippage into account for less liquid pairs.
+        // Calculation of price impact between actual price and price after slippage.
         // TODO: 10_000 hardcoded
-        //With a denominator of 10_000. 100 = 1% price impact, 1000 = 10% price impact.
+        // With a denominator of 10_000. 100 = 1% price impact, 1000 = 10% price impact.
         uint256 actualPrice = _amountIn;
         // TODO: Remove console.log before production
         console.log("actualPrice", actualPrice);
@@ -578,13 +589,25 @@ contract SoulZap_UniV2_Lens is AccessManaged {
      * @dev Check if a token is in the hop tokens
      * @param _token The address of the token
      */
-    function isInHopTokens(address _token) public view returns (bool) {
-        for (uint i = 0; i < hopTokens.length; i++) {
-            if (hopTokens[i] == _token) {
-                return true;
-            }
-        }
-        return false;
+    function isHopToken(address _token) public view returns (bool) {
+        return _hopTokens.contains(_token);
+    }
+
+    /**
+     * @dev Returns the length of the hop tokens array.
+     * @return The length of the hop tokens array.
+     */
+    function getHopTokensLength() public view returns (uint256) {
+        return _hopTokens.length();
+    }
+
+    /**
+     * @dev Returns the hop token at the specified index.
+     * @param _index The index of the hop token.
+     * @return The hop token at the specified index.
+     */
+    function getHopTokenAtIndex(uint256 _index) public view returns (address) {
+        return _hopTokens.at(_index);
     }
 
     /**
@@ -603,14 +626,15 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         view
         returns (address[] memory sharedHopTokens, address[] memory fromHopTokens, address[] memory toHopTokens)
     {
-        sharedHopTokens = new address[](hopTokens.length);
-        fromHopTokens = new address[](hopTokens.length);
-        toHopTokens = new address[](hopTokens.length);
+        uint256 hopTokensLength = getHopTokensLength();
+        sharedHopTokens = new address[](hopTokensLength);
+        fromHopTokens = new address[](hopTokensLength);
+        toHopTokens = new address[](hopTokensLength);
         uint sharedCount = 0;
         uint fromCount = 0;
         uint toCount = 0;
-        for (uint i = 0; i < hopTokens.length; i++) {
-            address hopToken = hopTokens[i];
+        for (uint i = 0; i < hopTokensLength; i++) {
+            address hopToken = getHopTokenAtIndex(i);
             bool fromHop = pairExists(_fromToken, hopToken);
             if (fromHop) {
                 fromHopTokens[fromCount] = hopToken;
@@ -634,31 +658,27 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         }
     }
 
-    /// -----------------------------------------------------------------------
-    /// Hop token - Restricted functions
-    /// -----------------------------------------------------------------------
-    // TODO: Add validation
-    // TODO: Ideally add Enumberable set
-    function addHopTokens(address[] memory tokens) external restricted {
+    function _addHopTokens(address[] memory tokens) internal {
+        /// @dev Gas consideration
+        require(tokens.length + _hopTokens.length() <= MAX_HOP_TOKENS, "Exceeded maximum hop tokens limit");
         for (uint256 i = 0; i < tokens.length; i++) {
-            hopTokens.push(tokens[i]);
+            address currentToken = tokens[i];
+            require(currentToken != address(0), "Hop Token cannot be address(0)");
+            require(!isHopToken(currentToken), "Hop Token already included");
+            _hopTokens.add(currentToken);
         }
     }
 
-    function addHopToken(address token) external restricted {
-        hopTokens.push(token);
+    /// -----------------------------------------------------------------------
+    /// Hop token - Restricted functions
+    /// -----------------------------------------------------------------------
+    function addHopTokens(address[] memory _tokens) external restricted {
+        _addHopTokens(_tokens);
     }
 
-    function removeHopToken(address token) external restricted {
-        for (uint256 i = 0; i < hopTokens.length; i++) {
-            if (hopTokens[i] == token) {
-                if (i != hopTokens.length - 1) {
-                    // Swap the element to remove with the last element
-                    hopTokens[i] = hopTokens[hopTokens.length - 1];
-                }
-                hopTokens.pop();
-                break;
-            }
+    function removeHopTokens(address[] memory _tokens) external restricted {
+        for (uint256 i = 0; i < _tokens.length; i++) {
+            _hopTokens.remove(_tokens[i]);
         }
     }
 
@@ -681,7 +701,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         feeVars.feePercentage = soulFeeManager.getFee(soulZap.getEpochVolume());
         // TODO: Currently taking feeToken 0 from feeManager
         feeVars.feeToken = soulFeeManager.getFeeToken(0);
-        feeVars.feeAmount = (_amountIn * feeVars.feePercentage) / SOUL_FEE_DENOMINATOR;
+        feeVars.feeAmount = (_amountIn * feeVars.feePercentage) / _SOUL_FEE_DENOMINATOR;
 
         if (feeVars.feePercentage == 0) {
             // TODO: In SoulZap no longer accumulating volume, so we should skip this

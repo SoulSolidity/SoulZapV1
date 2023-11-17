@@ -19,14 +19,19 @@ export async function deployDexAndHopTokens(
   const uniV2Dex = await deployUniV2Dex(_ethers, [owner, feeTo])
 
   const totalAvailableSupply = initialSupply.div(2)
-  // TODO: Only dividing by 1000 for now
-  const availableSupplyPerToken = totalAvailableSupply.div(1000)
+  // TODO: Only dividing by 1000 for now. Edit: not anymore because not enough native for mockWBNB pairs. adding 50 per token per lp now
+  const availableSupplyPerToken = totalAvailableSupply.div(1e10)
 
   // --------------------------------------------------
   // NOTE: Pairing all hop tokens together
   // --------------------------------------------------
   // Hop tokens
   const hopTokens = await deployMockTokens(_ethers, [tokenOwner], hopTokensInfo, { initialSupply })
+  //Add wNative to mock tokens
+  hopTokens.push(uniV2Dex.mockWBNB);
+  await uniV2Dex.mockWBNB.deposit({ value: "900000000000000000000" });
+  await uniV2Dex.mockWBNB.transfer(tokenOwner.address, "900000000000000000000")
+
   // Create pairs between hop tokens
   const hopTokenLpInfos: TokenLpInfo[] = []
   for (let i = 0; i < hopTokens.length; i++) {
