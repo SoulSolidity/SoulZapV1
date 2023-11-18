@@ -25,12 +25,12 @@ async function main() {
     throw new Error('No Dex Info found. Please add to config')
   }
 
-  const SoulZap_UniV2_Extended_V1_Lens = 'SoulZap_UniV2_Extended_V1_Lens'
-  const RoutingContract = await ethers.getContractFactory(SoulZap_UniV2_Extended_V1_Lens)
+  const SoulZap_UniV2_Extended_Lens_V1 = 'SoulZap_UniV2_Extended_Lens_V1'
+  const RoutingContract = await ethers.getContractFactory(SoulZap_UniV2_Extended_Lens_V1)
   const routingContract = await deployManager.deployContractFromFactory(
     RoutingContract,
     [SoulZap_UniV2, currentDexInfo.router, currentDexInfo.hopTokens],
-    SoulZap_UniV2_Extended_V1_Lens // Pass in contract name to log contract
+    SoulZap_UniV2_Extended_Lens_V1 // Pass in contract name to log contract
   )
   console.log('SoulZap_UniV2_Lens contract deployed at:', routingContract.address)
 

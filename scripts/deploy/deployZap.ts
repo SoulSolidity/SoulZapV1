@@ -34,7 +34,7 @@ async function main() {
     const SoulFeeManagerContract = await ethers.getContractFactory(SoulFeeManager)
     const soulFeeManagerContract = await deployManager.deployContractFromFactory(
       SoulFeeManagerContract,
-      [[dexInfo.ApeBond?.hopTokens[0]!], admin, soulAccessManagerAddress!],
+      [[dexInfo.ApeBond?.hopTokens[0]], admin, soulAccessManagerAddress],
       SoulFeeManager
     )
     soulFeeManagerAddress = soulFeeManagerContract.address;
@@ -45,7 +45,7 @@ async function main() {
   const RoutingContract = await ethers.getContractFactory(SoulZap_UniV2)
   const routingContract = await deployManager.deployContractFromFactory(
     RoutingContract,
-    [soulAccessManager!, wNative, soulFeeManagerAddress!, 0],
+    [soulAccessManager, wNative, soulFeeManagerAddress],
     SoulZap_UniV2 // Pass in contract name to log contract
   )
   console.log('SoulZap_UniV2 contract deployed at:', routingContract.address)

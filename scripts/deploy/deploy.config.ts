@@ -128,10 +128,9 @@ const deployableNetworkConfig: Record<DeployableNetworks, (signers?: SignerWithA
       feeCollector: '0x5c7C7246bD8a18DF5f6Ee422f9F8CCDF716A6aD2',
       protocolFee: 300,
       maxFee: 1000,
-      soulFeeManager: '0x832FAa0244eE3972473b5d7DA708972d50fF3476',
-      soulAccessManager: '0xDe8b10E44A099d28A8991F5b678D3F991CD4566d',
-      SoulZap_UniV2: '0xf95A84d25Af7575110489566d85827e28108c80a'
-      //lens: 0xA400A9a00bd1b7ca90BbC5F8DB0d3d723da8D72c
+      soulFeeManager: '0x',
+      soulAccessManager: '0x',
+      SoulZap_UniV2: '0x'
     }
   },
   bscTestnet: (signers?: SignerWithAddress[]) => {
