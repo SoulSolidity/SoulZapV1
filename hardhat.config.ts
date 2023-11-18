@@ -140,6 +140,7 @@ function getSolcUserConfig(): SolcUserConfig[] {
       // https://hardhat.org/hardhat-runner/docs/advanced/multiple-solidity-versions#multiple-solidity-versions
       version: compiler,
       settings: {
+        evmVersion: 'paris',
         optimizer: {
           enabled: true,
           runs: 1000,
