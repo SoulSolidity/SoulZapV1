@@ -379,7 +379,7 @@ contract SoulZap_UniV2 is
         uint256 deadline
     ) private {
         if (swapType == SwapType.V2) {
-            // TODO: console.log
+            // TODO: Remove console.log before production
             console.log("router swap", amountIn, amountOutMin, deadline);
             console.log("router swap", _to, path[path.length - 1]);
             IUniswapV2Router02(router).swapExactTokensForTokens(amountIn, amountOutMin, path, _to, deadline);

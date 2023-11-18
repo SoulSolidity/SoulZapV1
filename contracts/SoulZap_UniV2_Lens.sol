@@ -32,7 +32,7 @@ import {ISoulZap_UniV2} from "./ISoulZap_UniV2.sol";
 import {ISoulFeeManager} from "./fee-manager/ISoulFeeManager.sol";
 import {IWETH} from "./lib/IWETH.sol";
 
-// TODO: Remove console before production
+// TODO: Remove console.log before production
 import "hardhat/console.sol";
 
 /**
@@ -81,8 +81,6 @@ contract SoulZap_UniV2_Lens is AccessManaged {
 
     constructor(
         ISoulZap_UniV2 _soulZap,
-        // TODO: Array of fee tokens should be stored in feeManager contract
-        // address _feeStableToken,
         IUniswapV2Router02 _router,
         address[] memory _startingHopTokens
     ) AccessManaged(_soulZap.authority()) {
@@ -709,7 +707,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         feeSwapPath.path = path;
 
         feeSwapPath.amountOutMin = (amountOutMin * (Constants.DENOMINATOR - _slippage)) / Constants.DENOMINATOR;
-        // TODO: remove console.log or
+        // TODO: Remove console.log before production
         console.log("feeswappath done");
     }
 }

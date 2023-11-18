@@ -20,16 +20,16 @@
 //    ▄█    ███ ███    ███ ███     ▄ ███  ███   ▄███ ███      ███      ███   ███
 //  ▄████████▀   ▀██████▀  █████████ █▀   ████████▀  █▀      ▄███       ▀█████▀    
 
-//  * App:             https:// TODO
-//  * Medium:          https:// TODO
-//  * Twitter:         https:// TODO
-//  * Discord:         https:// TODO
-//  * Telegram:        https:// TODO 
-//  * Announcements:   https:// TODO
-//  * GitHub:          https:// TODO
+//  * App:             https:// TO DO
+//  * Medium:          https:// TO DO
+//  * Twitter:         https:// TO DO
+//  * Discord:         https:// TO DO
+//  * Telegram:        https:// TO DO 
+//  * Announcements:   https:// TO DO
+//  * GitHub:          https:// TO DO
 //  */
 
-// // FIXME: Remove ownable
+// // FIX ME: Remove ownable
 // // import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 // import {AccessManaged} from "@openzeppelin/contracts/access/manager/AccessManaged.sol";
 
@@ -38,9 +38,9 @@
 //  * @dev A contract for managing project fees with ownership control.
 //  */
 // contract SoulFee is AccessManaged {
-//     // TODO: Only use CAPs for constants/immutables
+//     // TO DO: Only use CAPs for constants/immutables
 //     string[] public PROJECTS;
-//     // TODO: Only use CAPs for constants/immutables
+//     // TO DO: Only use CAPs for constants/immutables
 //     mapping(string => uint256) public FEE_PERCENTAGE; // Denominator of 10_000
 //     uint256 public immutable MAX_FEE;
 //     address public feeCollector;
@@ -72,7 +72,7 @@
 //      */
 //     function getFee(string memory project) public view returns (uint256 fee) {
 //         if (!projectExists(project)) {
-//             // TODO: Can't do this on view function unfortunately. Other ideas?
+//             // TO DO: Can't do this on view function unfortunately. Other ideas?
 //             // emit MissingProject(project);
 //             return FEE_PERCENTAGE["default"];
 //         }

@@ -18,7 +18,7 @@
 // import {ISoulFeeManager} from "../fee-manager/ISoulFeeManager.sol";
 // import {IWETH} from "../lib/IWETH.sol";
 
-// // TODO: Remove console before production
+// // TO DO: Remove console before production
 // import "hardhat/console.sol";
 
 // /**
@@ -39,7 +39,7 @@
 //     bytes4 private constant ZAP_SELECTOR = ISoulZap_UniV2.zap.selector;
 
 //     IUniswapV2Factory[] public factories;
-//     // TODO: Technically there can be multiple routers to a factory
+//     // TO DO: Technically there can be multiple routers to a factory
 //     mapping(IUniswapV2Factory => IUniswapV2Router02) public factoryToRouter;
 //     address[] public hopTokens;
 //     IWETH public immutable WNATIVE;
@@ -62,7 +62,7 @@
 //         }
 //         WNATIVE = _wnative;
 //         hopTokens = _hopTokens;
-//         // FIXME: Need to be addresses to compile
+//         // FIX ME: Need to be addresses to compile
 //         // soulFee = _soulfee;
 //     }
 
@@ -113,9 +113,9 @@
 //      * @param _fromToken The address of the input token
 //      */
 //     function calculateOutputAmount(address _pair, uint _inputAmount, address _fromToken) public view returns (uint) {
-//         //TODO function not even used. needed?
+//         //TO DO function not even used. needed?
 //         //      Oooh this was so we don't need the router I think. so maybe use this and we don't need mapping for router?
-//         //TODO important: if we take a protocol fee this calculation/input amount is wrong
+//         //TO DO important: if we take a protocol fee this calculation/input amount is wrong
 //         IUniswapV2Pair pair = IUniswapV2Pair(_pair);
 //         (uint112 reserve0, uint112 reserve1, ) = pair.getReserves();
 //         uint reserveIn = pair.token0() == _fromToken ? reserve0 : reserve1;
@@ -254,7 +254,7 @@
 //     {
 //         address token0;
 //         address token1;
-//         // TODO: Remove console.log before production
+//         // TO DO: Remove console.log before production
 //         console.log("lpaddress", address(lp));
 
 //         try IUniswapV2Pair(lp).token0() returns (address _token0) {
@@ -264,11 +264,11 @@
 //             token1 = _token1;
 //         } catch (bytes memory) {}
 
-//         zapParams.deadline = block.timestamp + 100_000_000_000; //TODO: chose random extra time, pick a better one
+//         zapParams.deadline = block.timestamp + 100_000_000_000; //TO DO: chose random extra time, pick a better one
 //         zapParams.inputAmount = amount;
 //         zapParams.inputToken = IERC20(fromToken);
 //         zapParams.to = to;
-//         // TODO: Remove console.log before production
+//         // TO DO: Remove console.log before production
 //         console.log("token addresses", token0, token1);
 
 //         if (token0 != address(0) && token1 != address(0)) {
@@ -281,7 +281,7 @@
 //                 token0,
 //                 halfAmount,
 //                 slippage,
-//                 // TODO: Add protocol fee
+//                 // TO DO: Add protocol fee
 //                 0
 //                 // soulFee.getFee("apebond-bond-zap")
 //             );
@@ -290,7 +290,7 @@
 //                 token1,
 //                 halfAmount,
 //                 slippage,
-//                 // TODO: Add protocol fee
+//                 // TO DO: Add protocol fee
 //                 0
 //                 // soulFee.getFee("apebond-bond-zap")
 //             );
@@ -320,7 +320,7 @@
 
 //         (uint256 reserveA, uint256 reserveB, ) = lp.getReserves();
 //         uint256 amountB = lpRouter.quote(minAmountLP0, reserveA, reserveB);
-//         // TODO: Remove console.log before production
+//         // TO DO: Remove console.log before production
 //         console.log("liquiditypath", amountB, minAmountLP1);
 
 //         //The min amount B to add for LP can be lower than the received tokenB amount.
@@ -328,7 +328,7 @@
 //         if (amountB > minAmountLP1) {
 //             minAmountLP0 = lpRouter.quote(minAmountLP1, reserveB, reserveA);
 //             amountB = minAmountLP1;
-//             // TODO: Remove console.log before production
+//             // TO DO: Remove console.log before production
 //             console.log("liquiditypath CHANGED", amountB, minAmountLP0);
 //         }
 
@@ -363,8 +363,8 @@
 //         uint256 outputAmount = 0;
 //         bestPath.swapType = ISoulZap_UniV2.SwapType.V2;
 //         if (_fromToken == _toToken) {
-//             //TODO setting this to address(1) because swaprouter can't be address(0). but also not used in zap now because no swap needed. better way of fixing?
-//             // TODO: from DeFi FoFum: Consider a new enum: bestPath.swapType = ISoulZap_UniV2.SwapType.SameToken;
+//             //TO DO setting this to address(1) because swaprouter can't be address(0). but also not used in zap now because no swap needed. better way of fixing?
+//             // TO DO: from DeFi FoFum: Consider a new enum: bestPath.swapType = ISoulZap_UniV2.SwapType.SameToken;
 //             bestPath.swapRouter = address(1);
 //             return (bestPath, 0);
 //         }
@@ -379,12 +379,12 @@
 //                 bestPath.amountOutMin = outputAmount;
 //             }
 //         }
-//         // TODO: Use a const for 10_000
+//         // TO DO: Use a const for 10_000
 //         bestPath.amountOutMin = (bestPath.amountOutMin * (10_000 - _slippage)) / 10_000;
 
 //         //Calculation of price impact. actual price is the current actual price which does not take slippage into account for less liquid pairs.
 //         //It calculates the impact between actual price and price after slippage.
-//         // TODO: 10_000 hardcoded
+//         // TO DO: 10_000 hardcoded
 //         //With a denominator of 10_000. 100 = 1% price impact, 1000 = 10% price impact.
 //         uint256 actualPrice = _amountIn;
 //         IUniswapV2Factory factory = IUniswapV2Factory(IUniswapV2Router02(bestPath.swapRouter).factory());
@@ -399,11 +399,11 @@
 //             if (i > 0) {
 //                 actualPrice /= 1e18;
 //             }
-//             // TODO: Remove console.log before production
+//             // TO DO: Remove console.log before production
 //             console.log("actualPrice", actualPrice);
 //         }
 //         console.log(bestPath.amountOutMin, actualPrice);
-//         // TODO: Hardcoded 10_000, also we should probably add in some more granularity here
+//         // TO DO: Hardcoded 10_000, also we should probably add in some more granularity here
 //         // NOTE: hardcoded 1e22
 //         priceImpactPercentage = 10_000 - ((bestPath.amountOutMin * 1e22) / actualPrice);
 //     }
@@ -448,7 +448,7 @@
 //                 break;
 //             }
 //             path[1] = possibleHopTokens[i];
-//             // TODO: Remove console.log before production
+//             // TO DO: Remove console.log before production
 //             console.log(path[0], path[1], path[2]);
 //             uint[] memory amounts = router.getAmountsOut(_amountIn, path);
 //             if (amounts[amounts.length - 1] > maxOutputAmount) {
@@ -457,12 +457,12 @@
 //                 bestPath[0] = path[0];
 //                 bestPath[1] = path[1];
 //                 bestPath[2] = path[2];
-//                 // TODO: Remove console.log before production
+//                 // TO DO: Remove console.log before production
 //                 console.log("betterpath", bestPath[1], maxOutputAmount);
 //             }
 //         }
 
-//         //TODO: add a double hop check so both tokens only need to have a pair with any one of the blue chip hop tokens instead of both with the same one
+//         //TO DO: add a double hop check so both tokens only need to have a pair with any one of the blue chip hop tokens instead of both with the same one
 //     }
 
 //     /// -----------------------------------------------------------------------

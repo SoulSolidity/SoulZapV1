@@ -32,9 +32,6 @@ abstract contract SoulZap_Ext_ApeBond is SoulZap_UniV2 {
     /// -----------------------------------------------------------------------
 
     event ZapBond(ZapParams zapParams, ICustomBillRefillable bond, uint256 maxPrice);
-    event ZapBondNative(ZapParams zapParams, ICustomBillRefillable bond, uint256 maxPrice);
-    event ZapBond(SwapParams swapParams, ICustomBillRefillable bond, uint256 maxPrice);
-    event ZapBondNative(SwapParams swapParams, ICustomBillRefillable bond, uint256 maxPrice);
 
     constructor() {}
 
@@ -49,7 +46,6 @@ abstract contract SoulZap_Ext_ApeBond is SoulZap_UniV2 {
     function zapBond(
         ZapParams memory zapParams,
         SwapPath memory feeSwapPath,
-        // TODO: Rebrand to `IApeBond bond`?
         ICustomBillRefillable bond,
         uint256 maxPrice
     ) external payable nonReentrant whenNotPaused verifyMsgValueAndWrap(zapParams.inputToken, zapParams.inputAmount) {
@@ -74,8 +70,6 @@ abstract contract SoulZap_Ext_ApeBond is SoulZap_UniV2 {
         uint256 maxPrice
     ) private {
         IUniswapV2Pair bondPrincipalToken = IUniswapV2Pair(bond.principalToken());
-        /// @dev Not changing  zapParams.inputToken to WNATIVE as that is handled in the lower level _zap function
-        bool native = address(zapParams.inputToken) == address(Constants.NATIVE_ADDRESS);
 
         //Check if bond principal token is single token or lp
         bool isSingleTokenBond = true;
@@ -114,10 +108,6 @@ abstract contract SoulZap_Ext_ApeBond is SoulZap_UniV2 {
         bond.deposit(balance, maxPrice, to);
         bondPrincipalToken.approve(address(bond), 0);
 
-        if (native) {
-            emit ZapBondNative(zapParams, bond, maxPrice);
-        } else {
-            emit ZapBond(zapParams, bond, maxPrice);
-        }
+        emit ZapBond(zapParams, bond, maxPrice);
     }
 }
