@@ -15,7 +15,7 @@ import "hardhat/console.sol";
 
 abstract contract SoulZap_Ext_ApeBond_Lens is SoulZap_UniV2_Lens {
     struct ZapParams_Ext_Bonds {
-        ICustomBillRefillable bill;
+        ICustomBillRefillable bond;
         uint256 maxPrice;
     }
 
@@ -25,7 +25,7 @@ abstract contract SoulZap_Ext_ApeBond_Lens is SoulZap_UniV2_Lens {
      * @dev Get the Zap data for a bond transaction with a specified token.
      * @param fromToken The source token for the zap.
      * @param amount The amount of tokens to zap.
-     * @param bill The custom bill refillable contract.
+     * @param bond The custom bond refillable contract.
      * @param slippage The slippage tolerance (1 = 0.01%, 100 = 1%).
      * @param to The address to receive the zapped tokens.
      * @return zapParams zapParams structure containing relevant data.
@@ -37,7 +37,7 @@ abstract contract SoulZap_Ext_ApeBond_Lens is SoulZap_UniV2_Lens {
     function getZapDataBond(
         address fromToken, // Pass Constants.NATIVE_ADDRESS for native token input
         uint256 amount,
-        ICustomBillRefillable bill,
+        ICustomBillRefillable bond,
         uint256 slippage, // 1 = 0.01%, 100 = 1%
         address to
     )
@@ -54,17 +54,17 @@ abstract contract SoulZap_Ext_ApeBond_Lens is SoulZap_UniV2_Lens {
         (zapParams, feeSwapPath, priceImpactPercentages, zapParamsBonds) = _getZapDataBond(
             fromToken,
             amount,
-            bill,
+            bond,
             slippage,
             to
         );
-        encodedTx = abi.encodeWithSelector(_ZAP_BOND_SELECTOR, zapParams, feeSwapPath, bill, zapParamsBonds.maxPrice);
+        encodedTx = abi.encodeWithSelector(_ZAP_BOND_SELECTOR, zapParams, feeSwapPath, bond, zapParamsBonds.maxPrice);
     }
 
     /**
      * @dev Get the Zap data for a bond transaction with the Native token.
      * @param amount The amount of tokens to zap.
-     * @param bill The custom bill refillable contract.
+     * @param bond The custom bond refillable contract.
      * @param slippage The slippage tolerance (1 = 0.01%, 100 = 1%).
      * @param to The address to receive the zapped tokens.
      * @return zapParams zapParams structure containing relevant data.
@@ -75,7 +75,7 @@ abstract contract SoulZap_Ext_ApeBond_Lens is SoulZap_UniV2_Lens {
      */
     function getZapDataBondNative(
         uint256 amount,
-        ICustomBillRefillable bill,
+        ICustomBillRefillable bond,
         uint256 slippage, // 1 = 0.01%, 100 = 1%
         address to
     )
@@ -89,14 +89,14 @@ abstract contract SoulZap_Ext_ApeBond_Lens is SoulZap_UniV2_Lens {
             ZapParams_Ext_Bonds memory zapParamsBonds
         )
     {
-        return getZapDataBond(Constants.NATIVE_ADDRESS, amount, bill, slippage, to);
+        return getZapDataBond(Constants.NATIVE_ADDRESS, amount, bond, slippage, to);
     }
 
     /**
      * @dev Get the Zap data for a bond transaction with a specified token (internal function).
      * @param fromToken The source token for the zap.
      * @param amount The amount of tokens to zap.
-     * @param bill The custom bill refillable contract.
+     * @param bond The custom bond refillable contract.
      * @param slippage The slippage tolerance (Denominator 10_000. 1 = 0.01%, 100 = 1%).
      * @param to The address to receive the zapped tokens.
      * @return zapParams zapParams structure containing relevant data.
@@ -107,7 +107,7 @@ abstract contract SoulZap_Ext_ApeBond_Lens is SoulZap_UniV2_Lens {
     function _getZapDataBond(
         address fromToken,
         uint256 amount,
-        ICustomBillRefillable bill,
+        ICustomBillRefillable bond,
         uint256 slippage, //Denominator 10_000. 1 = 0.01%, 100 = 1%
         address to
     )
@@ -125,7 +125,7 @@ abstract contract SoulZap_Ext_ApeBond_Lens is SoulZap_UniV2_Lens {
             fromToken = address(WNATIVE);
         }
 
-        IUniswapV2Pair bondPrincipalToken = IUniswapV2Pair(bill.principalToken());
+        IUniswapV2Pair bondPrincipalToken = IUniswapV2Pair(bond.principalToken());
 
         //Check if bond principal token is single token or lp
         bool isSingleTokenBond = true;
@@ -173,7 +173,7 @@ abstract contract SoulZap_Ext_ApeBond_Lens is SoulZap_UniV2_Lens {
             /// @dev Zaps with msg.value are passed as Constants.NATIVE_ADDRESS
             zapParams.inputToken = IERC20(Constants.NATIVE_ADDRESS);
         }
-        uint256 maxPrice = bill.trueBillPrice();
-        zapParamsBonds = ZapParams_Ext_Bonds({bill: bill, maxPrice: maxPrice});
+        uint256 maxPrice = bond.trueBillPrice();
+        zapParamsBonds = ZapParams_Ext_Bonds({bond: bond, maxPrice: maxPrice});
     }
 }

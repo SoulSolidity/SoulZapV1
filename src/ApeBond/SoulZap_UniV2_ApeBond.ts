@@ -10,9 +10,9 @@ export class SoulZap_UniV2_ApeBond extends SoulZap_UniV2 {
         super(Project.APEBOND, chainId, signerOrProvider, SoulZap_UniV2_Extended_V1_ABI.abi.toString(), SoulZap_UniV2_Extended_Lens_V1_ABI.abi.toString());
     }
 
-    async getZapDataBond(dex: DEX, fromToken: string, amount: number | string, bill: string, allowedPriceImpactPercentage: number, to: string): Promise<zapDataBond> {
+    async getZapDataBond(dex: DEX, fromToken: string, amount: number | string, bond: string, allowedPriceImpactPercentage: number, to: string): Promise<zapDataBond> {
         const lensContract = this.getLensContract(dex);
-        const zapData = await lensContract.getZapDataBond(fromToken, amount, bill, this.slippage, to);
+        const zapData = await lensContract.getZapDataBond(fromToken, amount, bond, this.slippage, to);
         const priceImpactError = await this.checkPriceImpact(zapData.priceImpactPercentage0, zapData.priceImpactPercentage1, allowedPriceImpactPercentage);
 
         if (priceImpactError) {
@@ -22,9 +22,9 @@ export class SoulZap_UniV2_ApeBond extends SoulZap_UniV2 {
         return zapData.params;
     }
 
-    async getZapDataBondNative(dex: DEX, amount: number | string, bill: string, allowedPriceImpactPercentage: number, to: string): Promise<zapDataBond> {
+    async getZapDataBondNative(dex: DEX, amount: number | string, bond: string, allowedPriceImpactPercentage: number, to: string): Promise<zapDataBond> {
         const lensContract = this.getLensContract(dex);
-        const zapData = await lensContract.getZapDataBondNative(amount, bill, this.slippage, to);
+        const zapData = await lensContract.getZapDataBondNative(amount, bond, this.slippage, to);
         const priceImpactError = await this.checkPriceImpact(zapData.priceImpactPercentage0, zapData.priceImpactPercentage1, allowedPriceImpactPercentage);
 
         if (priceImpactError) {

@@ -48,7 +48,7 @@ export type zapData =
 
 
 export type ZapParams_Ext_Bonds = {
-  bill: string,
+  bond: string,
   maxPrice: number | string
 }
 
