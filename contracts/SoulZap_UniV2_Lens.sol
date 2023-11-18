@@ -113,18 +113,18 @@ contract SoulZap_UniV2_Lens is AccessManaged {
     }
 
     /**
-     * @dev Calculate the output amount for a given input amount and pair
-     * @param _pair The address of the pair
-     * @param _inputAmount The input amount
-     * @param _fromToken The address of the input token
+     * @dev Calculates the output amount for a given input amount and token swap path.
+     * @param _inputAmount The amount of input tokens.
+     * @param path The token swap path, represented as an array of token addresses.
+     * @return amountOut The output amount of tokens.
      */
-    function calculateOutputAmount(address _pair, uint _inputAmount, address _fromToken) public view returns (uint) {
-        //TODO function not even used. needed?
-        IUniswapV2Pair pair = IUniswapV2Pair(_pair);
-        (uint112 reserve0, uint112 reserve1, ) = pair.getReserves();
-        uint reserveIn = pair.token0() == _fromToken ? reserve0 : reserve1;
-        uint reserveOut = pair.token0() == _fromToken ? reserve1 : reserve0;
-        return router.getAmountOut(_inputAmount, reserveIn, reserveOut);
+    function calculateOutputAmount(uint _inputAmount, address[] memory path) public view returns (uint amountOut) {
+        try router.getAmountsOut(_inputAmount, path) returns (uint[] memory amounts) {
+            amountOut = amounts[amounts.length - 1];
+        } catch (bytes memory) {
+            //Can error when inputAmount == 0 somewhere in the path with low liquidity pair
+            //0 returned when it errors
+        }
     }
 
     /// -----------------------------------------------------------------------
@@ -442,8 +442,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
             bestPath = new address[](2);
             bestPath[0] = _fromToken;
             bestPath[1] = _toToken;
-            uint[] memory amounts = router.getAmountsOut(_amountIn, bestPath);
-            bestAmountOutMin = amounts[amounts.length - 1];
+            bestAmountOutMin = calculateOutputAmount(_amountIn, bestPath);
         }
 
         // Find all pairs between input token and hop tokens
@@ -474,8 +473,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
                 path[2] = _toToken;
                 /// @dev Code duplication in twoHopTokens section
                 // Calculate the output amount for this path
-                uint[] memory amounts = router.getAmountsOut(_amountIn, path);
-                uint256 amountOut = amounts[amounts.length - 1];
+                uint256 amountOut = calculateOutputAmount(_amountIn, path);
 
                 // Update the best path and best amount out min if this path is better
                 if (amountOut > bestAmountOutMin) {
@@ -504,8 +502,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
                 path[3] = _toToken;
                 /// @dev Code duplication in sharedHopTokens section
                 // Calculate the output amount for this path
-                uint[] memory amounts = router.getAmountsOut(_amountIn, path);
-                uint256 amountOut = amounts[amounts.length - 1];
+                uint256 amountOut = calculateOutputAmount(_amountIn, path);
 
                 // Update the best path and best amount out min if this path is better
                 if (amountOut > bestAmountOutMin) {
