@@ -93,6 +93,8 @@ interface ISoulZap_UniV2 is IAccessManaged, ITransferHelper, IEpochVolumeTracker
 
     function getFeeTokensLength() external view returns (uint256 length);
 
+    function isFeeToken(address token) external view returns (bool valid);
+
     /// -----------------------------------------------------------------------
     /// Functions
     /// -----------------------------------------------------------------------

@@ -688,24 +688,22 @@ contract SoulZap_UniV2_Lens is AccessManaged {
     ) internal view returns (ISoulZap_UniV2.SwapPath memory feeSwapPath, FeeVars memory feeVars) {
         //Get path for protocol fee
         feeVars.feePercentage = soulZap.getFeePercentage();
+        feeVars.feeAmount = (_amountIn * feeVars.feePercentage) / _SOUL_FEE_DENOMINATOR;
         //If no fees just return
-        if (feeVars.feePercentage == 0) {
-            feeVars.feeToken = soulZap.getFeeToken(0);
+        if (feeVars.feePercentage == 0 || soulZap.isFeeToken(_fromToken)) {
             return (feeSwapPath, feeVars);
         }
-        feeVars.feeAmount = (_amountIn * feeVars.feePercentage) / _SOUL_FEE_DENOMINATOR;
 
         uint256 feeTokensLength = soulZap.getFeeTokensLength();
         for (uint256 i = 0; i < feeTokensLength; i++) {
-            address feeToken = soulZap.getFeeToken(i);
+            feeVars.feeToken = soulZap.getFeeToken(i);
             (ISoulZap_UniV2.SwapPath memory bestPath, uint256 priceImpactPercentage) = _getBestSwapPathWithImpact(
                 _fromToken,
-                feeToken,
+                feeVars.feeToken,
                 feeVars.feeAmount,
                 _slippage
             );
             if (bestPath.amountOutMin > feeSwapPath.amountOutMin) {
-                feeVars.feeToken = feeToken;
                 feeSwapPath = bestPath;
                 //To save gas usage we break if we get any accepted fee price impact
                 //If no path has an accepted fee price impact we just take the best one

@@ -401,7 +401,11 @@ contract SoulZap_UniV2 is
     }
 
     function getFeeTokensLength() public view returns (uint256 length) {
-        return soulFeeManager.getFeeTokensLength();
+        length = soulFeeManager.getFeeTokensLength();
+    }
+
+    function isFeeToken(address token) public view returns (bool valid) {
+        valid = soulFeeManager.isFeeToken(token);
     }
 
     /**
@@ -429,8 +433,6 @@ contract SoulZap_UniV2 is
             return 0;
         }
 
-        address outputToken = _feeSwapPath.path[_feeSwapPath.path.length - 1];
-        require(soulFeeManager.isFeeToken(outputToken), "SoulZap: Invalid output token in feeSwapPath");
         // TODO: Remove console.log before production
         console.log("take fee");
         inputFeeAmount = (_inputAmount * feePercentage) / soulFeeManager.FEE_DENOMINATOR();
@@ -438,6 +440,9 @@ contract SoulZap_UniV2 is
         console.log("feeAmount", inputFeeAmount, feePercentage, _inputAmount);
 
         if (_feeSwapPath.path.length >= 2) {
+            address outputToken = _feeSwapPath.path[_feeSwapPath.path.length - 1];
+            require(soulFeeManager.isFeeToken(outputToken), "SoulZap: Invalid output token in feeSwapPath");
+
             _inputToken.approve(_feeSwapPath.swapRouter, inputFeeAmount);
             uint256 amountOut = _routerSwapFromPath(
                 _feeSwapPath,
@@ -448,6 +453,8 @@ contract SoulZap_UniV2 is
             _accumulateFeeVolume(amountOut);
         } else {
             //inputToken is fee token
+            //TODO?: Should we remove this require and also accept input token as fee if no path is found?
+            require(soulFeeManager.isFeeToken(address(_inputToken)), "SoulZap: Invalid fee output token");
             _transferOut(_inputToken, inputFeeAmount, soulFeeManager.getFeeCollector(), false);
             _accumulateFeeVolume(inputFeeAmount);
         }
