@@ -10,7 +10,8 @@ pragma solidity 0.8.23;
 ╚═════╝  ╚════╝  ╚═════╝ ╚══════╝  ╚═════╝  ╚════╝ ╚══════╝╚═╝╚═════╝ ╚═╝   ╚═╝      ╚═╝   
 
  * Twitter: https://twitter.com/SoulSolidity
- * GitHub: https://github.com/SoulSolidity
+ *  GitHub: https://github.com/SoulSolidity
+ *     Web: https://SoulSolidity.com
  */
 
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
@@ -77,7 +78,6 @@ contract SoulFeeManager is ISoulFeeManager, AccessManaged {
         volumeFeeThresholds.push(volumeFeeThreshold);
     }
 
-    // TODO: In Zap it's measuring fee volume, so I'm thinking we should just switch to fee volume
     function getFee(uint256 epochFeeVolume) external view returns (uint256 fee) {
         // FIXME: Placeholder for full implementation of fee thresholds
         return volumeFeeThresholds[0].volume;
