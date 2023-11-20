@@ -426,8 +426,6 @@ contract SoulZap_UniV2 is
             return 0;
         }
 
-        address outputToken = _feeSwapPath.path[_feeSwapPath.path.length - 1];
-        require(soulFeeManager.isFeeToken(outputToken), "SoulZap: Invalid output token in feeSwapPath");
         // TODO: Remove console.log before production
         console.log("take fee");
         inputFeeAmount = (_inputAmount * feePercentage) / feeDenominator;
@@ -435,11 +433,15 @@ contract SoulZap_UniV2 is
         console.log("feeAmount", inputFeeAmount, feePercentage, _inputAmount);
 
         if (_feeSwapPath.path.length >= 2) {
+            address outputToken = _feeSwapPath.path[_feeSwapPath.path.length - 1];
+            require(soulFeeManager.isFeeToken(outputToken), "SoulZap: Invalid output token in feeSwapPath");
+
             _inputToken.approve(_feeSwapPath.swapRouter, inputFeeAmount);
             uint256 amountOut = _routerSwapFromPath(_feeSwapPath, inputFeeAmount, feeCollector, _deadline);
             _accumulateFeeVolume(amountOut);
         } else {
-            //inputToken is fee token
+            /// @dev Input token is considered fee token or a token with no output route
+            /// In order to not create a denial of service, we take any input token in this case.
             _transferOut(_inputToken, inputFeeAmount, feeCollector, false);
             _accumulateFeeVolume(inputFeeAmount);
         }

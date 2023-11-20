@@ -65,6 +65,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
 
     bytes4 private constant _ZAP_SELECTOR = ISoulZap_UniV2.zap.selector;
     bytes4 private constant _SWAP_SELECTOR = ISoulZap_UniV2.swap.selector;
+    uint256 private constant ACCEPTED_FEE_PRICE_IMPACT = (3 * Constants.DENOMINATOR) / 100; // 3%
 
     EnumerableSet.AddressSet private _hopTokens;
 
@@ -322,6 +323,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
             uint256[] memory priceImpactPercentages
         )
     {
+        require(lp.factory() == address(factory), "SoulZap_UniV2_Lens: LP factory doesn't match factory");
         bool nativeZap = fromToken == Constants.NATIVE_ADDRESS;
         if (nativeZap) {
             fromToken = address(WNATIVE);
@@ -680,26 +682,32 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         uint256 _slippage
     ) internal view returns (ISoulZap_UniV2.SwapPath memory feeSwapPath, FeeVars memory feeVars) {
         (address[] memory feeTokens, uint256 currentFeePercentage, uint256 feeDenominator, ) = soulZap.getFeeInfo();
-        // Get path for protocol fee
-        feeVars = FeeVars({
-            feePercentage: currentFeePercentage,
-            feeToken: feeTokens[0],
-            feeAmount: (_amountIn * currentFeePercentage) / feeDenominator
-        });
-
-        // If no fees just return
-        if (feeVars.feePercentage == 0) {
+        //If no fees just return
+        if (currentFeePercentage == 0 || soulZap.isFeeToken(_fromToken)) {
             return (feeSwapPath, feeVars);
         }
 
-        (address[] memory path, uint256 amountOutMin) = _getBestPath(_fromToken, feeVars.feeToken, feeVars.feeAmount);
+        feeVars.feePercentage = currentFeePercentage;
+        feeVars.feeAmount = (_amountIn * currentFeePercentage) / feeDenominator;
 
-        feeSwapPath = ISoulZap_UniV2.SwapPath({
-            swapRouter: address(router),
-            swapType: ISoulZap_UniV2.SwapType.V2,
-            path: path,
-            amountOutMin: (amountOutMin * (Constants.DENOMINATOR - _slippage)) / Constants.DENOMINATOR
-        });
+        for (uint256 i = 0; i < feeTokens.length; i++) {
+            feeVars.feeToken = feeTokens[i];
+            (ISoulZap_UniV2.SwapPath memory bestPath, uint256 priceImpactPercentage) = _getBestSwapPathWithImpact(
+                _fromToken,
+                feeVars.feeToken,
+                feeVars.feeAmount,
+                _slippage
+            );
+            if (bestPath.amountOutMin > feeSwapPath.amountOutMin) {
+                feeSwapPath = bestPath;
+                // To save gas usage we break if we get any accepted fee price impact
+                // If no path has an accepted fee price impact we just take the best one
+                if (priceImpactPercentage < ACCEPTED_FEE_PRICE_IMPACT) {
+                    break;
+                }
+            }
+        }
+
         // TODO: Remove console.log before production
         console.log("feeswappath done");
     }
