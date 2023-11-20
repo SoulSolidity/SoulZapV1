@@ -86,8 +86,7 @@ contract SoulZap_UniV2 is
     /// -----------------------------------------------------------------------
     /// Constructor
     /// -----------------------------------------------------------------------
-    // TODO: Considering adding a function `optionalInit` which can be called after the constructor to set the initial to allow for constructor deploys and also upgradeable deploys.
-    // But it's a NTH at this point.
+
     constructor(
         address _accessManager,
         IWETH _wnative,
@@ -95,7 +94,7 @@ contract SoulZap_UniV2 is
         /// @dev Set to zero to start epoch tracking immediately
         uint256 _epochStartTime
     ) AccessManaged(_accessManager) EpochVolumeTracker(0, _epochStartTime) TransferHelper(_wnative) {
-        // TODO: validate?
+        require(_soulFeeManager.isSoulFeeManager(), "SoulZap: soulFeeManager is not ISoulFeeManager");
         soulFeeManager = _soulFeeManager;
     }
 
@@ -393,6 +392,15 @@ contract SoulZap_UniV2 is
     /// Fee functions
     /// -----------------------------------------------------------------------
 
+    function getFeeInfo()
+        public
+        view
+        override
+        returns (address[] memory feeTokens, uint256 currentFeePercentage, uint256 feeDenominator, address feeCollector)
+    {
+        (feeTokens, currentFeePercentage, feeDenominator, feeCollector) = soulFeeManager.getFeeInfo(getEpochVolume());
+    }
+
     /**
      * @notice Handles the protocol fee calculation and transfer.
      * @dev This function calculates the protocol fee based on the input amount and the current epoch volume.
@@ -413,31 +421,27 @@ contract SoulZap_UniV2 is
         SwapPath memory _feeSwapPath,
         uint256 _deadline
     ) private returns (uint256 inputFeeAmount) {
-        uint256 feePercentage = soulFeeManager.getFee(getEpochVolume());
+        (, uint256 feePercentage, uint256 feeDenominator, address feeCollector) = getFeeInfo();
         if (feePercentage == 0) {
             return 0;
         }
 
         address outputToken = _feeSwapPath.path[_feeSwapPath.path.length - 1];
         require(soulFeeManager.isFeeToken(outputToken), "SoulZap: Invalid output token in feeSwapPath");
+
         // TODO: Remove console.log before production
         console.log("take fee");
-        inputFeeAmount = (_inputAmount * feePercentage) / soulFeeManager.FEE_DENOMINATOR();
+        inputFeeAmount = (_inputAmount * feePercentage) / feeDenominator;
         // TODO: Remove console.log before production
         console.log("feeAmount", inputFeeAmount, feePercentage, _inputAmount);
 
         if (_feeSwapPath.path.length >= 2) {
             _inputToken.approve(_feeSwapPath.swapRouter, inputFeeAmount);
-            uint256 amountOut = _routerSwapFromPath(
-                _feeSwapPath,
-                inputFeeAmount,
-                soulFeeManager.getFeeCollector(),
-                _deadline
-            );
+            uint256 amountOut = _routerSwapFromPath(_feeSwapPath, inputFeeAmount, feeCollector, _deadline);
             _accumulateFeeVolume(amountOut);
         } else {
             //inputToken is fee token
-            _transferOut(_inputToken, inputFeeAmount, soulFeeManager.getFeeCollector(), false);
+            _transferOut(_inputToken, inputFeeAmount, feeCollector, false);
             _accumulateFeeVolume(inputFeeAmount);
         }
 

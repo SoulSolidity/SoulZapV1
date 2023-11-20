@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.0;
 
+import {Constants} from "../../utils/Constants.sol";
 import {ISoulFeeManager} from "../ISoulFeeManager.sol";
 
 contract SoulFeeManagerMock is ISoulFeeManager {
-    uint256 public FEE_DENOMINATOR = 10_000;
+    bool public constant override isSoulFeeManager = true;
+
+    uint256 public FEE_DENOMINATOR = Constants.DENOMINATOR;
 
     address public feeToken;
 
@@ -12,11 +15,25 @@ contract SoulFeeManagerMock is ISoulFeeManager {
         feeToken = _feeToken;
     }
 
-    function getFee(uint256 epochVolume) external view returns (uint256 fee) {
+    function getFeeInfo(
+        uint256 _volume
+    )
+        external
+        view
+        override
+        returns (address[] memory feeTokens, uint256 currentFeePercentage, uint256 feeDenominator, address feeCollector)
+    {
+        feeTokens = getFeeTokens();
+        currentFeePercentage = getFee(_volume);
+        feeDenominator = FEE_DENOMINATOR;
+        feeCollector = getFeeCollector();
+    }
+
+    function getFee(uint256 epochVolume) public view returns (uint256 fee) {
         return 300;
     }
 
-    function getFeeCollector() external view returns (address fee) {
+    function getFeeCollector() public view returns (address fee) {
         return address(69);
     }
 
@@ -24,7 +41,7 @@ contract SoulFeeManagerMock is ISoulFeeManager {
         return 1;
     }
 
-    function getFeeTokens() external view returns (address[] memory tokens) {
+    function getFeeTokens() public view returns (address[] memory tokens) {
         address[] memory feeTokens = new address[](1);
         feeTokens[0] = feeToken;
         return feeTokens;

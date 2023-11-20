@@ -28,8 +28,11 @@ import {ISoulFeeManager} from "./ISoulFeeManager.sol";
 contract SoulFeeManager is ISoulFeeManager, AccessManaged {
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    EnumerableSet.AddressSet private _validFeeTokens;
-    address private _feeCollector;
+    /// -----------------------------------------------------------------------
+    /// Storage variables - External/Public
+    /// -----------------------------------------------------------------------
+
+    bool public override isSoulFeeManager = true;
 
     /// @dev Represents the fee under the given volume threshold.
     struct VolumeFeeThreshold {
@@ -39,9 +42,16 @@ contract SoulFeeManager is ISoulFeeManager, AccessManaged {
     /// @dev Assumes the volume fee thresholds are in ascending order. Final element assumes infinite volume
     VolumeFeeThreshold[] public volumeFeeThresholds;
 
-    uint256 public FEE_DENOMINATOR = 10_000;
+    uint256 public constant FEE_DENOMINATOR = 10_000;
     /// @dev The maximum fee is 3%
-    uint256 public MAX_FEE = (FEE_DENOMINATOR * 3) / 100;
+    uint256 public constant MAX_FEE = (FEE_DENOMINATOR * 3) / 100;
+
+    /// -----------------------------------------------------------------------
+    /// Storage variables -  Internal/Private
+    /// -----------------------------------------------------------------------
+
+    EnumerableSet.AddressSet private _validFeeTokens;
+    address private _feeCollector;
 
     /// -----------------------------------------------------------------------
     /// Events
@@ -78,7 +88,29 @@ contract SoulFeeManager is ISoulFeeManager, AccessManaged {
         volumeFeeThresholds.push(volumeFeeThreshold);
     }
 
-    function getFee(uint256 epochFeeVolume) external view returns (uint256 fee) {
+    /**
+     * @notice Retrieves fee information based on the provided volume.
+     * @param _volume The volume of transactions to calculate the fee for.
+     * @return feeTokens The list of valid fee tokens.
+     * @return currentFeePercentage The calculated fee percentage based on the volume.
+     * @return feeDenominator The denominator used to calculate fee percentages.
+     * @return feeCollector The address of the fee collector.
+     */
+    function getFeeInfo(
+        uint256 _volume
+    )
+        external
+        view
+        override
+        returns (address[] memory feeTokens, uint256 currentFeePercentage, uint256 feeDenominator, address feeCollector)
+    {
+        feeTokens = getFeeTokens();
+        currentFeePercentage = getFee(_volume);
+        feeDenominator = FEE_DENOMINATOR;
+        feeCollector = _feeCollector;
+    }
+
+    function getFee(uint256 epochFeeVolume) public view returns (uint256 fee) {
         // FIXME: Placeholder for full implementation of fee thresholds
         return volumeFeeThresholds[0].volume;
     }
@@ -100,7 +132,7 @@ contract SoulFeeManager is ISoulFeeManager, AccessManaged {
      * @dev Warning: This function should not be used in state changing functions as it could be an unbounded length.
      * @return tokens An array of addresses representing the valid fee tokens.
      */
-    function getFeeTokens() external view override returns (address[] memory tokens) {
+    function getFeeTokens() public view override returns (address[] memory tokens) {
         return _validFeeTokens.values();
     }
 

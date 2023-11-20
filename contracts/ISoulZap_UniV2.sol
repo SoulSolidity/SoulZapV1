@@ -95,4 +95,18 @@ interface ISoulZap_UniV2 is IAccessManaged, ITransferHelper, IEpochVolumeTracker
     function swap(SwapParams memory swapParams, SwapPath memory feeSwapPath) external payable;
 
     function zap(ZapParams memory zapParams, SwapPath memory feeSwapPath) external payable;
+
+    /// -----------------------------------------------------------------------
+    /// Fee Management
+    /// -----------------------------------------------------------------------
+
+    function getFeeInfo()
+        external
+        view
+        returns (
+            address[] memory feeTokens,
+            uint256 currentFeePercentage,
+            uint256 feeDenominator,
+            address feeCollector
+        );
 }

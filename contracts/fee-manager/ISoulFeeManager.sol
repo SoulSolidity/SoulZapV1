@@ -21,7 +21,21 @@ pragma solidity ^0.8.0;
  * Otherwise feel free to experiment locally or on testnets.
  */
 interface ISoulFeeManager {
+    function isSoulFeeManager() external view returns (bool);
+
     function FEE_DENOMINATOR() external view returns (uint256 denominator);
+
+    function getFeeInfo(
+        uint256 _volume
+    )
+        external
+        view
+        returns (
+            address[] memory feeTokens,
+            uint256 currentFeePercentage,
+            uint256 feeDenominator,
+            address feeCollector
+        );
 
     function getFee(uint256 epochVolume) external view returns (uint256 fee);
 
