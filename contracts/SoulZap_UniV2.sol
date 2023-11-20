@@ -428,7 +428,6 @@ contract SoulZap_UniV2 is
 
         address outputToken = _feeSwapPath.path[_feeSwapPath.path.length - 1];
         require(soulFeeManager.isFeeToken(outputToken), "SoulZap: Invalid output token in feeSwapPath");
-
         // TODO: Remove console.log before production
         console.log("take fee");
         inputFeeAmount = (_inputAmount * feePercentage) / feeDenominator;

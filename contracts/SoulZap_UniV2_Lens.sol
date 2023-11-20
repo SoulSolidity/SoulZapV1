@@ -137,7 +137,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         address fromToken,
         uint256 amount,
         address toToken,
-        uint256 slippage, // Denominator of 10_000. 1 = 0.01%, 100 = 1%
+        uint256 slippage,
         address to
     )
         public
@@ -157,7 +157,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
      * @dev Get the Zap data for a transaction with a specified token.
      * @param amount The amount of tokens to zap.
      * @param toToken The output token of swap.
-     * @param slippage The slippage tolerance (Denominator 10_000. 1 = 0.01%, 100 = 1%).
+     * @param slippage The slippage tolerance percentage. See Constants.DENOMINATOR for percentage denominator.
      * @param to The address to receive the zapped tokens.
      * @return swapParams SwapParams structure containing relevant data.
      * @return encodedTx Encoded transaction with the given parameters.
@@ -167,7 +167,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
     function getSwapDataNative(
         uint256 amount,
         address toToken,
-        uint256 slippage, // Denominator of 10_000. 1 = 0.01%, 100 = 1%
+        uint256 slippage,
         address to
     )
         public
@@ -197,7 +197,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         address fromToken,
         uint256 amount,
         address toToken,
-        uint256 slippage, // Denominator of 10_000. 1 = 0.01%, 100 = 1%
+        uint256 slippage,
         address to
     )
         internal
@@ -251,7 +251,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         address fromToken,
         uint256 amount,
         IUniswapV2Pair lp,
-        uint256 slippage, // Denominator of 10_000. 1 = 0.01%, 100 = 1%
+        uint256 slippage,
         address to
     )
         public
@@ -271,7 +271,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
      * @dev Get the Zap data for a transaction with a specified token.
      * @param amount The amount of tokens to zap.
      * @param lp The Uniswap V2 pair contract.
-     * @param slippage The slippage tolerance (Denominator 10_000. 1 = 0.01%, 100 = 1%).
+     * @param slippage The slippage tolerance percentage. See Constants.DENOMINATOR for percentage denominator.
      * @param to The address to receive the zapped tokens.
      * @return zapParams ZapParams structure containing relevant data.
      * @return encodedTx Encoded transaction with the given parameters.
@@ -281,7 +281,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
     function getZapDataNative(
         uint256 amount,
         IUniswapV2Pair lp,
-        uint256 slippage, // Denominator of 10_000. 1 = 0.01%, 100 = 1%
+        uint256 slippage,
         address to
     )
         public
@@ -301,7 +301,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
      * @param fromToken The source token for the zap.
      * @param amount The amount of tokens to zap.
      * @param lp The Uniswap V2 pair contract.
-     * @param slippage The slippage tolerance (Denominator 10_000. 1 = 0.01%, 100 = 1%).
+     * @param slippage The slippage tolerance percentage. See Constants.DENOMINATOR for percentage denominator.
      * @param to The address to receive the zapped tokens.
      * @return zapParams ZapParams structure containing relevant data.
      * @return feeSwapPath SwapPath for protocol fees
@@ -311,7 +311,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         address fromToken,
         uint256 amount,
         IUniswapV2Pair lp,
-        uint256 slippage, //Denominator 10_000. 1 = 0.01%, 100 = 1%
+        uint256 slippage,
         address to
     )
         internal
@@ -519,7 +519,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         address _fromToken,
         address _toToken,
         uint _amountIn,
-        uint256 _slippage //Denominator 10_000 1 = 0.01%, 100 = 1%
+        uint256 _slippage
     ) internal view returns (ISoulZap_UniV2.SwapPath memory bestPath, uint256 priceImpactPercentage) {
         if (_fromToken == _toToken) {
             //amountOutMin == amountIn if token is the same (needed for liquidity path)
@@ -538,7 +538,6 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         // Calculation of price impact.
         // Actual price is the current actual price which does not take slippage into account for less liquid pairs.
         // Calculation of price impact between actual price and price after slippage.
-        // With a denominator of 10_000. 100 = 1% price impact, 1000 = 10% price impact.
         uint256 actualPrice = _amountIn;
         // TODO: Remove console.log before production
         console.log("actualPrice", actualPrice);

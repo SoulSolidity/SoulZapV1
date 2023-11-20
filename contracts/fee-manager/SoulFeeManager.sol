@@ -17,6 +17,7 @@ pragma solidity 0.8.23;
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {AccessManaged} from "@openzeppelin/contracts/access/manager/AccessManaged.sol";
 
+import {Constants} from "../utils/Constants.sol";
 import {ISoulFeeManager} from "./ISoulFeeManager.sol";
 
 /**
@@ -42,7 +43,7 @@ contract SoulFeeManager is ISoulFeeManager, AccessManaged {
     /// @dev Assumes the volume fee thresholds are in ascending order. Final element assumes infinite volume
     VolumeFeeThreshold[] public volumeFeeThresholds;
 
-    uint256 public constant FEE_DENOMINATOR = 10_000;
+    uint256 public constant FEE_DENOMINATOR = Constants.DENOMINATOR;
     /// @dev The maximum fee is 3%
     uint256 public constant MAX_FEE = (FEE_DENOMINATOR * 3) / 100;
 
