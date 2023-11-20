@@ -88,6 +88,14 @@ interface ISoulZap_UniV2 is IAccessManaged, ITransferHelper, IEpochVolumeTracker
 
     function soulFeeManager() external view returns (ISoulFeeManager);
 
+    function getFeePercentage() external view returns (uint256 fee);
+
+    function getFeeToken(uint256 _index) external view returns (address feeToken);
+
+    function getFeeTokensLength() external view returns (uint256 length);
+
+    function isFeeToken(address token) external view returns (bool valid);
+
     /// -----------------------------------------------------------------------
     /// Functions
     /// -----------------------------------------------------------------------

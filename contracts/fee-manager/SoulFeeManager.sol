@@ -49,6 +49,7 @@ contract SoulFeeManager is ISoulFeeManager, AccessManaged {
 
     event SoulFeeManager_FeeTokenAdded(address feeToken);
     event SoulFeeManager_FeeTokenRemoved(address feeToken);
+    event SoulFeeManager_VolumeFeeThresholdChanged(uint256[] _volumes, uint256[] _fees);
 
     /// -----------------------------------------------------------------------
     /// Errors
@@ -65,7 +66,9 @@ contract SoulFeeManager is ISoulFeeManager, AccessManaged {
     constructor(
         address[] memory _feeTokens,
         address __feeCollector,
-        address _accessManager
+        address _accessManager,
+        uint256[] memory _volumes,
+        uint256[] memory _fees
     ) AccessManaged(_accessManager) {
         _addValidFeeTokens(_feeTokens);
         if (__feeCollector == address(0)) {
@@ -73,14 +76,33 @@ contract SoulFeeManager is ISoulFeeManager, AccessManaged {
         }
         _feeCollector = __feeCollector;
 
-        // FIXME: Placeholder for full implementation of fee thresholds
-        VolumeFeeThreshold memory volumeFeeThreshold = VolumeFeeThreshold({volume: 0, fee: 300});
-        volumeFeeThresholds.push(volumeFeeThreshold);
+        //This doesnt work with the restricted part, does it?
+        _setVolumeFeeThresholds(_volumes, _fees);
+    }
+
+    function setVolumeFeeThresholds(uint256[] memory _volumes, uint256[] memory _fees) public restricted {
+        _setVolumeFeeThresholds(_volumes, _fees);
+    }
+
+    function _setVolumeFeeThresholds(uint256[] memory _volumes, uint256[] memory _fees) internal {
+        require(_volumes.length == _fees.length, "Volumes and fees should have same length");
+        uint256 previousVolume = 0;
+        for (uint256 i = 0; i < _volumes.length; i++) {
+            uint256 volume = _volumes[i];
+            require(volume > previousVolume, "volume not in ascending order");
+            VolumeFeeThreshold memory volumeFeeThreshold = VolumeFeeThreshold({volume: volume, fee: _fees[i]});
+            volumeFeeThresholds.push(volumeFeeThreshold);
+            previousVolume = volume;
+        }
+        emit SoulFeeManager_VolumeFeeThresholdChanged(_volumes, _fees);
     }
 
     function getFee(uint256 epochFeeVolume) external view returns (uint256 fee) {
-        // FIXME: Placeholder for full implementation of fee thresholds
-        return volumeFeeThresholds[0].volume;
+        for (uint256 i = volumeFeeThresholds.length - 1; i >= 0; i++) {
+            if (epochFeeVolume > volumeFeeThresholds[i].volume) {
+                return volumeFeeThresholds[i].fee;
+            }
+        }
     }
 
     function getFeeCollector() external view returns (address feeCollector) {
