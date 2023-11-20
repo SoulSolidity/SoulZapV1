@@ -59,10 +59,6 @@ contract SoulZap_UniV2_Lens is AccessManaged {
     uint256 public constant MAX_HOP_TOKENS = 20;
     uint256 public constant DEADLINE = 20 minutes;
 
-    // FIXME: do we really need the fee manger AND the zap in here for just logic stuff...
-    // and make soulzap the interface instead of the contract. need the epoch interface stuff
-    // FIXME: This is actually a problem because the soulFeeManager can be changed in soulZap and it wont be affected here. At minimum need to pull it from the zap
-    ISoulFeeManager public soulFeeManager;
     // FIXME: This could change also. Was trying to save some gas
     uint256 private immutable _SOUL_FEE_DENOMINATOR;
 
@@ -93,8 +89,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
 
         soulZap = _soulZap;
         WNATIVE = _soulZap.WNATIVE();
-        soulFeeManager = _soulZap.soulFeeManager();
-        _SOUL_FEE_DENOMINATOR = soulFeeManager.FEE_DENOMINATOR();
+        _SOUL_FEE_DENOMINATOR = ISoulFeeManager(_soulZap.soulFeeManager()).FEE_DENOMINATOR();
     }
 
     /**
@@ -690,13 +685,14 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         uint256 _slippage
     ) internal view returns (ISoulZap_UniV2.SwapPath memory feeSwapPath, FeeVars memory feeVars) {
         //Get path for protocol fee
-        feeVars.feePercentage = soulFeeManager.getFee(soulZap.getEpochVolume());
         // TODO: Currently taking feeToken 0 from feeManager
         feeVars.feeToken = soulFeeManager.getFeeToken(0);
         feeVars.feeAmount = (_amountIn * feeVars.feePercentage) / _SOUL_FEE_DENOMINATOR;
 
+        feeVars.feePercentage = soulZap.getFeePercentage();
         //If no fees just return
         if (feeVars.feePercentage == 0) {
+            feeVars.feeToken = soulZap.getFeeToken(0);
             return (feeSwapPath, feeVars);
         }
 

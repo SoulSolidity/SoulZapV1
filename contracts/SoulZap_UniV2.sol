@@ -392,6 +392,18 @@ contract SoulZap_UniV2 is
     /// Fee functions
     /// -----------------------------------------------------------------------
 
+    function getFeePercentage() public view returns (uint256 fee) {
+        fee = soulFeeManager.getFee(getEpochVolume());
+    }
+
+    function getFeeToken(uint256 _index) public view returns (address feeToken) {
+        feeToken = soulFeeManager.getFeeToken(_index);
+    }
+
+    function getFeeTokensLength() public view returns (uint256 length) {
+        return soulFeeManager.getFeeTokensLength();
+    }
+
     /**
      * @notice Handles the protocol fee calculation and transfer.
      * @dev This function calculates the protocol fee based on the input amount and the current epoch volume.
@@ -412,7 +424,7 @@ contract SoulZap_UniV2 is
         SwapPath memory _feeSwapPath,
         uint256 _deadline
     ) private returns (uint256 inputFeeAmount) {
-        uint256 feePercentage = soulFeeManager.getFee(getEpochVolume());
+        uint256 feePercentage = getFeePercentage();
         if (feePercentage == 0) {
             return 0;
         }
