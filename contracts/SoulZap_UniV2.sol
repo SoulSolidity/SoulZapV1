@@ -392,6 +392,24 @@ contract SoulZap_UniV2 is
     /// Fee functions
     /// -----------------------------------------------------------------------
 
+    /**
+     * @notice Checks if a given token is a valid fee token.
+     * @dev Calls the soulFeeManager's isFeeToken function to determine if the token is used for fees.
+     * @param _token The address of the token to check.
+     * @return valid True if the token is a valid fee token, false otherwise.
+     */
+    function isFeeToken(address _token) external view returns (bool valid) {
+        return soulFeeManager.isFeeToken(_token);
+    }
+
+    /**
+     * @notice Retrieves the current fee information for a given epoch volume.
+     * @dev Calls the soulFeeManager's getFeeInfo function with the current epoch volume to get fee details.
+     * @return feeTokens An array of addresses representing the fee tokens.
+     * @return currentFeePercentage The current fee percentage for the epoch.
+     * @return feeDenominator The denominator used to calculate the fee percentage.
+     * @return feeCollector The address of the fee collector.
+     */
     function getFeeInfo()
         public
         view

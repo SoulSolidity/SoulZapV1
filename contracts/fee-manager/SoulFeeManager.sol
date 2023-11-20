@@ -101,6 +101,7 @@ contract SoulFeeManager is ISoulFeeManager, AccessManaged {
         for (uint256 i = 0; i < _volumes.length; i++) {
             uint256 volume = _volumes[i];
             require(volume > previousVolume, "volume not in ascending order");
+            require(_fees[i] <= MAX_FEE, "fee exceeds max fee");
             VolumeFeeThreshold memory volumeFeeThreshold = VolumeFeeThreshold({volume: volume, fee: _fees[i]});
             volumeFeeThresholds.push(volumeFeeThreshold);
             previousVolume = volume;

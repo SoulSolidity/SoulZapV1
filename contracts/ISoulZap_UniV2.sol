@@ -100,6 +100,8 @@ interface ISoulZap_UniV2 is IAccessManaged, ITransferHelper, IEpochVolumeTracker
     /// Fee Management
     /// -----------------------------------------------------------------------
 
+    function isFeeToken(address _token) external view returns (bool valid);
+
     function getFeeInfo()
         external
         view
