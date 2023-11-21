@@ -75,9 +75,9 @@ contract SoulFeeManager is ISoulFeeManager, AccessManaged {
     /// -----------------------------------------------------------------------
 
     constructor(
+        address _accessManager,
         address[] memory _feeTokens,
         address __feeCollector,
-        address _accessManager,
         uint256[] memory _volumes,
         uint256[] memory _fees
     ) AccessManaged(_accessManager) {
@@ -100,7 +100,8 @@ contract SoulFeeManager is ISoulFeeManager, AccessManaged {
         uint256 previousVolume = 0;
         for (uint256 i = 0; i < _volumes.length; i++) {
             uint256 volume = _volumes[i];
-            require(volume > previousVolume, "volume not in ascending order");
+            /// @dev On the first round previousVolume can be 0, so we skip the check
+            require(i == 0 || volume > previousVolume, "volume not in ascending order");
             require(_fees[i] <= MAX_FEE, "fee exceeds max fee");
             VolumeFeeThreshold memory volumeFeeThreshold = VolumeFeeThreshold({volume: volume, fee: _fees[i]});
             volumeFeeThresholds.push(volumeFeeThreshold);
@@ -138,10 +139,11 @@ contract SoulFeeManager is ISoulFeeManager, AccessManaged {
      */
     function getFee(uint256 epochFeeVolume) public view returns (uint256 fee) {
         for (uint256 i = volumeFeeThresholds.length - 1; i >= 0; i--) {
-            if (epochFeeVolume > volumeFeeThresholds[i].volume) {
+            if (epochFeeVolume >= volumeFeeThresholds[i].volume) {
                 return volumeFeeThresholds[i].fee;
             }
         }
+        return 0;
     }
 
     function getFeeCollector() external view returns (address feeCollector) {
