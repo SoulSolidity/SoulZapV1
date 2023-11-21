@@ -7,7 +7,7 @@ export async function deployRoutingFixture(_ethers: typeof ethers, chain: Deploy
   const [owner, otherAccount] = await _ethers.getSigners()
   const hopTokens = dexInfo.ApeBond?.hopTokens || []
 
-  const SoulZap_Lens = await _ethers.getContractFactory('SoulZap_UniV2_Extended_Lens_V1')
+  const SoulZap_Lens = await _ethers.getContractFactory('SoulZap_UniV2_Extended_V1_Lens')
   const soulZap_Lens = await SoulZap_Lens.deploy(
     soulZapAddress,
     router,

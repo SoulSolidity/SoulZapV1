@@ -1,5 +1,6 @@
 import { BigNumber, Contract, Signer, ethers } from 'ethers';
 import { ChainId, DEX, Project, ZAP_ADDRESS, ZAP_LENS_ADDRESS } from '../constants';
+// FIXME: I recommend pulling directly from the artifacts folder to keep it up to date, these have been updated
 import SoulZap_UniV2_Extended_V1_ABI from '../abi/SoulZap_UniV2_Extended_Lens_V1_ABI.json'
 import SoulZap_UniV2_Extended_Lens_V1_ABI from '../abi/SoulZap_UniV2_Extended_Lens_V1_ABI.json'
 import { SwapPath, zapData, ZapParams, ZapParams_Ext_Bonds, ZapParamsNative } from '../types';
