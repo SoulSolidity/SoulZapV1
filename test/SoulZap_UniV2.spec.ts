@@ -24,7 +24,7 @@ import { ether } from './fixtures/UniV2/deployUniV2Dex'
  * loadFixture() runs this setup once, snapshots that state,
  * and resets the Hardhat Network to that snapshot for every test.
  */
-async function fixture() {
+export async function fixture() {
   // Contracts are deployed using the first signer/account by default
   const accounts = await ethers.getSigners()
   const activeAccounts = accounts.slice(0, 5)

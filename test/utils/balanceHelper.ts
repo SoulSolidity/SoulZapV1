@@ -157,6 +157,11 @@ export const createERC20BalanceSnapshotter = (
         if (typeof account !== 'string') {
           accountAddress = account.address
         }
+
+        if (!currentSnapshot[accountAddress]) {
+          currentSnapshot[accountAddress] = {}
+        }
+
         return await Promise.all(
           tokenAddresses.map(async (tokenAddress) => {
             const balance = (await tokenContracts[tokenAddress].balanceOf(accountAddress)) as BigNumber
@@ -180,23 +185,19 @@ export const createERC20BalanceSnapshotter = (
 
               snapshots[accountAddress][tokenAddress].push(newSnapshot)
 
-              currentSnapshot[accountAddress] = {
-                [tokenAddress]: {
-                  balanceDiff,
-                  blockDiff,
-                  timeDiff,
-                  snapshots: snapshots[accountAddress][tokenAddress],
-                },
+              currentSnapshot[accountAddress][tokenAddress] = {
+                balanceDiff,
+                blockDiff,
+                timeDiff,
+                snapshots: snapshots[accountAddress][tokenAddress],
               }
             } else {
               snapshots[accountAddress][tokenAddress].push(newSnapshot)
-              currentSnapshot[accountAddress] = {
-                [tokenAddress]: {
-                  balanceDiff: _ethers.BigNumber.from(0),
-                  blockDiff: 0,
-                  timeDiff: 0,
-                  snapshots: snapshots[accountAddress][tokenAddress],
-                },
+              currentSnapshot[accountAddress][tokenAddress] = {
+                balanceDiff: _ethers.BigNumber.from(0),
+                blockDiff: 0,
+                timeDiff: 0,
+                snapshots: snapshots[accountAddress][tokenAddress],
               }
             }
           })

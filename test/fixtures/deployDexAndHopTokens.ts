@@ -28,9 +28,9 @@ export async function deployDexAndHopTokens(
   // Hop tokens
   const hopTokens = await deployMockTokens(_ethers, [tokenOwner], hopTokensInfo, { initialSupply })
   //Add wNative to mock tokens
-  hopTokens.push(uniV2Dex.mockWBNB);
-  await uniV2Dex.mockWBNB.deposit({ value: "900000000000000000000" });
-  await uniV2Dex.mockWBNB.transfer(tokenOwner.address, "900000000000000000000")
+  hopTokens.push(uniV2Dex.mockWBNB)
+  await uniV2Dex.mockWBNB.deposit({ value: '900000000000000000000' })
+  await uniV2Dex.mockWBNB.transfer(tokenOwner.address, '900000000000000000000')
 
   // Create pairs between hop tokens
   const hopTokenLpInfos: TokenLpInfo[] = []
