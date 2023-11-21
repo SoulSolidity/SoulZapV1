@@ -145,7 +145,7 @@ describe('SoulZap_UniV2', function () {
       } = await loadFixture(fixture)
 
       // NOTE: 1 Ether hardcoded
-      const currentInputAmount = ether('1')
+      const currentInputAmount = ether('1').div(100)
       const currentInputToken = inputTokens[0]
       await currentInputToken.connect(tokensOwner).approve(soulZap.address, currentInputAmount)
 
@@ -173,7 +173,7 @@ describe('SoulZap_UniV2', function () {
       } = await loadFixture(fixture)
 
       // NOTE: 1 Ether hardcoded
-      const currentInputAmount = ether('1')
+      const currentInputAmount = ether('1').div(100)
       const currentInputToken = inputTokens[0]
       await currentInputToken.connect(tokensOwner).approve(soulZap.address, currentInputAmount)
 
@@ -265,7 +265,7 @@ describe('SoulZap_UniV2', function () {
       } = await loadFixture(fixture)
 
       // NOTE: 1 Ether hardcoded
-      const currentInputAmount = ether('1')
+      const currentInputAmount = ether('1').div(100)
       const currentInputToken = inputTokens[0]
       await currentInputToken.connect(tokensOwner).approve(soulZap.address, currentInputAmount)
       const currentToToken = outputTokens[0]
@@ -274,7 +274,7 @@ describe('SoulZap_UniV2', function () {
         currentInputToken.address,
         currentInputAmount,
         currentToToken.address,
-        0,
+        100,
         zapReceiver.address
       )
     })
@@ -293,7 +293,7 @@ describe('SoulZap_UniV2', function () {
       await takeERC20BalanceSnapshot()
 
       // NOTE: 1 Ether hardcoded
-      const currentInputAmount = ether('1')
+      const currentInputAmount = ether('1').div(100)
       const currentInputToken = inputTokens[0]
       await currentInputToken.connect(tokensOwner).approve(soulZap.address, currentInputAmount)
       const currentToToken = outputTokens[0]
@@ -302,9 +302,11 @@ describe('SoulZap_UniV2', function () {
         currentInputToken.address,
         currentInputAmount,
         currentToToken.address,
-        0,
+        300,
         zapReceiver.address
       )
+
+      console.log(swapData)
 
       await soulZap.connect(tokensOwner).swap(swapData.swapParams, swapData.feeSwapPath)
 
@@ -328,7 +330,7 @@ describe('SoulZap_UniV2', function () {
       await takeERC20BalanceSnapshot()
 
       // NOTE: 1 Ether hardcoded
-      const currentInputAmount = ether('1')
+      const currentInputAmount = ether('1').div(100)
       const currentInputToken = inputTokens[0]
       await currentInputToken.connect(tokensOwner).approve(soulZap.address, currentInputAmount)
       const currentToToken = outputTokens[1]
@@ -337,7 +339,7 @@ describe('SoulZap_UniV2', function () {
         currentInputToken.address,
         currentInputAmount,
         currentToToken.address,
-        0,
+        100,
         zapReceiver.address
       )
 
@@ -364,7 +366,7 @@ describe('SoulZap_UniV2', function () {
       const snapBefore = await takeERC20BalanceSnapshot()
 
       // NOTE: 1 Ether hardcoded
-      const currentInputAmount = ether('1')
+      const currentInputAmount = ether('1').div(100)
       const currentInputToken = mockWBNB
       await currentInputToken.connect(tokensOwner).approve(soulZap.address, currentInputAmount)
       const currentToToken = outputTokens[0]
@@ -373,7 +375,7 @@ describe('SoulZap_UniV2', function () {
         currentInputToken.address,
         currentInputAmount,
         currentToToken.address,
-        0,
+        100,
         zapReceiver.address
       )
 
@@ -401,7 +403,7 @@ describe('SoulZap_UniV2', function () {
       await takeERC20BalanceSnapshot()
 
       // NOTE: 1 Ether hardcoded
-      const currentInputAmount = ether('1')
+      const currentInputAmount = ether('1').div(100)
       const currentInputToken = NATIVE_ADDRESS
       const currentToToken = outputTokens[0]
 
@@ -409,7 +411,7 @@ describe('SoulZap_UniV2', function () {
         currentInputToken,
         currentInputAmount,
         currentToToken.address,
-        0,
+        100,
         zapReceiver.address
       )
 
@@ -435,7 +437,7 @@ describe('SoulZap_UniV2', function () {
       await takeERC20BalanceSnapshot()
 
       // NOTE: 1 Ether hardcoded
-      const currentInputAmount = ether('1')
+      const currentInputAmount = ether('1').div(100)
       const currentInputToken = inputTokens[0]
       await currentInputToken.connect(tokensOwner).approve(soulZap.address, currentInputAmount)
       const currentToToken = NATIVE_ADDRESS
@@ -470,7 +472,7 @@ describe('SoulZap_UniV2', function () {
       await takeERC20BalanceSnapshot()
 
       // NOTE: 1 Ether hardcoded
-      const currentInputAmount = ether('1')
+      const currentInputAmount = ether('1').div(100)
       const currentInputToken = inputTokens[0]
       await currentInputToken.connect(tokensOwner).approve(soulZap.address, currentInputAmount)
       const currentToToken = outputTokens[0]
@@ -479,7 +481,7 @@ describe('SoulZap_UniV2', function () {
         currentInputToken.address,
         currentInputAmount,
         currentToToken.address,
-        0,
+        100,
         zapReceiver.address
       )
 
@@ -505,7 +507,7 @@ describe('SoulZap_UniV2', function () {
       await takeERC20BalanceSnapshot()
 
       // NOTE: 1 Ether hardcoded
-      const currentInputAmount = ether('1')
+      const currentInputAmount = ether('1').div(100)
       const currentInputToken = inputTokens[0]
       await currentInputToken.connect(tokensOwner).approve(soulZap.address, currentInputAmount)
       const currentToToken = outputTokens[0]
@@ -514,7 +516,7 @@ describe('SoulZap_UniV2', function () {
         currentInputToken.address,
         currentInputAmount,
         currentToToken.address,
-        0,
+        100,
         recipient.address
       )
 
@@ -539,7 +541,7 @@ describe('SoulZap_UniV2', function () {
         } = await loadFixture(fixture)
 
         // NOTE: 1 Ether hardcoded
-        const currentInputAmount = ether('1')
+        const currentInputAmount = ether('1').div(100)
         const currentInputToken = { address: "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c" } //Invalid token
         // await currentInputToken.connect(tokensOwner).approve(soulZap.address, currentInputAmount)
         const currentToToken = outputTokens[0]
@@ -564,7 +566,7 @@ describe('SoulZap_UniV2', function () {
         } = await loadFixture(fixture)
 
         // NOTE: 1 Ether hardcoded
-        const currentInputAmount = ether('1')
+        const currentInputAmount = ether('1').div(100)
         const currentInputToken = inputTokens[0]
         await currentInputToken.connect(tokensOwner).approve(soulZap.address, currentInputAmount)
         const currentToToken = outputTokens[0]
@@ -620,7 +622,7 @@ describe('SoulZap_UniV2', function () {
         } = await loadFixture(fixture)
 
         // NOTE: 1 Ether hardcoded
-        const currentInputAmount = ether('1')
+        const currentInputAmount = ether('1').div(100)
         const currentInputToken = inputTokens[0]
         await currentInputToken.connect(tokensOwner).approve(soulZap.address, currentInputAmount)
         const currentToToken = outputTokens[0]
@@ -652,7 +654,7 @@ describe('SoulZap_UniV2', function () {
         } = await loadFixture(fixture)
 
         // NOTE: 1 Ether hardcoded
-        const currentInputAmount = ether('1')
+        const currentInputAmount = ether('1').div(100)
         const currentInputToken = inputTokens[0]
         await currentInputToken.connect(tokensOwner).approve(soulZap.address, currentInputAmount)
         const currentToToken = outputTokens[0]
@@ -677,7 +679,7 @@ describe('SoulZap_UniV2', function () {
         } = await loadFixture(fixture)
 
         // NOTE: 1 Ether hardcoded
-        const currentInputAmount = ether('1')
+        const currentInputAmount = ether('1').div(100)
         const currentInputToken = inputTokens[0]
         await currentInputToken.connect(tokensOwner).approve(soulZap.address, currentInputAmount)
         const currentToToken = outputTokens[0]
@@ -709,7 +711,7 @@ describe('SoulZap_UniV2', function () {
         } = await loadFixture(fixture)
 
         // NOTE: 1 Ether hardcoded
-        const currentInputAmount = ether('1')
+        const currentInputAmount = ether('1').div(100)
         const currentInputToken = inputTokens[0]
         await currentInputToken.connect(tokensOwner).approve(soulZap.address, currentInputAmount)
 
@@ -733,7 +735,7 @@ describe('SoulZap_UniV2', function () {
         } = await loadFixture(fixture)
 
         // NOTE: 1 Ether hardcoded
-        const currentInputAmount = ether('1')
+        const currentInputAmount = ether('1').div(100)
         const currentInputToken = inputTokens[0]
         await currentInputToken.connect(tokensOwner).approve(soulZap.address, currentInputAmount)
         const currentOutputToken = inputTokens[1]
@@ -767,7 +769,7 @@ describe('SoulZap_UniV2', function () {
         await soulZap.connect(owner).pause()
 
         // NOTE: 1 Ether hardcoded
-        const currentInputAmount = ether('1')
+        const currentInputAmount = ether('1').div(100)
         const currentInputToken = inputTokens[0]
         await currentInputToken.connect(tokensOwner).approve(soulZap.address, currentInputAmount)
         const currentToToken = outputTokens[0]
@@ -799,7 +801,7 @@ describe('SoulZap_UniV2', function () {
       } = await loadFixture(fixture)
 
       // NOTE: 1 Ether hardcoded
-      const currentInputAmount = ether('1')
+      const currentInputAmount = ether('1').div(100)
       const currentInputToken = inputTokens[0]
       await currentInputToken.connect(tokensOwner).approve(soulZap.address, currentInputAmount)
       const currentToToken = pairs.outputLpPairs[0]
@@ -808,7 +810,7 @@ describe('SoulZap_UniV2', function () {
         currentInputToken.address,
         currentInputAmount,
         currentToToken.address,
-        0,
+        100,
         zapReceiver.address
       )
     })
@@ -827,7 +829,7 @@ describe('SoulZap_UniV2', function () {
       await takeERC20BalanceSnapshot()
 
       // NOTE: 1 Ether hardcoded
-      const currentInputAmount = ether('1')
+      const currentInputAmount = ether('1').div(100)
       const currentInputToken = inputTokens[0]
       await currentInputToken.connect(tokensOwner).approve(soulZap.address, currentInputAmount)
       const currentToToken = pairs.outputLpPairs[0]
@@ -836,7 +838,7 @@ describe('SoulZap_UniV2', function () {
         currentInputToken.address,
         currentInputAmount,
         currentToToken.address,
-        0,
+        100,
         zapReceiver.address
       )
 
@@ -864,7 +866,7 @@ describe('SoulZap_UniV2', function () {
       await takeERC20BalanceSnapshot()
 
       // NOTE: 1 Ether hardcoded
-      const currentInputAmount = ether('1')
+      const currentInputAmount = ether('1').div(100)
       const currentInputToken = inputTokens[0]
       await currentInputToken.connect(tokensOwner).approve(soulZap.address, currentInputAmount)
       const currentToToken = pairs.outputLpPairs[1]
@@ -873,7 +875,7 @@ describe('SoulZap_UniV2', function () {
         currentInputToken.address,
         currentInputAmount,
         currentToToken.address,
-        0,
+        100,
         zapReceiver.address
       )
 
@@ -900,7 +902,7 @@ describe('SoulZap_UniV2', function () {
       const snapBefore = await takeERC20BalanceSnapshot()
 
       // NOTE: 1 Ether hardcoded
-      const currentInputAmount = ether('1')
+      const currentInputAmount = ether('1').div(100)
       const currentInputToken = mockWBNB
       await currentInputToken.connect(tokensOwner).approve(soulZap.address, currentInputAmount)
       const currentToToken = pairs.outputLpPairs[0]
@@ -909,7 +911,7 @@ describe('SoulZap_UniV2', function () {
         currentInputToken.address,
         currentInputAmount,
         currentToToken.address,
-        0,
+        100,
         zapReceiver.address
       )
 
@@ -935,7 +937,7 @@ describe('SoulZap_UniV2', function () {
       await takeERC20BalanceSnapshot()
 
       // NOTE: 1 Ether hardcoded
-      const currentInputAmount = ether('1')
+      const currentInputAmount = ether('1').div(100)
       const currentInputToken = NATIVE_ADDRESS
       const currentToToken = pairs.outputLpPairs[0]
 
@@ -943,7 +945,7 @@ describe('SoulZap_UniV2', function () {
         currentInputToken,
         currentInputAmount,
         currentToToken.address,
-        0,
+        100,
         zapReceiver.address
       )
 
@@ -969,7 +971,7 @@ describe('SoulZap_UniV2', function () {
       await takeERC20BalanceSnapshot()
 
       // NOTE: 1 Ether hardcoded
-      const currentInputAmount = ether('1')
+      const currentInputAmount = ether('1').div(100)
       const currentInputToken = inputTokens[0]
       await currentInputToken.connect(tokensOwner).approve(soulZap.address, currentInputAmount)
       const currentToToken = pairs.outputLpPairs[0]
@@ -978,7 +980,7 @@ describe('SoulZap_UniV2', function () {
         currentInputToken.address,
         currentInputAmount,
         currentToToken.address,
-        0,
+        100,
         zapReceiver.address
       )
 
@@ -1004,7 +1006,7 @@ describe('SoulZap_UniV2', function () {
       await takeERC20BalanceSnapshot()
 
       // NOTE: 1 Ether hardcoded
-      const currentInputAmount = ether('1')
+      const currentInputAmount = ether('1').div(100)
       const currentInputToken = inputTokens[0]
       await currentInputToken.connect(tokensOwner).approve(soulZap.address, currentInputAmount)
       const currentToToken = pairs.outputLpPairs[0]
@@ -1013,7 +1015,7 @@ describe('SoulZap_UniV2', function () {
         currentInputToken.address,
         currentInputAmount,
         currentToToken.address,
-        0,
+        100,
         recipient.address
       )
 
@@ -1037,7 +1039,7 @@ describe('SoulZap_UniV2', function () {
         } = await loadFixture(fixture)
 
         // NOTE: 1 Ether hardcoded
-        const currentInputAmount = ether('1')
+        const currentInputAmount = ether('1').div(100)
         const currentInputToken = { address: "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c" } //Invalid token
         // await currentInputToken.connect(tokensOwner).approve(soulZap.address, currentInputAmount)
         const currentToToken = pairs.outputLpPairs[1]
@@ -1062,7 +1064,7 @@ describe('SoulZap_UniV2', function () {
         } = await loadFixture(fixture)
 
         // NOTE: 1 Ether hardcoded
-        const currentInputAmount = ether('1')
+        const currentInputAmount = ether('1').div(100)
         const currentInputToken = inputTokens[0]
         await currentInputToken.connect(tokensOwner).approve(soulZap.address, currentInputAmount)
         const currentToToken = pairs.outputLpPairs[1]
@@ -1120,7 +1122,7 @@ describe('SoulZap_UniV2', function () {
         } = await loadFixture(fixture)
 
         // NOTE: 1 Ether hardcoded
-        const currentInputAmount = ether('1')
+        const currentInputAmount = ether('1').div(100)
         const currentInputToken = inputTokens[0]
         await currentInputToken.connect(tokensOwner).approve(soulZap.address, currentInputAmount)
         const currentToToken = pairs.outputLpPairs[1]
@@ -1152,7 +1154,7 @@ describe('SoulZap_UniV2', function () {
         } = await loadFixture(fixture)
 
         // NOTE: 1 Ether hardcoded
-        const currentInputAmount = ether('1')
+        const currentInputAmount = ether('1').div(100)
         const currentInputToken = inputTokens[0]
         await currentInputToken.connect(tokensOwner).approve(soulZap.address, currentInputAmount)
         const currentToToken = pairs.outputLpPairs[1]
@@ -1177,7 +1179,7 @@ describe('SoulZap_UniV2', function () {
         } = await loadFixture(fixture)
 
         // NOTE: 1 Ether hardcoded
-        const currentInputAmount = ether('1')
+        const currentInputAmount = ether('1').div(100)
         const currentInputToken = inputTokens[0]
         await currentInputToken.connect(tokensOwner).approve(soulZap.address, currentInputAmount)
         const currentToToken = pairs.outputLpPairs[1]
@@ -1209,7 +1211,7 @@ describe('SoulZap_UniV2', function () {
         } = await loadFixture(fixture)
 
         // NOTE: 1 Ether hardcoded
-        const currentInputAmount = ether('1')
+        const currentInputAmount = ether('1').div(100)
         const currentInputToken = inputTokens[0]
         await currentInputToken.connect(tokensOwner).approve(soulZap.address, currentInputAmount)
 
@@ -1235,7 +1237,7 @@ describe('SoulZap_UniV2', function () {
         await soulZap.connect(owner).pause()
 
         // NOTE: 1 Ether hardcoded
-        const currentInputAmount = ether('1')
+        const currentInputAmount = ether('1').div(100)
         const currentInputToken = inputTokens[0]
         await currentInputToken.connect(tokensOwner).approve(soulZap.address, currentInputAmount)
         const currentToToken = pairs.outputLpPairs[1]
