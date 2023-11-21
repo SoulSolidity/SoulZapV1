@@ -168,12 +168,12 @@ contract SoulZap_UniV2 is
     /// @notice Ultimate ZAP function
     /// @dev Assumes tokens are already transferred to this contract.
     /// - whenNotPaused: Only works when not paused which also pauses all other extensions which extend this
-    /// @param swapParams all parameters for zap
+    /// @param swapParams all parameters for swap
     /// @param feeSwapPath swap path for protocol fee
     function _swap(SwapParams memory swapParams, SwapPath memory feeSwapPath) internal whenNotPaused {
         // Verify inputs
         require(swapParams.inputAmount > 0, "SoulZap: inputAmount must be > 0");
-        require(swapParams.to != address(0), "SoulZap: Can't zap to null address");
+        require(swapParams.to != address(0), "SoulZap: Can't swap to null address");
         require(swapParams.token != address(0), "SoulZap: token can't be address(0)");
         require(address(swapParams.inputToken) != swapParams.token, "SoulZap: tokens can't be the same");
 
@@ -314,6 +314,7 @@ contract SoulZap_UniV2 is
             vars.amount1Out = zapParams.inputAmount - vars.amount0In;
         }
 
+        console.log("handle liquidity");
         /**
          * Handle Liquidity Add
          */
@@ -321,6 +322,12 @@ contract SoulZap_UniV2 is
         IERC20(zapParams.token1).approve(address(zapParams.liquidityPath.lpRouter), vars.amount1Out);
 
         if (zapParams.liquidityPath.lpType == LPType.V2) {
+            console.log(
+                vars.amount0Out,
+                vars.amount1Out,
+                zapParams.liquidityPath.minAmountLP0,
+                zapParams.liquidityPath.minAmountLP1
+            );
             // Add liquidity to UniswapV2 Pool
             (vars.amount0Lp, vars.amount1Lp, ) = IUniswapV2Router02(zapParams.liquidityPath.lpRouter).addLiquidity(
                 zapParams.token0,
@@ -461,7 +468,10 @@ contract SoulZap_UniV2 is
             /// @dev Input token is considered fee token or a token with no output route
             /// In order to not create a denial of service, we take any input token in this case.
             _transferOut(_inputToken, inputFeeAmount, feeCollector, false);
-            _accumulateFeeVolume(inputFeeAmount);
+            // Only increase fee volume if input token is a fee token
+            if (soulFeeManager.isFeeToken(address(_inputToken))) {
+                _accumulateFeeVolume(inputFeeAmount);
+            }
         }
 
         // TODO: Remove console.log before production

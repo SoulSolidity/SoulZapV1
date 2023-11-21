@@ -27,8 +27,8 @@ import { ether } from './fixtures/UniV2/deployUniV2Dex'
 export async function fixture() {
   // Contracts are deployed using the first signer/account by default
   const accounts = await ethers.getSigners()
-  const activeAccounts = accounts.slice(0, 5)
-  const [owner, feeTo, tokensOwner, zapReceiver, feeCollector] = activeAccounts
+  const activeAccounts = accounts.slice(0, 6)
+  const [owner, feeTo, tokensOwner, zapReceiver, feeCollector, recipient] = activeAccounts
 
   const dexAndHopTokens_deployment = await deployDexAndHopTokens(ethers, [owner, feeTo, tokensOwner])
   const {
@@ -50,13 +50,6 @@ export async function fixture() {
     ...outputLpPairs,
   ]
 
-  const takeERC20BalanceSnapshot = createERC20BalanceSnapshotter(
-    ethers,
-    activeAccounts,
-    allTokens.map((token) => token.address)
-  )
-  await takeERC20BalanceSnapshot()
-
   /**
    * Setup Zap Contracts
    */
@@ -72,12 +65,20 @@ export async function fixture() {
   )
   const { soulZap, soulZap_Lens, soulFeeManager } = ZapUniV2_Extended_V1_deployment
 
+  const takeERC20BalanceSnapshot = createERC20BalanceSnapshotter(
+    ethers,
+    [...activeAccounts.map(x => { return x.address }), soulZap.address],
+    allTokens.map((token) => token.address)
+  )
+  await takeERC20BalanceSnapshot()
+
   const takeFeeSnapshot = async () => await getContractGetterSnapshot(soulZap, ['getFeeInfo'])
 
   return {
+    mockWBNB,
     dexAndHopTokens_deployment,
     ZapUniV2_Extended_V1_deployment,
-    accounts: [owner, feeTo, tokensOwner, zapReceiver],
+    accounts: [owner, feeTo, tokensOwner, zapReceiver, recipient],
     snapshotters: {
       takeERC20BalanceSnapshot,
       takeFeeSnapshot,

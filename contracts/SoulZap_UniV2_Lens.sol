@@ -209,6 +209,12 @@ contract SoulZap_UniV2_Lens is AccessManaged {
             uint256 priceImpactPercentage
         )
     {
+        // Verify inputs
+        require(amount > 0, "SoulZap_UniV2_Lens: amount must be > 0");
+        require(to != address(0), "SoulZap_UniV2_Lens: Can't swap to null address");
+        require(toToken != address(0), "SoulZap_UniV2_Lens: token can't be address(0)");
+        require(fromToken != toToken, "SoulZap_UniV2_Lens: tokens can't be the same");
+
         bool nativeSwap = fromToken == Constants.NATIVE_ADDRESS;
         if (nativeSwap) {
             fromToken = address(WNATIVE);
@@ -323,7 +329,16 @@ contract SoulZap_UniV2_Lens is AccessManaged {
             uint256[] memory priceImpactPercentages
         )
     {
-        require(lp.factory() == address(factory), "SoulZap_UniV2_Lens: LP factory doesn't match factory");
+        // Verify inputs
+        require(amount > 0, "SoulZap_UniV2_Lens: amount must be > 0");
+        require(to != address(0), "SoulZap_UniV2_Lens: Can't zap to null address");
+        require(address(lp) != address(0), "SoulZap_UniV2_Lens: lp can't be address(0)");
+        try lp.factory() returns (address _factory) {
+            require(_factory == address(factory), "SoulZap_UniV2_Lens: LP factory doesn't match factory");
+        } catch {
+            revert("SoulZap_UniV2_Lens: Not an LP");
+        }
+
         bool nativeZap = fromToken == Constants.NATIVE_ADDRESS;
         if (nativeZap) {
             fromToken = address(WNATIVE);
@@ -535,7 +550,6 @@ contract SoulZap_UniV2_Lens is AccessManaged {
 
         (address[] memory bestPathAddresses, uint256 bestAmountOutMin) = _getBestPath(_fromToken, _toToken, _amountIn);
         bestPath.path = bestPathAddresses;
-        bestPath.amountOutMin = (bestAmountOutMin * (Constants.DENOMINATOR - _slippage)) / Constants.DENOMINATOR;
 
         // Calculation of price impact.
         // Actual price is the current actual price which does not take slippage into account for less liquid pairs.
@@ -561,8 +575,11 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         }
         priceImpactPercentage =
             Constants.DENOMINATOR -
-            ((bestPath.amountOutMin * (Constants.DENOMINATOR * Constants.PRECISION)) / actualPrice);
+            ((bestAmountOutMin * (Constants.DENOMINATOR * Constants.PRECISION)) / actualPrice);
         console.log("price impact", priceImpactPercentage);
+
+        // Add slippage after price impact caluclation is done
+        bestPath.amountOutMin = (bestAmountOutMin * (Constants.DENOMINATOR - _slippage)) / Constants.DENOMINATOR;
     }
 
     /// -----------------------------------------------------------------------
@@ -682,9 +699,8 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         uint256 _slippage
     ) internal view returns (ISoulZap_UniV2.SwapPath memory feeSwapPath, FeeVars memory feeVars) {
         (address[] memory feeTokens, uint256 currentFeePercentage, uint256 feeDenominator, ) = soulZap.getFeeInfo();
-        //If no fees just return
-        // FIXME: Tests are failing here
-        if (currentFeePercentage == 0 /*|| soulZap.isFeeToken(_fromToken)*/) {
+        //If no fees or input token is a fee token just return
+        if (currentFeePercentage == 0 || soulZap.isFeeToken(_fromToken)) {
             return (feeSwapPath, feeVars);
         }
 
