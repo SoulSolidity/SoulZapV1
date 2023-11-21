@@ -9,6 +9,7 @@ import { hopTokensInfo, inputTokensInfo, outputTokensInfo } from './hopTokens/ho
 import { createLPPairs, createTokenLpInfo, deployUniV2Dex, TokenLpInfo } from './UniV2/deployUniV2Dex'
 import { ERC20Mock, UniswapV2Router02 } from '../../typechain-types'
 import { logger } from '../../hardhat/utils'
+import { ether } from '../utils'
 
 // TODO: Add native pairs
 export async function deployDexAndHopTokens(
@@ -28,9 +29,9 @@ export async function deployDexAndHopTokens(
   // Hop tokens
   const hopTokens = await deployMockTokens(_ethers, [tokenOwner], hopTokensInfo, { initialSupply })
   //Add wNative to mock tokens
-  hopTokens.push(uniV2Dex.mockWBNB)
-  await uniV2Dex.mockWBNB.deposit({ value: '900000000000000000000' })
-  await uniV2Dex.mockWBNB.transfer(tokenOwner.address, '900000000000000000000')
+  hopTokens.push(uniV2Dex.mockWBNB as any) // NOTE: any type because of type mismatch between ERC20Mock and WNativeMock
+  await uniV2Dex.mockWBNB.deposit({ value: ether(9_000_000) })
+  await uniV2Dex.mockWBNB.transfer(tokenOwner.address, ether(9_000_000))
 
   // Create pairs between hop tokens
   const hopTokenLpInfos: TokenLpInfo[] = []
