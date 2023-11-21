@@ -6,7 +6,12 @@ import '@nomicfoundation/hardhat-chai-matchers'
 
 import { deployDexAndHopTokens } from './fixtures/deployDexAndHopTokens'
 import { deployZap_UniV2_Extended_V1 } from './fixtures/deployZap_Mock'
-import { ADDRESS_NATIVE, formatBNValueToString } from './utils'
+import {
+  ADDRESS_NATIVE,
+  createERC20BalanceSnapshotter,
+  formatBNValueToString,
+  getContractGetterSnapshot,
+} from './utils'
 import { ether } from './fixtures/UniV2/deployUniV2Dex'
 
 /**
@@ -22,27 +27,61 @@ import { ether } from './fixtures/UniV2/deployUniV2Dex'
 async function fixture() {
   // Contracts are deployed using the first signer/account by default
   const accounts = await ethers.getSigners()
-  const [owner, feeTo, tokensOwner, zapReceiver] = accounts
+  const activeAccounts = accounts.slice(0, 5)
+  const [owner, feeTo, tokensOwner, zapReceiver, feeCollector] = activeAccounts
 
   const dexAndHopTokens_deployment = await deployDexAndHopTokens(ethers, [owner, feeTo, tokensOwner])
   const {
     uniV2Dex: { mockWBNB, dexRouter, dexFactory },
-    baseTokens: { hopTokens },
+    baseTokens: { hopTokens, inputTokens, outputTokens },
+    pairs: { hopLpPairs, inputLpPairs, outputLpPairs },
   } = dexAndHopTokens_deployment
 
+  /**
+   * Setup Tokens
+   */
+  const allTokens = [
+    mockWBNB,
+    ...hopTokens,
+    ...inputTokens,
+    ...outputTokens,
+    ...hopLpPairs,
+    ...inputLpPairs,
+    ...outputLpPairs,
+  ]
+
+  const takeERC20BalanceSnapshot = createERC20BalanceSnapshotter(
+    ethers,
+    activeAccounts,
+    allTokens.map((token) => token.address)
+  )
+  await takeERC20BalanceSnapshot()
+
+  /**
+   * Setup Zap Contracts
+   */
   const ZapUniV2_Extended_V1_deployment = await deployZap_UniV2_Extended_V1(
     ethers,
     owner.address,
     mockWBNB.address,
     dexRouter.address,
     hopTokens.map((token) => token.address),
-    hopTokens[0].address //feeToken
+    feeCollector.address,
+    // TODO: Use stable
+    [hopTokens[0].address] //feeTokens
   )
+  const { soulZap, soulZap_Lens, soulFeeManager } = ZapUniV2_Extended_V1_deployment
+
+  const takeFeeSnapshot = async () => await getContractGetterSnapshot(soulZap, ['getFeeInfo'])
 
   return {
     dexAndHopTokens_deployment,
     ZapUniV2_Extended_V1_deployment,
     accounts: [owner, feeTo, tokensOwner, zapReceiver],
+    snapshotters: {
+      takeERC20BalanceSnapshot,
+      takeFeeSnapshot,
+    },
   }
 }
 
@@ -66,6 +105,7 @@ describe('SoulZap_UniV2.sol Tests', function () {
         },
         ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
         accounts: [owner, feeTo, tokensOwner, zapReceiver],
+        snapshotters: { takeERC20BalanceSnapshot, takeFeeSnapshot },
       } = await loadFixture(fixture)
 
       const inputAmount = ether('.001')
@@ -95,7 +135,20 @@ describe('SoulZap_UniV2.sol Tests', function () {
         { depth: 4 }
       )
 
+      const lastSnapshot = await takeERC20BalanceSnapshot()
+
       expect(zapData).to.not.be.undefined
+
+      const feeInfo = formatBNValueToString(await takeFeeSnapshot())
+      // FIXME: cc
+      // const lastSnapshot = formatBNValueToString(await takeERC20BalanceSnapshot())
+      console.dir(
+        {
+          /*lastSnapshot,*/
+          feeInfo,
+        },
+        { depth: null }
+      )
     })
 
     it('Should be able to zap all input tokens', async () => {
