@@ -29,9 +29,8 @@ export async function deployZapSetup_Mock(
 
   // NOTE: Can support multiple fee tokens, only passing 1
   const SoulFeeManager = await _ethers.getContractFactory('SoulFeeManager')
-  // NOTE: Fixed fee volume
-  const volumes = [0]
-  const fees = [300]
+  const volumes = [0, 10]
+  const fees = [300, 200]
   const soulFeeManager = await SoulFeeManager.deploy(soulAccessManager.address, feeTokens, feeCollector, volumes, fees)
 
   return { soulAccessManager, soulFeeManager }
