@@ -52,7 +52,9 @@ export async function fixture() {
 
   /**
    * Setup Zap Contracts
-   */
+  */
+  // TODO: Use stable
+  const feeTokens = [hopTokens[2]]
   const ZapUniV2_Extended_V1_deployment = await deployZap_UniV2_Extended_V1(
     ethers,
     owner.address,
@@ -60,8 +62,7 @@ export async function fixture() {
     dexRouter.address,
     hopTokens.map((token) => token.address),
     feeCollector.address,
-    // TODO: Use stable
-    [hopTokens[0].address] //feeTokens
+    feeTokens.map(token => token.address)
   )
   const { soulZap, soulZap_Lens, soulFeeManager } = ZapUniV2_Extended_V1_deployment
 
@@ -75,10 +76,11 @@ export async function fixture() {
   const takeFeeSnapshot = async () => await getContractGetterSnapshot(soulZap, ['getFeeInfo'])
 
   return {
+    feeTokens,
     mockWBNB,
     dexAndHopTokens_deployment,
     ZapUniV2_Extended_V1_deployment,
-    accounts: [owner, feeTo, tokensOwner, zapReceiver, recipient],
+    accounts: activeAccounts,
     snapshotters: {
       takeERC20BalanceSnapshot,
       takeFeeSnapshot,
