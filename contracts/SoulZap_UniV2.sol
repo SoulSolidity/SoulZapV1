@@ -10,7 +10,8 @@ pragma solidity 0.8.23;
 ╚═════╝  ╚════╝  ╚═════╝ ╚══════╝  ╚═════╝  ╚════╝ ╚══════╝╚═╝╚═════╝ ╚═╝   ╚═╝      ╚═╝   
 
  * Twitter: https://twitter.com/SoulSolidity
- * GitHub: https://github.com/SoulSolidity
+ *  GitHub: https://github.com/SoulSolidity
+ *     Web: https://SoulSolidity.com
  */
 
 /// -----------------------------------------------------------------------
@@ -85,8 +86,7 @@ contract SoulZap_UniV2 is
     /// -----------------------------------------------------------------------
     /// Constructor
     /// -----------------------------------------------------------------------
-    // TODO: Considering adding a function `optionalInit` which can be called after the constructor to set the initial to allow for constructor deploys and also upgradeable deploys.
-    // But it's a NTH at this point.
+
     constructor(
         address _accessManager,
         IWETH _wnative,
@@ -94,7 +94,7 @@ contract SoulZap_UniV2 is
         /// @dev Set to zero to start epoch tracking immediately
         uint256 _epochStartTime
     ) AccessManaged(_accessManager) EpochVolumeTracker(0, _epochStartTime) TransferHelper(_wnative) {
-        // TODO: validate?
+        require(_soulFeeManager.isSoulFeeManager(), "SoulZap: soulFeeManager is not ISoulFeeManager");
         soulFeeManager = _soulFeeManager;
     }
 
@@ -392,20 +392,31 @@ contract SoulZap_UniV2 is
     /// Fee functions
     /// -----------------------------------------------------------------------
 
-    function getFeePercentage() public view returns (uint256 fee) {
-        fee = soulFeeManager.getFee(getEpochVolume());
+    /**
+     * @notice Checks if a given token is a valid fee token.
+     * @dev Calls the soulFeeManager's isFeeToken function to determine if the token is used for fees.
+     * @param _token The address of the token to check.
+     * @return valid True if the token is a valid fee token, false otherwise.
+     */
+    function isFeeToken(address _token) external view returns (bool valid) {
+        return soulFeeManager.isFeeToken(_token);
     }
 
-    function getFeeToken(uint256 _index) public view returns (address feeToken) {
-        feeToken = soulFeeManager.getFeeToken(_index);
-    }
-
-    function getFeeTokensLength() public view returns (uint256 length) {
-        length = soulFeeManager.getFeeTokensLength();
-    }
-
-    function isFeeToken(address token) public view returns (bool valid) {
-        valid = soulFeeManager.isFeeToken(token);
+    /**
+     * @notice Retrieves the current fee information for a given epoch volume.
+     * @dev Calls the soulFeeManager's getFeeInfo function with the current epoch volume to get fee details.
+     * @return feeTokens An array of addresses representing the fee tokens.
+     * @return currentFeePercentage The current fee percentage for the epoch.
+     * @return feeDenominator The denominator used to calculate the fee percentage.
+     * @return feeCollector The address of the fee collector.
+     */
+    function getFeeInfo()
+        public
+        view
+        override
+        returns (address[] memory feeTokens, uint256 currentFeePercentage, uint256 feeDenominator, address feeCollector)
+    {
+        (feeTokens, currentFeePercentage, feeDenominator, feeCollector) = soulFeeManager.getFeeInfo(getEpochVolume());
     }
 
     /**
@@ -428,14 +439,14 @@ contract SoulZap_UniV2 is
         SwapPath memory _feeSwapPath,
         uint256 _deadline
     ) private returns (uint256 inputFeeAmount) {
-        uint256 feePercentage = getFeePercentage();
+        (, uint256 feePercentage, uint256 feeDenominator, address feeCollector) = getFeeInfo();
         if (feePercentage == 0) {
             return 0;
         }
 
         // TODO: Remove console.log before production
         console.log("take fee");
-        inputFeeAmount = (_inputAmount * feePercentage) / soulFeeManager.FEE_DENOMINATOR();
+        inputFeeAmount = (_inputAmount * feePercentage) / feeDenominator;
         // TODO: Remove console.log before production
         console.log("feeAmount", inputFeeAmount, feePercentage, _inputAmount);
 
@@ -444,18 +455,12 @@ contract SoulZap_UniV2 is
             require(soulFeeManager.isFeeToken(outputToken), "SoulZap: Invalid output token in feeSwapPath");
 
             _inputToken.approve(_feeSwapPath.swapRouter, inputFeeAmount);
-            uint256 amountOut = _routerSwapFromPath(
-                _feeSwapPath,
-                inputFeeAmount,
-                soulFeeManager.getFeeCollector(),
-                _deadline
-            );
+            uint256 amountOut = _routerSwapFromPath(_feeSwapPath, inputFeeAmount, feeCollector, _deadline);
             _accumulateFeeVolume(amountOut);
         } else {
-            //inputToken is fee token
-            //TODO?: Should we remove this require and also accept input token as fee if no path is found?
-            require(soulFeeManager.isFeeToken(address(_inputToken)), "SoulZap: Invalid fee output token");
-            _transferOut(_inputToken, inputFeeAmount, soulFeeManager.getFeeCollector(), false);
+            /// @dev Input token is considered fee token or a token with no output route
+            /// In order to not create a denial of service, we take any input token in this case.
+            _transferOut(_inputToken, inputFeeAmount, feeCollector, false);
             _accumulateFeeVolume(inputFeeAmount);
         }
 

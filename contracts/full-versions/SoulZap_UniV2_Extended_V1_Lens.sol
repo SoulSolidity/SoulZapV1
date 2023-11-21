@@ -10,7 +10,8 @@ pragma solidity 0.8.23;
 ╚═════╝  ╚════╝  ╚═════╝ ╚══════╝  ╚═════╝  ╚════╝ ╚══════╝╚═╝╚═════╝ ╚═╝   ╚═╝      ╚═╝   
 
  * Twitter: https://twitter.com/SoulSolidity
- * GitHub: https://github.com/SoulSolidity
+ *  GitHub: https://github.com/SoulSolidity
+ *     Web: https://SoulSolidity.com
  */
 
 // External package imports

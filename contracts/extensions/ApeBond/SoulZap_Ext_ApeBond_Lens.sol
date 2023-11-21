@@ -1,6 +1,19 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.0;
 
+/*
+ ██████╗ █████╗ ██╗   ██╗██╗        ██████╗ █████╗ ██╗     ██╗██████╗ ██╗████████╗██╗   ██╗
+██╔════╝██╔══██╗██║   ██║██║       ██╔════╝██╔══██╗██║     ██║██╔══██╗██║╚══██╔══╝╚██╗ ██╔╝
+╚█████╗ ██║  ██║██║   ██║██║       ╚█████╗ ██║  ██║██║     ██║██║  ██║██║   ██║    ╚████╔╝ 
+ ╚═══██╗██║  ██║██║   ██║██║        ╚═══██╗██║  ██║██║     ██║██║  ██║██║   ██║     ╚██╔╝  
+██████╔╝╚█████╔╝╚██████╔╝███████╗  ██████╔╝╚█████╔╝███████╗██║██████╔╝██║   ██║      ██║   
+╚═════╝  ╚════╝  ╚═════╝ ╚══════╝  ╚═════╝  ╚════╝ ╚══════╝╚═╝╚═════╝ ╚═╝   ╚═╝      ╚═╝   
+
+ * Twitter: https://twitter.com/SoulSolidity
+ *  GitHub: https://github.com/SoulSolidity
+ *     Web: https://SoulSolidity.com
+ */
+
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
@@ -38,7 +51,7 @@ abstract contract SoulZap_Ext_ApeBond_Lens is SoulZap_UniV2_Lens {
         address fromToken, // Pass Constants.NATIVE_ADDRESS for native token input
         uint256 amount,
         ICustomBillRefillable bond,
-        uint256 slippage, // 1 = 0.01%, 100 = 1%
+        uint256 slippage,
         address to
     )
         public
@@ -76,7 +89,7 @@ abstract contract SoulZap_Ext_ApeBond_Lens is SoulZap_UniV2_Lens {
     function getZapDataBondNative(
         uint256 amount,
         ICustomBillRefillable bond,
-        uint256 slippage, // 1 = 0.01%, 100 = 1%
+        uint256 slippage,
         address to
     )
         public
@@ -97,7 +110,7 @@ abstract contract SoulZap_Ext_ApeBond_Lens is SoulZap_UniV2_Lens {
      * @param fromToken The source token for the zap.
      * @param amount The amount of tokens to zap.
      * @param bond The custom bond refillable contract.
-     * @param slippage The slippage tolerance (Denominator 10_000. 1 = 0.01%, 100 = 1%).
+     * @param slippage The slippage tolerance percentage. See Constants.DENOMINATOR for percentage denominator.
      * @param to The address to receive the zapped tokens.
      * @return zapParams zapParams structure containing relevant data.
      * @return feeSwapPath swap path for protocol fee.
@@ -108,7 +121,7 @@ abstract contract SoulZap_Ext_ApeBond_Lens is SoulZap_UniV2_Lens {
         address fromToken,
         uint256 amount,
         ICustomBillRefillable bond,
-        uint256 slippage, //Denominator 10_000. 1 = 0.01%, 100 = 1%
+        uint256 slippage,
         address to
     )
         internal

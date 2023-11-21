@@ -10,7 +10,8 @@ pragma solidity ^0.8.0;
 ╚═════╝  ╚════╝  ╚═════╝ ╚══════╝  ╚═════╝  ╚════╝ ╚══════╝╚═╝╚═════╝ ╚═╝   ╚═╝      ╚═╝   
 
  * Twitter: https://twitter.com/SoulSolidity
- * GitHub: https://github.com/SoulSolidity
+ *  GitHub: https://github.com/SoulSolidity
+ *     Web: https://SoulSolidity.com
  */
 
 import {IAccessManaged} from "@openzeppelin/contracts/access/manager/IAccessManaged.sol";
@@ -87,14 +88,6 @@ interface ISoulZap_UniV2 is IAccessManaged, ITransferHelper, IEpochVolumeTracker
 
     function soulFeeManager() external view returns (ISoulFeeManager);
 
-    function getFeePercentage() external view returns (uint256 fee);
-
-    function getFeeToken(uint256 _index) external view returns (address feeToken);
-
-    function getFeeTokensLength() external view returns (uint256 length);
-
-    function isFeeToken(address token) external view returns (bool valid);
-
     /// -----------------------------------------------------------------------
     /// Functions
     /// -----------------------------------------------------------------------
@@ -102,4 +95,20 @@ interface ISoulZap_UniV2 is IAccessManaged, ITransferHelper, IEpochVolumeTracker
     function swap(SwapParams memory swapParams, SwapPath memory feeSwapPath) external payable;
 
     function zap(ZapParams memory zapParams, SwapPath memory feeSwapPath) external payable;
+
+    /// -----------------------------------------------------------------------
+    /// Fee Management
+    /// -----------------------------------------------------------------------
+
+    function isFeeToken(address _token) external view returns (bool valid);
+
+    function getFeeInfo()
+        external
+        view
+        returns (
+            address[] memory feeTokens,
+            uint256 currentFeePercentage,
+            uint256 feeDenominator,
+            address feeCollector
+        );
 }

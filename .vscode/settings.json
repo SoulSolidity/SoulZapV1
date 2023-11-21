@@ -22,6 +22,7 @@
         "POLYGONSCAN",
         "precommit",
         "Snapshotter",
+        "snapshotters",
         "soulsolidity",
         "soulzap",
         "telos",

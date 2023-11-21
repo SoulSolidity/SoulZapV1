@@ -10,7 +10,8 @@ pragma solidity 0.8.23;
 ╚═════╝  ╚════╝  ╚═════╝ ╚══════╝  ╚═════╝  ╚════╝ ╚══════╝╚═╝╚═════╝ ╚═╝   ╚═╝      ╚═╝   
 
  * Twitter: https://twitter.com/SoulSolidity
- * GitHub: https://github.com/SoulSolidity
+ *  GitHub: https://github.com/SoulSolidity
+ *     Web: https://SoulSolidity.com
  */
 
 /// -----------------------------------------------------------------------
@@ -29,7 +30,6 @@ import {IUniswapV2Router02} from "@uniswap/v2-periphery/contracts/interfaces/IUn
 /// -----------------------------------------------------------------------
 import {Constants} from "./utils/Constants.sol";
 import {ISoulZap_UniV2} from "./ISoulZap_UniV2.sol";
-import {ISoulFeeManager} from "./fee-manager/ISoulFeeManager.sol";
 import {IWETH} from "./lib/IWETH.sol";
 
 // TODO: Remove console.log before production
@@ -59,9 +59,6 @@ contract SoulZap_UniV2_Lens is AccessManaged {
     uint256 public constant MAX_HOP_TOKENS = 20;
     uint256 public constant DEADLINE = 20 minutes;
 
-    // FIXME: This could change also. Was trying to save some gas
-    uint256 private immutable _SOUL_FEE_DENOMINATOR;
-
     /// -----------------------------------------------------------------------
     /// Storage variables internal/private
     /// -----------------------------------------------------------------------
@@ -90,7 +87,6 @@ contract SoulZap_UniV2_Lens is AccessManaged {
 
         soulZap = _soulZap;
         WNATIVE = _soulZap.WNATIVE();
-        _SOUL_FEE_DENOMINATOR = ISoulFeeManager(_soulZap.soulFeeManager()).FEE_DENOMINATOR();
     }
 
     /**
@@ -142,7 +138,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         address fromToken,
         uint256 amount,
         address toToken,
-        uint256 slippage, // Denominator of 10_000. 1 = 0.01%, 100 = 1%
+        uint256 slippage,
         address to
     )
         public
@@ -162,7 +158,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
      * @dev Get the Zap data for a transaction with a specified token.
      * @param amount The amount of tokens to zap.
      * @param toToken The output token of swap.
-     * @param slippage The slippage tolerance (Denominator 10_000. 1 = 0.01%, 100 = 1%).
+     * @param slippage The slippage tolerance percentage. See Constants.DENOMINATOR for percentage denominator.
      * @param to The address to receive the zapped tokens.
      * @return swapParams SwapParams structure containing relevant data.
      * @return encodedTx Encoded transaction with the given parameters.
@@ -172,7 +168,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
     function getSwapDataNative(
         uint256 amount,
         address toToken,
-        uint256 slippage, // Denominator of 10_000. 1 = 0.01%, 100 = 1%
+        uint256 slippage,
         address to
     )
         public
@@ -202,7 +198,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         address fromToken,
         uint256 amount,
         address toToken,
-        uint256 slippage, // Denominator of 10_000. 1 = 0.01%, 100 = 1%
+        uint256 slippage,
         address to
     )
         internal
@@ -256,7 +252,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         address fromToken,
         uint256 amount,
         IUniswapV2Pair lp,
-        uint256 slippage, // Denominator of 10_000. 1 = 0.01%, 100 = 1%
+        uint256 slippage,
         address to
     )
         public
@@ -276,7 +272,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
      * @dev Get the Zap data for a transaction with a specified token.
      * @param amount The amount of tokens to zap.
      * @param lp The Uniswap V2 pair contract.
-     * @param slippage The slippage tolerance (Denominator 10_000. 1 = 0.01%, 100 = 1%).
+     * @param slippage The slippage tolerance percentage. See Constants.DENOMINATOR for percentage denominator.
      * @param to The address to receive the zapped tokens.
      * @return zapParams ZapParams structure containing relevant data.
      * @return encodedTx Encoded transaction with the given parameters.
@@ -286,7 +282,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
     function getZapDataNative(
         uint256 amount,
         IUniswapV2Pair lp,
-        uint256 slippage, // Denominator of 10_000. 1 = 0.01%, 100 = 1%
+        uint256 slippage,
         address to
     )
         public
@@ -306,7 +302,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
      * @param fromToken The source token for the zap.
      * @param amount The amount of tokens to zap.
      * @param lp The Uniswap V2 pair contract.
-     * @param slippage The slippage tolerance (Denominator 10_000. 1 = 0.01%, 100 = 1%).
+     * @param slippage The slippage tolerance percentage. See Constants.DENOMINATOR for percentage denominator.
      * @param to The address to receive the zapped tokens.
      * @return zapParams ZapParams structure containing relevant data.
      * @return feeSwapPath SwapPath for protocol fees
@@ -316,7 +312,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         address fromToken,
         uint256 amount,
         IUniswapV2Pair lp,
-        uint256 slippage, //Denominator 10_000. 1 = 0.01%, 100 = 1%
+        uint256 slippage,
         address to
     )
         internal
@@ -525,7 +521,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         address _fromToken,
         address _toToken,
         uint _amountIn,
-        uint256 _slippage //Denominator 10_000 1 = 0.01%, 100 = 1%
+        uint256 _slippage
     ) internal view returns (ISoulZap_UniV2.SwapPath memory bestPath, uint256 priceImpactPercentage) {
         if (_fromToken == _toToken) {
             //amountOutMin == amountIn if token is the same (needed for liquidity path)
@@ -544,7 +540,6 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         // Calculation of price impact.
         // Actual price is the current actual price which does not take slippage into account for less liquid pairs.
         // Calculation of price impact between actual price and price after slippage.
-        // With a denominator of 10_000. 100 = 1% price impact, 1000 = 10% price impact.
         uint256 actualPrice = _amountIn;
         // TODO: Remove console.log before production
         console.log("actualPrice", actualPrice);
@@ -686,17 +681,18 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         uint256 _amountIn,
         uint256 _slippage
     ) internal view returns (ISoulZap_UniV2.SwapPath memory feeSwapPath, FeeVars memory feeVars) {
-        //Get path for protocol fee
-        feeVars.feePercentage = soulZap.getFeePercentage();
-        feeVars.feeAmount = (_amountIn * feeVars.feePercentage) / _SOUL_FEE_DENOMINATOR;
+        (address[] memory feeTokens, uint256 currentFeePercentage, uint256 feeDenominator, ) = soulZap.getFeeInfo();
         //If no fees just return
-        if (feeVars.feePercentage == 0 || soulZap.isFeeToken(_fromToken)) {
+        // FIXME: Tests are failing here
+        if (currentFeePercentage == 0 /*|| soulZap.isFeeToken(_fromToken)*/) {
             return (feeSwapPath, feeVars);
         }
 
-        uint256 feeTokensLength = soulZap.getFeeTokensLength();
-        for (uint256 i = 0; i < feeTokensLength; i++) {
-            feeVars.feeToken = soulZap.getFeeToken(i);
+        feeVars.feePercentage = currentFeePercentage;
+        feeVars.feeAmount = (_amountIn * currentFeePercentage) / feeDenominator;
+
+        for (uint256 i = 0; i < feeTokens.length; i++) {
+            feeVars.feeToken = feeTokens[i];
             (ISoulZap_UniV2.SwapPath memory bestPath, uint256 priceImpactPercentage) = _getBestSwapPathWithImpact(
                 _fromToken,
                 feeVars.feeToken,
@@ -705,8 +701,8 @@ contract SoulZap_UniV2_Lens is AccessManaged {
             );
             if (bestPath.amountOutMin > feeSwapPath.amountOutMin) {
                 feeSwapPath = bestPath;
-                //To save gas usage we break if we get any accepted fee price impact
-                //If no path has an accepted fee price impact we just take the best one
+                // To save gas usage we break if we get any accepted fee price impact
+                // If no path has an accepted fee price impact we just take the best one
                 if (priceImpactPercentage < ACCEPTED_FEE_PRICE_IMPACT) {
                     break;
                 }

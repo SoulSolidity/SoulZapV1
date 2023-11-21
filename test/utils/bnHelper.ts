@@ -1,5 +1,9 @@
 import { BigNumber, BigNumberish } from 'ethers'
 
+export function ether(ether: BigNumberish) {
+  return BigNumber.from(ether).mul(BigNumber.from(10).pow(18))
+}
+
 export function addBNStr(a: BigNumberish, b: BigNumberish) {
   return BigNumber.from(a).add(BigNumber.from(b)).toString()
 }
@@ -23,7 +27,7 @@ export function divBNStr(a: BigNumberish, b: BigNumberish) {
  * @returns All values are converted to a string
  */
 export function formatBNValueToString(value: any) {
-  if (typeof value === 'string' || typeof value == 'number' || (value as BigNumber)._isBigNumber) {
+  if (typeof value === 'string' || typeof value == 'number' || (value as BigNumber)?._isBigNumber) {
     return value.toString()
   } else if (typeof value === 'object') {
     // Functions with multiple returns can't be updated. A new object is used instead.

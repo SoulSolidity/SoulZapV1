@@ -10,12 +10,14 @@ pragma solidity 0.8.23;
 ╚═════╝  ╚════╝  ╚═════╝ ╚══════╝  ╚═════╝  ╚════╝ ╚══════╝╚═╝╚═════╝ ╚═╝   ╚═╝      ╚═╝   
 
  * Twitter: https://twitter.com/SoulSolidity
- * GitHub: https://github.com/SoulSolidity
+ *  GitHub: https://github.com/SoulSolidity
+ *     Web: https://SoulSolidity.com
  */
 
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {AccessManaged} from "@openzeppelin/contracts/access/manager/AccessManaged.sol";
 
+import {Constants} from "../utils/Constants.sol";
 import {ISoulFeeManager} from "./ISoulFeeManager.sol";
 
 /**
@@ -27,8 +29,11 @@ import {ISoulFeeManager} from "./ISoulFeeManager.sol";
 contract SoulFeeManager is ISoulFeeManager, AccessManaged {
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    EnumerableSet.AddressSet private _validFeeTokens;
-    address private _feeCollector;
+    /// -----------------------------------------------------------------------
+    /// Storage variables - External/Public
+    /// -----------------------------------------------------------------------
+
+    bool public override isSoulFeeManager = true;
 
     /// @dev Represents the fee under the given volume threshold.
     struct VolumeFeeThreshold {
@@ -38,9 +43,16 @@ contract SoulFeeManager is ISoulFeeManager, AccessManaged {
     /// @dev Assumes the volume fee thresholds are in ascending order. Final element assumes infinite volume
     VolumeFeeThreshold[] public volumeFeeThresholds;
 
-    uint256 public FEE_DENOMINATOR = 10_000;
+    uint256 public constant FEE_DENOMINATOR = Constants.DENOMINATOR;
     /// @dev The maximum fee is 3%
-    uint256 public MAX_FEE = (FEE_DENOMINATOR * 3) / 100;
+    uint256 public constant MAX_FEE = (FEE_DENOMINATOR * 3) / 100;
+
+    /// -----------------------------------------------------------------------
+    /// Storage variables -  Internal/Private
+    /// -----------------------------------------------------------------------
+
+    EnumerableSet.AddressSet private _validFeeTokens;
+    address private _feeCollector;
 
     /// -----------------------------------------------------------------------
     /// Events
@@ -63,9 +75,9 @@ contract SoulFeeManager is ISoulFeeManager, AccessManaged {
     /// -----------------------------------------------------------------------
 
     constructor(
+        address _accessManager,
         address[] memory _feeTokens,
         address __feeCollector,
-        address _accessManager,
         uint256[] memory _volumes,
         uint256[] memory _fees
     ) AccessManaged(_accessManager) {
@@ -88,7 +100,9 @@ contract SoulFeeManager is ISoulFeeManager, AccessManaged {
         uint256 previousVolume = 0;
         for (uint256 i = 0; i < _volumes.length; i++) {
             uint256 volume = _volumes[i];
-            require(volume > previousVolume, "volume not in ascending order");
+            /// @dev On the first round previousVolume can be 0, so we skip the check
+            require(i == 0 || volume > previousVolume, "volume not in ascending order");
+            require(_fees[i] <= MAX_FEE, "fee exceeds max fee");
             VolumeFeeThreshold memory volumeFeeThreshold = VolumeFeeThreshold({volume: volume, fee: _fees[i]});
             volumeFeeThresholds.push(volumeFeeThreshold);
             previousVolume = volume;
@@ -96,13 +110,40 @@ contract SoulFeeManager is ISoulFeeManager, AccessManaged {
         emit SoulFeeManager_VolumeFeeThresholdChanged(_volumes, _fees);
     }
 
-    // TODO: In Zap it's measuring fee volume, so I'm thinking we should just switch to fee volume
-    function getFee(uint256 epochFeeVolume) external view returns (uint256 fee) {
-        for (uint256 i = volumeFeeThresholds.length - 1; i >= 0; i++) {
-            if (epochFeeVolume > volumeFeeThresholds[i].volume) {
+    /**
+     * @notice Retrieves fee information based on the provided volume.
+     * @param _volume The volume of transactions to calculate the fee for.
+     * @return feeTokens The list of valid fee tokens.
+     * @return currentFeePercentage The calculated fee percentage based on the volume.
+     * @return feeDenominator The denominator used to calculate fee percentages.
+     * @return feeCollector The address of the fee collector.
+     */
+    function getFeeInfo(
+        uint256 _volume
+    )
+        external
+        view
+        override
+        returns (address[] memory feeTokens, uint256 currentFeePercentage, uint256 feeDenominator, address feeCollector)
+    {
+        feeTokens = getFeeTokens();
+        currentFeePercentage = getFee(_volume);
+        feeDenominator = FEE_DENOMINATOR;
+        feeCollector = _feeCollector;
+    }
+
+    /**
+     * @notice Retrieves the fee based on the provided epoch fee volume.
+     * @param epochFeeVolume The volume of transactions in the current epoch.
+     * @return fee The fee percentage corresponding to the given volume.
+     */
+    function getFee(uint256 epochFeeVolume) public view returns (uint256 fee) {
+        for (uint256 i = volumeFeeThresholds.length - 1; i >= 0; i--) {
+            if (epochFeeVolume >= volumeFeeThresholds[i].volume) {
                 return volumeFeeThresholds[i].fee;
             }
         }
+        return 0;
     }
 
     function getFeeCollector() external view returns (address feeCollector) {
@@ -122,7 +163,7 @@ contract SoulFeeManager is ISoulFeeManager, AccessManaged {
      * @dev Warning: This function should not be used in state changing functions as it could be an unbounded length.
      * @return tokens An array of addresses representing the valid fee tokens.
      */
-    function getFeeTokens() external view override returns (address[] memory tokens) {
+    function getFeeTokens() public view override returns (address[] memory tokens) {
         return _validFeeTokens.values();
     }
 

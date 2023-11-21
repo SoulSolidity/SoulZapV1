@@ -10,7 +10,10 @@ export async function deployZapFixture_Fork(_ethers: typeof ethers, chain: Deplo
   const { wNative, admin, dexInfo, feeCollector, protocolFee, proxyAdminAddress, maxFee } = getDeployConfig(chain)
   const [owner, otherAccount] = await _ethers.getSigners()
 
-  const { soulAccessManager, soulFeeManager } = await deployZapSetup_Mock(_ethers, admin, 'TODO: add fee token')
+  const { soulAccessManager, soulFeeManager } = await deployZapSetup_Mock(_ethers, admin, feeCollector, [
+    // FIXME: Add fee token
+    'TODO: add fee token',
+  ])
 
   const SoulZap_UniV2_Extended_V1 = await _ethers.getContractFactory('SoulZap_UniV2_Extended_V1')
   const soulZap = await SoulZap_UniV2_Extended_V1.deploy(soulAccessManager.address, wNative, soulFeeManager.address, 0)
@@ -18,12 +21,20 @@ export async function deployZapFixture_Fork(_ethers: typeof ethers, chain: Deplo
   return { soulAccessManager, soulFeeManager, soulZap }
 }
 
-export async function deployZapSetup_Mock(_ethers: typeof ethers, accessManagerAdmin: string, feeToken: string) {
+export async function deployZapSetup_Mock(
+  _ethers: typeof ethers,
+  accessManagerAdmin: string,
+  feeCollector: string,
+  feeTokens: string[]
+) {
   const SoulAccessManager = await _ethers.getContractFactory('SoulAccessManager')
   const soulAccessManager = await SoulAccessManager.deploy(accessManagerAdmin)
 
-  const SoulFeeManager = await _ethers.getContractFactory('SoulFeeManagerMock')
-  const soulFeeManager = await SoulFeeManager.deploy(feeToken)
+  // NOTE: Can support multiple fee tokens, only passing 1
+  const SoulFeeManager = await _ethers.getContractFactory('SoulFeeManager')
+  const volumes = [0]
+  const fees = [300]
+  const soulFeeManager = await SoulFeeManager.deploy(soulAccessManager.address, feeTokens, feeCollector, volumes, fees)
 
   return { soulAccessManager, soulFeeManager }
 }
@@ -34,10 +45,16 @@ export async function deployZap_UniV2_Extended_V1(
   wNativeAddress: string,
   routerAddress: string,
   hopTokens: string[],
-  feeToken: string
+  feeCollector: string,
+  feeTokens: string[]
 ) {
   logger.log(`Deploying Zap_UniV2_Extended_V1`, '📈')
-  const { soulAccessManager, soulFeeManager } = await deployZapSetup_Mock(_ethers, adminAddress, feeToken)
+  const { soulAccessManager, soulFeeManager } = await deployZapSetup_Mock(
+    _ethers,
+    adminAddress,
+    feeCollector,
+    feeTokens
+  )
 
   const SoulZap_UniV2_Extended_V1 = await _ethers.getContractFactory('SoulZap_UniV2_Extended_V1')
   const soulZap = await SoulZap_UniV2_Extended_V1.deploy(
