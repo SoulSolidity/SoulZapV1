@@ -49,7 +49,7 @@ describe('SoulFeeManager', function () {
         expect(newSoulZap).to.exist
     })
 
-    it('Can change fee collector', async function () {
+    it('Should change fee collector', async function () {
         const {
             dexAndHopTokens_deployment: {
                 uniV2Dex: { mockWBNB },
@@ -65,7 +65,7 @@ describe('SoulFeeManager', function () {
         expect(await soulFeeManager.getFeeCollector()).to.equal(notOwner.address);
     });
 
-    it('Can change fee and volume threshold', async function () {
+    it('Should change fee and volume threshold', async function () {
         const {
             dexAndHopTokens_deployment: {
                 uniV2Dex: { mockWBNB },
@@ -88,7 +88,7 @@ describe('SoulFeeManager', function () {
         }
     });
 
-    it('Add valid fee token(s)', async function () {
+    it('Should add valid fee token', async function () {
         const {
             dexAndHopTokens_deployment: {
                 uniV2Dex: { mockWBNB },
@@ -105,7 +105,7 @@ describe('SoulFeeManager', function () {
         expect(await soulFeeManager.isFeeToken(hopTokens[0].address)).to.be.true;
     });
 
-    it('Remove valid fee token(s)', async function () {
+    it('Should remove valid fee token', async function () {
         const {
             dexAndHopTokens_deployment: {
                 uniV2Dex: { mockWBNB },
@@ -127,7 +127,7 @@ describe('SoulFeeManager', function () {
     });
 
     describe('reverts', () => {
-        it('Add existing fee token', async function () {
+        it('Should fail when adding existing fee token', async function () {
             const {
                 dexAndHopTokens_deployment: {
                     uniV2Dex: { mockWBNB },
@@ -144,7 +144,7 @@ describe('SoulFeeManager', function () {
             ).to.be.revertedWithCustomError(soulFeeManager, 'SoulFeeManager_NoFeeTokensAdded');
         });
 
-        it('Remove non-existing fee token', async function () {
+        it('Should fail when removing non-existing fee token', async function () {
             const {
                 dexAndHopTokens_deployment: {
                     uniV2Dex: { mockWBNB },
@@ -161,7 +161,7 @@ describe('SoulFeeManager', function () {
             ).to.be.revertedWithCustomError(soulFeeManager, 'SoulFeeManager_NoFeeTokensAdded');
         });
 
-        it('Add invalid fee thresholds. not ascending order, exceeding max fee', async function () {
+        it('Should fail when adding invalid fee volumes', async function () {
             const {
                 dexAndHopTokens_deployment: {
                     uniV2Dex: { mockWBNB },
@@ -195,7 +195,7 @@ describe('SoulFeeManager', function () {
             ).to.be.revertedWith("Fee exceeds max fee");
         });
 
-        it('Changing fee collector by non-restricted address', async function () {
+        it('Should fail when changing fee collector by non-restricted address', async function () {
             const {
                 dexAndHopTokens_deployment: {
                     uniV2Dex: { mockWBNB },
@@ -212,7 +212,7 @@ describe('SoulFeeManager', function () {
             ).to.be.revertedWithCustomError(soulFeeManager, 'AccessManagedUnauthorized');
         });
 
-        it('Changing fee thresholds by non-restricted address', async function () {
+        it('Should fail when changing fee thresholds by non-restricted address', async function () {
             const {
                 dexAndHopTokens_deployment: {
                     uniV2Dex: { mockWBNB },
