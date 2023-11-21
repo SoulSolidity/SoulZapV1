@@ -32,9 +32,10 @@ export async function deployMockTokens(
   // NOTE: Only using name, symbol, and decimals from TokenInfo
   for (const token of mockTokenInfo) {
     const tokenInitialSupply = initialSupply.mul(BigNumber.from(10).pow(token.decimals))
+    // NOTE: Removed Mock- prefix to be able to map tokens to their symbols
     const mockToken = (await ERC20Mock.deploy(
-      `Mock ${token.name}`,
-      `Mock-${token.symbol}`,
+      `${token.name}`,
+      `${token.symbol}`,
       token.decimals,
       // Raising the initial supply to the power of the token decimals
       tokenInitialSupply
