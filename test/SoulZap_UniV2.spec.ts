@@ -9,6 +9,7 @@ import { deployZap_UniV2_Extended_V1 } from './fixtures/deployZap_Mock'
 import {
   ADDRESS_NATIVE,
   createERC20BalanceSnapshotter,
+  createNativeBalanceSnapshotter,
   formatBNValueToString,
   getContractGetterSnapshot,
 } from './utils'
@@ -65,9 +66,20 @@ export async function fixture() {
   )
   const { soulZap, soulZap_Lens, soulFeeManager } = ZapUniV2_Extended_V1_deployment
 
+  /**
+   * Setup Snapshotters
+   */
+  const accountsToSnapshot = [
+    ...activeAccounts.map((x) => {
+      return x.address
+    }),
+    soulZap.address,
+  ]
+
+  const takeNativeBalanceSnapshot = createNativeBalanceSnapshotter(ethers, accountsToSnapshot)
   const takeERC20BalanceSnapshot = createERC20BalanceSnapshotter(
     ethers,
-    [...activeAccounts.map(x => { return x.address }), soulZap.address],
+    accountsToSnapshot,
     allTokens.map((token) => token.address)
   )
   await takeERC20BalanceSnapshot()
@@ -80,6 +92,7 @@ export async function fixture() {
     ZapUniV2_Extended_V1_deployment,
     accounts: [owner, feeTo, tokensOwner, zapReceiver, recipient],
     snapshotters: {
+      takeNativeBalanceSnapshot,
       takeERC20BalanceSnapshot,
       takeFeeSnapshot,
     },
