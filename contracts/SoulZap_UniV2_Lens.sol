@@ -17,8 +17,6 @@ pragma solidity 0.8.23;
 /// -----------------------------------------------------------------------
 /// Package Imports
 /// -----------------------------------------------------------------------
-
-import {AccessManaged} from "@openzeppelin/contracts/access/manager/AccessManaged.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IUniswapV2Factory} from "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
@@ -29,6 +27,7 @@ import {IUniswapV2Router02} from "@uniswap/v2-periphery/contracts/interfaces/IUn
 /// Internal Imports
 /// -----------------------------------------------------------------------
 import {Constants} from "./utils/Constants.sol";
+import {SoulAccessManaged} from "./access/SoulAccessManaged.sol";
 import {ISoulZap_UniV2} from "./ISoulZap_UniV2.sol";
 import {IWETH} from "./lib/IWETH.sol";
 
@@ -37,19 +36,19 @@ import "hardhat/console.sol";
 
 /**
  * @title SoulZap_UniV2_Lens
- * @dev This contract is an implementation of AccessManaged interface. It includes functionalities for managing
- *   access to SoulZap_UniV2 contracts.
- * @notice This contract uses AccessManaged for managing access.
+ * @notice Lens contract to build Swap and Zap transaction data for UniswapV2 like Zaps
  * @author Soul Solidity - Contact for mainnet licensing until 730 days after first deployment transaction with matching bytecode.
  * Otherwise feel free to experiment locally or on testnets.
  * @notice Do not use this contract for any tokens that do not have a standard ERC20 implementation.
  */
-contract SoulZap_UniV2_Lens is AccessManaged {
+contract SoulZap_UniV2_Lens is SoulAccessManaged {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     /// -----------------------------------------------------------------------
     /// Storage variables public
     /// -----------------------------------------------------------------------
+
+    bytes32 public SOUL_ZAP_ADMIN_ROLE = _getRoleHash("SOUL_ZAP_ADMIN_ROLE");
 
     IWETH public immutable WNATIVE;
     IUniswapV2Factory public factory;
@@ -65,7 +64,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
 
     bytes4 private constant _ZAP_SELECTOR = ISoulZap_UniV2.zap.selector;
     bytes4 private constant _SWAP_SELECTOR = ISoulZap_UniV2.swap.selector;
-    uint256 private constant ACCEPTED_FEE_PRICE_IMPACT = (3 * Constants.DENOMINATOR) / 100; // 3%
+    uint256 private constant _ACCEPTED_FEE_PRICE_IMPACT = (3 * Constants.DENOMINATOR) / 100; // 3%
 
     EnumerableSet.AddressSet private _hopTokens;
 
@@ -77,7 +76,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         ISoulZap_UniV2 _soulZap,
         IUniswapV2Router02 _router,
         address[] memory _startingHopTokens
-    ) AccessManaged(_soulZap.authority()) {
+    ) SoulAccessManaged(_soulZap.soulAccessRegistry()) {
         require(_router.WETH() == address(_soulZap.WNATIVE()), "SoulZap_UniV2_Lens: WNATIVE != router.WETH()");
 
         router = _router;
@@ -673,11 +672,11 @@ contract SoulZap_UniV2_Lens is AccessManaged {
     /// -----------------------------------------------------------------------
     /// Hop token - Restricted functions
     /// -----------------------------------------------------------------------
-    function addHopTokens(address[] memory _tokens) external restricted {
+    function addHopTokens(address[] memory _tokens) external onlyAccessRegistryRole(SOUL_ZAP_ADMIN_ROLE) {
         _addHopTokens(_tokens);
     }
 
-    function removeHopTokens(address[] memory _tokens) external restricted {
+    function removeHopTokens(address[] memory _tokens) external onlyAccessRegistryRole(SOUL_ZAP_ADMIN_ROLE) {
         for (uint256 i = 0; i < _tokens.length; i++) {
             _hopTokens.remove(_tokens[i]);
         }
@@ -719,7 +718,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
                 feeSwapPath = bestPath;
                 // To save gas usage we break if we get any accepted fee price impact
                 // If no path has an accepted fee price impact we just take the best one
-                if (priceImpactPercentage < ACCEPTED_FEE_PRICE_IMPACT) {
+                if (priceImpactPercentage < _ACCEPTED_FEE_PRICE_IMPACT) {
                     break;
                 }
             }
