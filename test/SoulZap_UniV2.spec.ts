@@ -142,18 +142,12 @@ describe('SoulZap_UniV2.sol Tests', function () {
         snapshotters: { takeERC20BalanceSnapshot, takeFeeSnapshot },
       } = await loadFixture(fixture)
 
-      const inputAmount = ether('.001')
+      const amountIn = ether('.001')
       const slippage = 100 // 1%
-      const inputToken = ADDRESS_NATIVE
+      const tokenIn = ADDRESS_NATIVE
       const lpToken = pairs.hopLpPairs[5]
 
-      const zapData = await soulZap_Lens.getZapData(
-        inputToken,
-        inputAmount,
-        lpToken.address,
-        slippage,
-        zapReceiver.address
-      )
+      const zapData = await soulZap_Lens.getZapData(tokenIn, amountIn, lpToken.address, slippage, zapReceiver.address)
 
       const lastSnapshot = await takeERC20BalanceSnapshot()
 
@@ -171,14 +165,14 @@ describe('SoulZap_UniV2.sol Tests', function () {
           accounts: { tokensOwner, zapReceiver },
         } = await loadFixture(fixture)
 
-        const inputAmount = ether('.001')
+        const amountIn = ether('.001')
         const slippage = 100 // 1%
-        const inputToken = inputTokens[0]
+        const tokenIn = inputTokens[0]
         const lpToken = pairs.hopLpPairs[5]
 
         const zapData = await soulZap_Lens.getZapData(
-          inputToken.address,
-          inputAmount,
+          tokenIn.address,
+          amountIn,
           lpToken.address,
           slippage,
           zapReceiver.address
@@ -189,12 +183,12 @@ describe('SoulZap_UniV2.sol Tests', function () {
         console.dir({ beforeBalance: formatBNValueToString(beforeBalance) })
 
         // Your code here
-        await inputTokens[0].connect(tokensOwner).approve(soulZap.address, inputAmount)
+        await inputTokens[0].connect(tokensOwner).approve(soulZap.address, amountIn)
 
         await tokensOwner.sendTransaction({
           to: soulZap.address,
           data: zapData.encodedTx,
-          value: inputToken.address == ADDRESS_NATIVE ? inputAmount : 0,
+          value: tokenIn.address == ADDRESS_NATIVE ? amountIn : 0,
         })
 
         // Check zapReceiver balance after
@@ -214,30 +208,24 @@ describe('SoulZap_UniV2.sol Tests', function () {
           accounts: { owner, feeTo, tokensOwner, zapReceiver },
         } = await loadFixture(fixture)
 
-        const inputAmount = ether('.001')
+        const amountIn = ether('.001')
         const slippage = 100 // 1%
-        const inputToken = ADDRESS_NATIVE
+        const tokenIn = ADDRESS_NATIVE
         const lpToken = pairs.hopLpPairs[5]
 
-        const zapData = await soulZap_Lens.getZapData(
-          inputToken,
-          inputAmount,
-          lpToken.address,
-          slippage,
-          zapReceiver.address
-        )
+        const zapData = await soulZap_Lens.getZapData(tokenIn, amountIn, lpToken.address, slippage, zapReceiver.address)
 
         // Check zapReceiver balance before
         const beforeBalance = await lpToken.balanceOf(zapReceiver.address)
         console.dir({ beforeBalance: formatBNValueToString(beforeBalance) })
 
         // Your code here
-        await inputTokens[0].connect(tokensOwner).approve(soulZap.address, inputAmount)
+        await inputTokens[0].connect(tokensOwner).approve(soulZap.address, amountIn)
 
         await tokensOwner.sendTransaction({
           to: soulZap.address,
           data: zapData.encodedTx,
-          value: inputToken == ADDRESS_NATIVE ? inputAmount : 0,
+          value: tokenIn == ADDRESS_NATIVE ? amountIn : 0,
         })
 
         // Check zapReceiver balance after
@@ -263,14 +251,14 @@ describe('SoulZap_UniV2.sol Tests', function () {
           accounts: { owner, feeTo, tokensOwner, zapReceiver },
         } = await loadFixture(fixture)
 
-        const inputAmount = ether('.001')
+        const amountIn = ether('.001')
         const slippage = 100 // 1%
-        const inputToken = ADDRESS_NATIVE
+        const tokenIn = ADDRESS_NATIVE
         const outputToken = inputTokens[0]
 
         const swapData = await soulZap_Lens.getSwapData(
-          inputToken,
-          inputAmount,
+          tokenIn,
+          amountIn,
           outputToken.address,
           slippage,
           zapReceiver.address
@@ -283,7 +271,7 @@ describe('SoulZap_UniV2.sol Tests', function () {
         await tokensOwner.sendTransaction({
           to: soulZap.address,
           data: swapData.encodedTx,
-          value: inputToken == ADDRESS_NATIVE ? inputAmount : 0,
+          value: tokenIn == ADDRESS_NATIVE ? amountIn : 0,
         })
 
         // Check zapReceiver balance after

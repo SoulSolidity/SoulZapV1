@@ -57,12 +57,9 @@ interface ISoulZap_UniV2 is ISoulAccessManaged, ITransferHelper, IEpochVolumeTra
     /// -----------------------------------------------------------------------
 
     struct SwapParams {
-        // TODO: Update to tokenIn
-        IERC20 inputToken;
-        // TODO: Update to amountIn
-        uint256 inputAmount;
-        // TODO: Update to tokenOut
-        address token;
+        IERC20 tokenIn;
+        uint256 amountIn;
+        address tokenOut;
         SwapPath path;
         address to;
         uint256 deadline;
@@ -73,8 +70,8 @@ interface ISoulZap_UniV2 is ISoulAccessManaged, ITransferHelper, IEpochVolumeTra
     /// -----------------------------------------------------------------------
 
     struct ZapParams {
-        IERC20 inputToken;
-        uint256 inputAmount;
+        IERC20 tokenIn;
+        uint256 amountIn;
         address token0;
         address token1;
         SwapPath path0;

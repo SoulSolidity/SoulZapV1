@@ -62,13 +62,13 @@ abstract contract SoulZap_Ext_ApeBond is SoulZap_Ext_BondNftWhitelist, SoulZap_U
         SwapPath memory feeSwapPath,
         ICustomBillRefillable bond,
         uint256 maxPrice
-    ) external payable nonReentrant whenNotPaused verifyMsgValueAndWrap(zapParams.inputToken, zapParams.inputAmount) {
-        if (address(zapParams.inputToken) == address(Constants.NATIVE_ADDRESS)) {
+    ) external payable nonReentrant whenNotPaused verifyMsgValueAndWrap(zapParams.tokenIn, zapParams.amountIn) {
+        if (address(zapParams.tokenIn) == address(Constants.NATIVE_ADDRESS)) {
             _zapBond(zapParams, feeSwapPath, bond, maxPrice);
         } else {
-            uint256 balanceBefore = _getBalance(zapParams.inputToken);
-            zapParams.inputToken.safeTransferFrom(msg.sender, address(this), zapParams.inputAmount);
-            zapParams.inputAmount = _getBalance(zapParams.inputToken) - balanceBefore;
+            uint256 balanceBefore = _getBalance(zapParams.tokenIn);
+            zapParams.tokenIn.safeTransferFrom(msg.sender, address(this), zapParams.amountIn);
+            zapParams.amountIn = _getBalance(zapParams.tokenIn) - balanceBefore;
             _zapBond(zapParams, feeSwapPath, bond, maxPrice);
         }
     }
@@ -95,14 +95,14 @@ abstract contract SoulZap_Ext_ApeBond is SoulZap_Ext_BondNftWhitelist, SoulZap_U
         address to;
         if (isSingleTokenBond) {
             SwapParams memory swapParams = SwapParams({
-                inputToken: zapParams.inputToken,
-                inputAmount: zapParams.inputAmount,
-                token: zapParams.token0,
+                tokenIn: zapParams.tokenIn,
+                amountIn: zapParams.amountIn,
+                tokenOut: zapParams.token0,
                 path: zapParams.path0,
                 to: zapParams.to,
                 deadline: zapParams.deadline
             });
-            require(swapParams.token == address(bondPrincipalToken), "ApeBond: Wrong token for Bond");
+            require(swapParams.tokenOut == address(bondPrincipalToken), "ApeBond: Wrong token for Bond");
             to = swapParams.to;
             swapParams.to = address(this);
             _swap(swapParams, feeSwapPath, skipFee);

@@ -112,7 +112,7 @@ describe('SoulZap_UniV2 Full', function () {
     })
   })
   describe('verifyMsgValueAndWrap', function () {
-    it('Should pass msg.value > 0 and inputToken is NATIVE_ADDRESS', async function () {
+    it('Should pass msg.value > 0 and tokenIn is NATIVE_ADDRESS', async function () {
       const {
         dexAndHopTokens_deployment: {
           baseTokens: { inputTokens, outputTokens },
@@ -134,7 +134,7 @@ describe('SoulZap_UniV2 Full', function () {
       await soulZap.zap(zapData.zapParams, zapData.feeSwapPath, { value: ether('1') })
     })
 
-    it('Should fail when msg.value > 0 and inputToken is not NATIVE_ADDRESS', async function () {
+    it('Should fail when msg.value > 0 and tokenIn is not NATIVE_ADDRESS', async function () {
       const {
         dexAndHopTokens_deployment: {
           baseTokens: { inputTokens, outputTokens },
@@ -160,7 +160,7 @@ describe('SoulZap_UniV2 Full', function () {
 
       await expect(
         soulZap.connect(tokensOwner).zap(zapData.zapParams, zapData.feeSwapPath, { value: ether('1') })
-      ).to.be.revertedWith('SoulZap: inputToken MUST be NATIVE_ADDRESS with msg.value')
+      ).to.be.revertedWith('SoulZap: tokenIn MUST be NATIVE_ADDRESS with msg.value')
     })
     it('Should pass when msg.value is 0', async function () {
       const {
@@ -554,7 +554,7 @@ describe('SoulZap_UniV2 Full', function () {
     })
 
     describe('reverts', function () {
-      it('Should fail when swap with invalid inputToken Lens', async function () {
+      it('Should fail when swap with invalid tokenIn Lens', async function () {
         const {
           dexAndHopTokens_deployment: {
             baseTokens: { inputTokens, outputTokens },
@@ -581,7 +581,7 @@ describe('SoulZap_UniV2 Full', function () {
           )
         ).to.be.reverted
       })
-      it('Should fail when swap with invalid inputToken Zap', async function () {
+      it('Should fail when swap with invalid tokenIn Zap', async function () {
         const {
           dexAndHopTokens_deployment: {
             baseTokens: { inputTokens, outputTokens },
@@ -606,13 +606,13 @@ describe('SoulZap_UniV2 Full', function () {
           zapReceiver.address
         )
 
-        //Change inputToken to invalid token
+        //Change tokenIn to invalid token
         const swapParams = { ...swapData.swapParams }
-        swapParams.inputToken = '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c'
+        swapParams.tokenIn = '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c'
 
         await expect(soulZap.connect(tokensOwner).swap(swapParams, swapData.feeSwapPath)).to.be.reverted
       })
-      it('Should fail when swap with insufficient inputAmount Lens', async function () {
+      it('Should fail when swap with insufficient amountIn Lens', async function () {
         const {
           dexAndHopTokens_deployment: {
             baseTokens: { inputTokens, outputTokens },
@@ -639,7 +639,7 @@ describe('SoulZap_UniV2 Full', function () {
           )
         ).to.be.revertedWith('SoulZap_UniV2_Lens: amount must be > 0')
       })
-      it('Should fail when swap with insufficient inputAmount Zap', async function () {
+      it('Should fail when swap with insufficient amountIn Zap', async function () {
         const {
           dexAndHopTokens_deployment: {
             baseTokens: { inputTokens, outputTokens },
@@ -664,12 +664,12 @@ describe('SoulZap_UniV2 Full', function () {
           zapReceiver.address
         )
 
-        //Change inputToken to invalid token
+        //Change tokenIn to invalid token
         const swapParams = { ...swapData.swapParams }
-        swapParams.inputAmount = BigNumber.from('0')
+        swapParams.amountIn = BigNumber.from('0')
 
         await expect(soulZap.connect(tokensOwner).swap(swapParams, swapData.feeSwapPath)).to.be.revertedWith(
-          'SoulZap: inputAmount must be > 0'
+          'SoulZap: amountIn must be > 0'
         )
       })
       it('Should fail when swap to null address Lens', async function () {
@@ -1068,7 +1068,7 @@ describe('SoulZap_UniV2 Full', function () {
       expect(balanceSnapshot[tokensOwner.address][currentInputToken.address].balanceDiff).to.be.lessThan(0)
     })
     describe('reverts', function () {
-      it('Should fail when zap with invalid inputToken Lens', async function () {
+      it('Should fail when zap with invalid tokenIn Lens', async function () {
         const {
           dexAndHopTokens_deployment: {
             baseTokens: { inputTokens, outputTokens },
@@ -1095,7 +1095,7 @@ describe('SoulZap_UniV2 Full', function () {
           )
         ).to.be.reverted
       })
-      it('Should fail when zap with invalid inputToken Zap', async function () {
+      it('Should fail when zap with invalid tokenIn Zap', async function () {
         const {
           dexAndHopTokens_deployment: {
             baseTokens: { inputTokens, outputTokens },
@@ -1120,15 +1120,15 @@ describe('SoulZap_UniV2 Full', function () {
           zapReceiver.address
         )
 
-        //Change inputToken to invalid token
+        //Change tokenIn to invalid token
         const zapParams = { ...zapData.zapParams }
-        zapParams.inputToken = '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c'
+        zapParams.tokenIn = '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c'
 
         console.log(zapParams)
 
         await expect(soulZap.connect(tokensOwner).zap(zapParams, zapData.feeSwapPath)).to.be.reverted
       })
-      it('Should fail when swap with insufficient inputAmount Lens', async function () {
+      it('Should fail when swap with insufficient amountIn Lens', async function () {
         const {
           dexAndHopTokens_deployment: {
             baseTokens: { inputTokens, outputTokens },
@@ -1155,7 +1155,7 @@ describe('SoulZap_UniV2 Full', function () {
           )
         ).to.be.revertedWith('SoulZap_UniV2_Lens: amount must be > 0')
       })
-      it('Should fail when swap with insufficient inputAmount Zap', async function () {
+      it('Should fail when swap with insufficient amountIn Zap', async function () {
         const {
           dexAndHopTokens_deployment: {
             baseTokens: { inputTokens, outputTokens },
@@ -1180,12 +1180,12 @@ describe('SoulZap_UniV2 Full', function () {
           zapReceiver.address
         )
 
-        //Change inputToken to invalid token
+        //Change tokenIn to invalid token
         const zapParams = { ...zapData.zapParams }
-        zapParams.inputAmount = '0'
+        zapParams.amountIn = '0'
 
         await expect(soulZap.connect(tokensOwner).zap(zapParams, zapData.feeSwapPath)).to.be.revertedWith(
-          'SoulZap: inputAmount must be > 0'
+          'SoulZap: amountIn must be > 0'
         )
       })
       it('Should fail when zap to null address Lens', async function () {
