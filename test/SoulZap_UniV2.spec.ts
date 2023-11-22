@@ -43,8 +43,7 @@ export async function fixture() {
    * Setup Tokens
    */
   const allTokens = [
-    mockWBNB,
-    ...hopTokens,
+    ...hopTokens, // Also includes MockWBNB
     ...inputTokens,
     ...outputTokens,
     ...hopLpPairs,
