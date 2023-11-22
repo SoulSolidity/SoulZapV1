@@ -15,6 +15,7 @@ pragma solidity 0.8.23;
  */
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Constants} from "./Constants.sol";
 import {ITransferHelper} from "../utils/ITransferHelper.sol";
 import {IWETH} from "../lib/IWETH.sol";
 
@@ -90,18 +91,28 @@ contract TransferHelper is ITransferHelper {
         }
     }
 
-    /// @notice Gets the balance of an ERC20 token in this contract
-    /// @param token The ERC20 token to check the balance of
+    /// @notice Gets the balance of an ERC20 token or native asset in this contract
+    /// @param token The ERC20 token to check the balance of. If Constants.NATIVE_ADDRESS is passed,
+    ///  the balance of the native asset is returned.
     /// @return balance The balance of the tokens in this contract
     function _getBalance(IERC20 token) internal view returns (uint256 balance) {
-        balance = token.balanceOf(address(this));
+        if (address(token) == Constants.NATIVE_ADDRESS) {
+            balance = address(this).balance;
+        } else {
+            balance = token.balanceOf(address(this));
+        }
     }
 
-    /// @notice Gets the balance of an ERC20 token in this contract
-    /// @param token The ERC20 token to check the balance of
+    /// @notice Gets the balance of an ERC20 token or native asset of an address
+    /// @param token The ERC20 token to check the balance of. If Constants.NATIVE_ADDRESS is passed,
+    ///  the balance of the native asset is returned.
     /// @param token The address to check the balance of
     /// @return balance The balance of the tokens in this contract
-    function _getBalance(IERC20 token, address _address) internal view returns (uint256 balance) {
-        balance = token.balanceOf(_address);
+    function _getBalanceOf(IERC20 token, address _address) internal view returns (uint256 balance) {
+        if (address(token) == Constants.NATIVE_ADDRESS) {
+            balance = _address.balance;
+        } else {
+            balance = token.balanceOf(_address);
+        }
     }
 }

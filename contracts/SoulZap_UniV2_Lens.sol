@@ -215,9 +215,13 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         require(toToken != address(0), "SoulZap_UniV2_Lens: token can't be address(0)");
         require(fromToken != toToken, "SoulZap_UniV2_Lens: tokens can't be the same");
 
-        bool nativeSwap = fromToken == Constants.NATIVE_ADDRESS;
-        if (nativeSwap) {
+        bool nativeInputSwap = fromToken == Constants.NATIVE_ADDRESS;
+        if (nativeInputSwap) {
             fromToken = address(WNATIVE);
+        }
+        bool nativeOutputSwap = toToken == Constants.NATIVE_ADDRESS;
+        if (nativeOutputSwap) {
+            toToken = address(WNATIVE);
         }
 
         FeeVars memory feeVars;
@@ -229,9 +233,9 @@ contract SoulZap_UniV2_Lens is AccessManaged {
 
         swapParams = ISoulZap_UniV2.SwapParams({
             // Set input token to NATIVE_ADDRESS if nativeSwap
-            inputToken: nativeSwap ? IERC20(Constants.NATIVE_ADDRESS) : IERC20(fromToken),
+            inputToken: nativeInputSwap ? IERC20(Constants.NATIVE_ADDRESS) : IERC20(fromToken),
             inputAmount: amount, // Use full input amount here
-            token: toToken,
+            token: nativeOutputSwap ? Constants.NATIVE_ADDRESS : toToken,
             to: to,
             deadline: block.timestamp + DEADLINE,
             path: swapPath
@@ -523,7 +527,8 @@ contract SoulZap_UniV2_Lens is AccessManaged {
     }
 
     /**
-     * @dev Get the best route from a Uniswap V2 factory for swapping between two tokens.
+     * @notice Get the best route from a Uniswap V2 factory for swapping between two tokens.
+     * @dev Set to private as this is a low level function which doesn't check for Constants.NATIVE_ADDRESS.
      * @param _fromToken The source token for the swap.
      * @param _toToken The target token for the swap.
      * @param _amountIn The input amount for the swap.
@@ -537,7 +542,7 @@ contract SoulZap_UniV2_Lens is AccessManaged {
         address _toToken,
         uint _amountIn,
         uint256 _slippage
-    ) internal view returns (ISoulZap_UniV2.SwapPath memory bestPath, uint256 priceImpactPercentage) {
+    ) private view returns (ISoulZap_UniV2.SwapPath memory bestPath, uint256 priceImpactPercentage) {
         if (_fromToken == _toToken) {
             //amountOutMin == amountIn if token is the same (needed for liquidity path)
             bestPath.amountOutMin = _amountIn;

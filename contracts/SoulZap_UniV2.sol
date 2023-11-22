@@ -177,8 +177,9 @@ contract SoulZap_UniV2 is
         require(swapParams.token != address(0), "SoulZap: token can't be address(0)");
         require(address(swapParams.inputToken) != swapParams.token, "SoulZap: tokens can't be the same");
 
-        bool native = address(swapParams.inputToken) == address(Constants.NATIVE_ADDRESS);
-        if (native) swapParams.inputToken = WNATIVE;
+        bool nativeInput = address(swapParams.inputToken) == address(Constants.NATIVE_ADDRESS);
+        if (nativeInput) swapParams.inputToken = WNATIVE;
+        bool nativeOutput = swapParams.token == address(Constants.NATIVE_ADDRESS);
 
         swapParams.inputAmount -= _handleFee(
             swapParams.inputToken,
@@ -192,10 +193,9 @@ contract SoulZap_UniV2 is
          */
         require(swapParams.path.swapRouter != address(0), "SoulZap: swap router can not be address(0)");
         require(swapParams.path.path[0] == address(swapParams.inputToken), "SoulZap: wrong path path[0]");
-        require(
-            swapParams.path.path[swapParams.path.path.length - 1] == swapParams.token,
-            "SoulZap: wrong path path[-1]"
-        );
+        address tokenOutPath = swapParams.path.path[swapParams.path.path.length - 1];
+        address tokenOutDesired = (nativeOutput ? address(WNATIVE) : swapParams.token);
+        require(tokenOutPath == tokenOutDesired, "SoulZap: wrong path path[-1]");
         swapParams.inputToken.approve(swapParams.path.swapRouter, swapParams.inputAmount);
         _routerSwapFromPath(swapParams.path, swapParams.inputAmount, swapParams.to, swapParams.deadline);
 
@@ -363,7 +363,7 @@ contract SoulZap_UniV2 is
     ) private returns (uint256 amountOut) {
         require(_uniSwapPath.path.length >= 2, "SoulZap: need path0 of >=2");
         address outputToken = _uniSwapPath.path[_uniSwapPath.path.length - 1];
-        uint256 balanceBefore = _getBalance(IERC20(outputToken), _to);
+        uint256 balanceBefore = _getBalanceOf(IERC20(outputToken), _to);
         _routerSwap(
             _uniSwapPath.swapRouter,
             _uniSwapPath.swapType,
@@ -373,7 +373,7 @@ contract SoulZap_UniV2 is
             _to,
             _deadline
         );
-        amountOut = _getBalance(IERC20(outputToken), _to) - balanceBefore;
+        amountOut = _getBalanceOf(IERC20(outputToken), _to) - balanceBefore;
     }
 
     function _routerSwap(
@@ -386,10 +386,18 @@ contract SoulZap_UniV2 is
         uint256 deadline
     ) private {
         if (swapType == SwapType.V2) {
+            address outputToken = path[path.length - 1];
+
             // TODO: Remove console.log before production
             console.log("router swap", amountIn, amountOutMin, deadline);
-            console.log("router swap", _to, path[path.length - 1]);
-            IUniswapV2Router02(router).swapExactTokensForTokens(amountIn, amountOutMin, path, _to, deadline);
+            console.log("router swap", _to, outputToken);
+
+            if (outputToken == Constants.NATIVE_ADDRESS) {
+                // Ensure WNATIVE is called last
+                IUniswapV2Router02(router).swapExactTokensForETH(amountIn, amountOutMin, path, _to, deadline);
+            } else {
+                IUniswapV2Router02(router).swapExactTokensForTokens(amountIn, amountOutMin, path, _to, deadline);
+            }
         } else {
             revert("SoulZap: SwapType not supported");
         }
