@@ -4,18 +4,23 @@ import { ZERO_ADDRESS } from '../../src'
 import { ChainId, WRAPPED_NATIVE } from '../../src/constants'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { logger } from '../../hardhat/utils'
+import {
+  SoulAccessRegistry__factory,
+  SoulFeeManager__factory,
+  SoulZap_UniV2_Extended_V1__factory,
+} from '../../typechain-types'
 
 export async function deployZapFixture_Fork(_ethers: typeof ethers, chain: DeployableNetworks, feeTokens: string[]) {
   // Contracts are deployed using the first signer/account by default
   const { wNative, admin, dexInfo, feeCollector, protocolFee, proxyAdminAddress, maxFee } = getDeployConfig(chain)
   const [owner, otherAccount] = await _ethers.getSigners()
 
-  const { soulAccessManager, soulFeeManager } = await deployZapSetup_Mock(_ethers, admin, feeCollector, feeTokens)
+  const { soulAccessRegistry, soulFeeManager } = await deployZapSetup_Mock(_ethers, admin, feeCollector, feeTokens)
 
   const SoulZap_UniV2_Extended_V1 = await _ethers.getContractFactory('SoulZap_UniV2_Extended_V1')
-  const soulZap = await SoulZap_UniV2_Extended_V1.deploy(soulAccessManager.address, wNative, soulFeeManager.address, 0)
+  const soulZap = await SoulZap_UniV2_Extended_V1.deploy(soulAccessRegistry.address, wNative, soulFeeManager.address, 0)
 
-  return { soulAccessManager, soulFeeManager, soulZap }
+  return { soulAccessRegistry, soulFeeManager, soulZap }
 }
 
 export async function deployZapSetup_Mock(
@@ -24,16 +29,17 @@ export async function deployZapSetup_Mock(
   feeCollector: string,
   feeTokens: string[]
 ) {
-  const SoulAccessManager = await _ethers.getContractFactory('SoulAccessManager')
-  const soulAccessManager = await SoulAccessManager.deploy(accessManagerAdmin)
+  const SoulAccessRegistry = (await _ethers.getContractFactory('SoulAccessRegistry')) as SoulAccessRegistry__factory
+  const soulAccessRegistry = await SoulAccessRegistry.deploy()
+  await soulAccessRegistry.initialize(accessManagerAdmin)
 
   // NOTE: Can support multiple fee tokens, only passing 1
-  const SoulFeeManager = await _ethers.getContractFactory('SoulFeeManager')
+  const SoulFeeManager = (await _ethers.getContractFactory('SoulFeeManager')) as SoulFeeManager__factory
   const volumes = [0, 10]
   const fees = [300, 200]
-  const soulFeeManager = await SoulFeeManager.deploy(soulAccessManager.address, feeTokens, feeCollector, volumes, fees)
+  const soulFeeManager = await SoulFeeManager.deploy(soulAccessRegistry.address, feeTokens, feeCollector, volumes, fees)
 
-  return { soulAccessManager, soulFeeManager }
+  return { soulAccessRegistry, soulFeeManager }
 }
 
 export async function deployZap_UniV2_Extended_V1(
@@ -45,24 +51,43 @@ export async function deployZap_UniV2_Extended_V1(
   feeCollector: string,
   feeTokens: string[]
 ) {
-  logger.log(`Deploying Zap_UniV2_Extended_V1`, '📈')
-  const { soulAccessManager, soulFeeManager } = await deployZapSetup_Mock(
+  logger.log(`Deploying deployZapSetup_Mock`, '📈')
+  const { soulAccessRegistry, soulFeeManager } = await deployZapSetup_Mock(
     _ethers,
     adminAddress,
     feeCollector,
     feeTokens
   )
 
-  const SoulZap_UniV2_Extended_V1 = await _ethers.getContractFactory('SoulZap_UniV2_Extended_V1')
+  logger.log(`Deploying SoulZap_UniV2_Extended_V1`, '📈')
+  const SoulZap_UniV2_Extended_V1 = (await _ethers.getContractFactory(
+    'SoulZap_UniV2_Extended_V1'
+  )) as SoulZap_UniV2_Extended_V1__factory
   const soulZap = await SoulZap_UniV2_Extended_V1.deploy(
-    soulAccessManager.address,
+    soulAccessRegistry.address,
     wNativeAddress,
     soulFeeManager.address,
     0
   )
 
+  // Setting up role access for SoulZap
+  const [SOUL_ZAP_PAUSER_ROLE, SOUL_ZAP_ADMIN_ROLE] = await Promise.all([
+    soulZap.SOUL_ZAP_PAUSER_ROLE(),
+    soulZap.SOUL_ZAP_ADMIN_ROLE(),
+  ])
+
+  logger.log(`Deploying Zap_UniV2_Extended_V1_Lens`, '📈')
   const SoulZap_UniV2_Extended_V1_Lens = await _ethers.getContractFactory('SoulZap_UniV2_Extended_V1_Lens')
   const soulZap_Lens = await SoulZap_UniV2_Extended_V1_Lens.deploy(soulZap.address, routerAddress, hopTokens)
 
-  return { soulAccessManager, soulFeeManager, soulZap, soulZap_Lens }
+  return {
+    soulAccessRegistry,
+    soulAccessRoles: {
+      SOUL_ZAP_PAUSER_ROLE,
+      SOUL_ZAP_ADMIN_ROLE,
+    },
+    soulFeeManager,
+    soulZap,
+    soulZap_Lens,
+  }
 }
