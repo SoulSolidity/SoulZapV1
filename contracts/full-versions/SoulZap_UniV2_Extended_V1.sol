@@ -26,7 +26,7 @@ import {SoulZap_Ext_ApeBond} from "../extensions/ApeBond/SoulZap_Ext_ApeBond.sol
 
 /**
  * @title SoulZap_UniV2_Extended_V1
- * @dev This contract is an implementation of ISoulZap interface. It includes functionalities for zapping in and out of
+ * @dev This contract is an implementation of ISoulZap interface. It includes functionalities for zapping into
  * UniswapV2 type liquidity pools.
  * @notice This contract has the following features:
  * 1. UniswapV2 Zap In
@@ -36,10 +36,10 @@ import {SoulZap_Ext_ApeBond} from "../extensions/ApeBond/SoulZap_Ext_ApeBond.sol
  */
 contract SoulZap_UniV2_Extended_V1 is SoulZap_UniV2, SoulZap_Ext_ApeBond {
     constructor(
-        address _accessManager,
+        address _accessRegistry,
         IWETH _wnative,
         ISoulFeeManager _soulFeeManager,
         /// @dev Set to zero to start epoch tracking immediately
         uint256 _epochStartTime
-    ) SoulZap_UniV2(_accessManager, _wnative, _soulFeeManager, _epochStartTime) SoulZap_Ext_ApeBond() {}
+    ) SoulZap_UniV2(_accessRegistry, _wnative, _soulFeeManager, _epochStartTime) SoulZap_Ext_ApeBond() {}
 }

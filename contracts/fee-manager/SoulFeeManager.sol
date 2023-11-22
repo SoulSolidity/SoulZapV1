@@ -15,9 +15,10 @@ pragma solidity 0.8.23;
  */
 
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import {AccessManaged} from "@openzeppelin/contracts/access/manager/AccessManaged.sol";
 
 import {Constants} from "../utils/Constants.sol";
+import {SoulAccessManaged} from "../access/SoulAccessManaged.sol";
+
 import {ISoulFeeManager} from "./ISoulFeeManager.sol";
 
 /**
@@ -26,7 +27,7 @@ import {ISoulFeeManager} from "./ISoulFeeManager.sol";
  * @author Soul Solidity - Contact for mainnet licensing until 730 days after first deployment transaction with matching bytecode.
  * Otherwise feel free to experiment locally or on testnets.
  */
-contract SoulFeeManager is ISoulFeeManager, AccessManaged {
+contract SoulFeeManager is ISoulFeeManager, SoulAccessManaged {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     /// -----------------------------------------------------------------------
@@ -43,6 +44,7 @@ contract SoulFeeManager is ISoulFeeManager, AccessManaged {
     /// @dev Assumes the volume fee thresholds are in ascending order. Final element assumes infinite volume
     VolumeFeeThreshold[] public volumeFeeThresholds;
 
+    bytes32 public FEE_MANAGER_ROLE = _getRoleHash("FEE_MANAGER_ROLE");
     uint256 public constant FEE_DENOMINATOR = Constants.DENOMINATOR;
     /// @dev The maximum fee is 3%
     uint256 public constant MAX_FEE = (FEE_DENOMINATOR * 3) / 100;
@@ -75,12 +77,12 @@ contract SoulFeeManager is ISoulFeeManager, AccessManaged {
     /// -----------------------------------------------------------------------
 
     constructor(
-        address _accessManager,
+        address _accessRegistry,
         address[] memory _feeTokens,
         address __feeCollector,
         uint256[] memory _volumes,
         uint256[] memory _fees
-    ) AccessManaged(_accessManager) {
+    ) SoulAccessManaged(_accessRegistry) {
         _addValidFeeTokens(_feeTokens);
         if (__feeCollector == address(0)) {
             revert SoulFeeManager_InvalidFeeCollector();
@@ -89,7 +91,14 @@ contract SoulFeeManager is ISoulFeeManager, AccessManaged {
         _setVolumeFeeThresholds(_volumes, _fees);
     }
 
-    function setVolumeFeeThresholds(uint256[] memory _volumes, uint256[] memory _fees) public restricted {
+    /// -----------------------------------------------------------------------
+    /// Volume Thresholds
+    /// -----------------------------------------------------------------------
+
+    function setVolumeFeeThresholds(
+        uint256[] memory _volumes,
+        uint256[] memory _fees
+    ) external onlyAccessRegistryRole(FEE_MANAGER_ROLE) {
         _setVolumeFeeThresholds(_volumes, _fees);
     }
 
@@ -111,6 +120,10 @@ contract SoulFeeManager is ISoulFeeManager, AccessManaged {
         }
         emit SoulFeeManager_VolumeFeeThresholdChanged(_volumes, _fees);
     }
+
+    /// -----------------------------------------------------------------------
+    /// Fee Info
+    /// -----------------------------------------------------------------------
 
     /**
      * @notice Retrieves fee information based on the provided volume.
@@ -148,6 +161,10 @@ contract SoulFeeManager is ISoulFeeManager, AccessManaged {
         return 0;
     }
 
+    /// -----------------------------------------------------------------------
+    /// Fee Collector
+    /// -----------------------------------------------------------------------
+
     function getFeeCollector() external view returns (address feeCollector) {
         return _feeCollector;
     }
@@ -156,7 +173,7 @@ contract SoulFeeManager is ISoulFeeManager, AccessManaged {
      * @notice Sets a new address as the fee collector.
      * @param newFeeCollector The new address to be set as the fee collector.
      */
-    function setFeeCollector(address newFeeCollector) public restricted {
+    function setFeeCollector(address newFeeCollector) external onlyAccessRegistryRole(FEE_MANAGER_ROLE) {
         require(newFeeCollector != address(0), "Invalid fee collector address");
         _feeCollector = newFeeCollector;
     }
@@ -186,7 +203,7 @@ contract SoulFeeManager is ISoulFeeManager, AccessManaged {
         return _validFeeTokens.contains(_token);
     }
 
-    function addValidFeeTokens(address[] memory _newValidFeeTokens) public restricted {
+    function addValidFeeTokens(address[] memory _newValidFeeTokens) external onlyAccessRegistryRole(FEE_MANAGER_ROLE) {
         _addValidFeeTokens(_newValidFeeTokens);
     }
 
@@ -194,12 +211,9 @@ contract SoulFeeManager is ISoulFeeManager, AccessManaged {
      * @notice Removes the specified fee tokens from the list of valid fee tokens.
      * @param tokens The array of fee tokens to be removed.
      */
-    function removeValidFeeTokens(address[] memory tokens) public restricted {
+    function removeValidFeeTokens(address[] memory tokens) external onlyAccessRegistryRole(FEE_MANAGER_ROLE) {
         for (uint256 i = 0; i < tokens.length; i++) {
             address tokenToRemove = tokens[i];
-            if (!isFeeToken(tokenToRemove)) {
-                revert SoulFeeManager_NoFeeTokensAdded();
-            }
             if (_validFeeTokens.remove(tokenToRemove)) {
                 emit SoulFeeManager_FeeTokenRemoved(tokenToRemove);
             }
