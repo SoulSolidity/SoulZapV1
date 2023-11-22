@@ -28,6 +28,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {Constants} from "../../utils/Constants.sol";
 import {ICustomBillRefillable} from "./lib/ICustomBillRefillable.sol";
 import {ISoulFeeManager} from "../../fee-manager/ISoulFeeManager.sol";
+import {SoulZap_Ext_BondNftWhitelist} from "./SoulZap_Ext_BondNftWhitelist.sol";
 import {SoulZap_UniV2} from "../../SoulZap_UniV2.sol";
 
 /**
@@ -37,7 +38,7 @@ import {SoulZap_UniV2} from "../../SoulZap_UniV2.sol";
  * Otherwise feel free to experiment locally or on testnets.
  * @notice Do not use this contract for any tokens that do not have a standard ERC20 implementation.
  */
-abstract contract SoulZap_Ext_ApeBond is SoulZap_UniV2 {
+abstract contract SoulZap_Ext_ApeBond is SoulZap_Ext_BondNftWhitelist, SoulZap_UniV2 {
     using SafeERC20 for IERC20;
 
     /// -----------------------------------------------------------------------
@@ -61,13 +62,13 @@ abstract contract SoulZap_Ext_ApeBond is SoulZap_UniV2 {
         SwapPath memory feeSwapPath,
         ICustomBillRefillable bond,
         uint256 maxPrice
-    ) external payable nonReentrant whenNotPaused verifyMsgValueAndWrap(zapParams.inputToken, zapParams.inputAmount) {
-        if (address(zapParams.inputToken) == address(Constants.NATIVE_ADDRESS)) {
+    ) external payable nonReentrant whenNotPaused verifyMsgValueAndWrap(zapParams.tokenIn, zapParams.amountIn) {
+        if (address(zapParams.tokenIn) == address(Constants.NATIVE_ADDRESS)) {
             _zapBond(zapParams, feeSwapPath, bond, maxPrice);
         } else {
-            uint256 balanceBefore = _getBalance(zapParams.inputToken);
-            zapParams.inputToken.safeTransferFrom(msg.sender, address(this), zapParams.inputAmount);
-            zapParams.inputAmount = _getBalance(zapParams.inputToken) - balanceBefore;
+            uint256 balanceBefore = _getBalance(zapParams.tokenIn);
+            zapParams.tokenIn.safeTransferFrom(msg.sender, address(this), zapParams.amountIn);
+            zapParams.amountIn = _getBalance(zapParams.tokenIn) - balanceBefore;
             _zapBond(zapParams, feeSwapPath, bond, maxPrice);
         }
     }
@@ -83,6 +84,7 @@ abstract contract SoulZap_Ext_ApeBond is SoulZap_UniV2 {
         uint256 maxPrice
     ) private {
         IUniswapV2Pair bondPrincipalToken = IUniswapV2Pair(bond.principalToken());
+        bool skipFee = isBondNftWhitelisted(bond);
 
         //Check if bond principal token is single token or lp
         bool isSingleTokenBond = true;
@@ -93,17 +95,17 @@ abstract contract SoulZap_Ext_ApeBond is SoulZap_UniV2 {
         address to;
         if (isSingleTokenBond) {
             SwapParams memory swapParams = SwapParams({
-                inputToken: zapParams.inputToken,
-                inputAmount: zapParams.inputAmount,
-                token: zapParams.token0,
+                tokenIn: zapParams.tokenIn,
+                amountIn: zapParams.amountIn,
+                tokenOut: zapParams.token0,
                 path: zapParams.path0,
                 to: zapParams.to,
                 deadline: zapParams.deadline
             });
-            require(swapParams.token == address(bondPrincipalToken), "ApeBond: Wrong token for Bond");
+            require(swapParams.tokenOut == address(bondPrincipalToken), "ApeBond: Wrong token for Bond");
             to = swapParams.to;
             swapParams.to = address(this);
-            _swap(swapParams, feeSwapPath);
+            _swap(swapParams, feeSwapPath, skipFee);
         } else {
             require(
                 (zapParams.token0 == bondPrincipalToken.token0() && zapParams.token1 == bondPrincipalToken.token1()) ||
@@ -113,7 +115,7 @@ abstract contract SoulZap_Ext_ApeBond is SoulZap_UniV2 {
             );
             to = zapParams.to;
             zapParams.to = address(this);
-            _zap(zapParams, feeSwapPath);
+            _zap(zapParams, feeSwapPath, skipFee);
         }
 
         uint256 balance = bondPrincipalToken.balanceOf(address(this));

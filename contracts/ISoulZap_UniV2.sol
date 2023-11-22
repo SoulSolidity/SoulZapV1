@@ -14,15 +14,14 @@ pragma solidity ^0.8.0;
  *     Web: https://SoulSolidity.com
  */
 
-import {IAccessManaged} from "@openzeppelin/contracts/access/manager/IAccessManaged.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ISoulAccessManaged} from "./access/ISoulAccessManaged.sol";
 import {ISoulFeeManager} from "./fee-manager/ISoulFeeManager.sol";
-
 import {ITransferHelper} from "./utils/ITransferHelper.sol";
 import {IEpochVolumeTracker} from "./utils/IEpochVolumeTracker.sol";
 
-interface ISoulZap_UniV2 is IAccessManaged, ITransferHelper, IEpochVolumeTracker {
+interface ISoulZap_UniV2 is ISoulAccessManaged, ITransferHelper, IEpochVolumeTracker {
     /// -----------------------------------------------------------------------
     /// Swap Path
     /// -----------------------------------------------------------------------
@@ -58,9 +57,9 @@ interface ISoulZap_UniV2 is IAccessManaged, ITransferHelper, IEpochVolumeTracker
     /// -----------------------------------------------------------------------
 
     struct SwapParams {
-        IERC20 inputToken;
-        uint256 inputAmount;
-        address token;
+        IERC20 tokenIn;
+        uint256 amountIn;
+        address tokenOut;
         SwapPath path;
         address to;
         uint256 deadline;
@@ -71,8 +70,8 @@ interface ISoulZap_UniV2 is IAccessManaged, ITransferHelper, IEpochVolumeTracker
     /// -----------------------------------------------------------------------
 
     struct ZapParams {
-        IERC20 inputToken;
-        uint256 inputAmount;
+        IERC20 tokenIn;
+        uint256 amountIn;
         address token0;
         address token1;
         SwapPath path0;

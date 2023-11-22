@@ -63,13 +63,13 @@ contract TransferHelper is ITransferHelper {
     /// @notice Transfers in ERC20 tokens from the sender to this contract
     /// @param token The ERC20 token to transfer
     /// @param amount The amount of tokens to transfer
-    /// @return inputAmount The actual amount of tokens transferred
+    /// @return amountIn The actual amount of tokens transferred
 
-    function _transferIn(IERC20 token, uint256 amount) internal returns (uint256 inputAmount) {
+    function _transferIn(IERC20 token, uint256 amount) internal returns (uint256 amountIn) {
         if (amount == 0) return 0;
         uint256 balanceBefore = _getBalance(token);
         token.safeTransferFrom(msg.sender, address(this), amount);
-        inputAmount = _getBalance(token) - balanceBefore;
+        amountIn = _getBalance(token) - balanceBefore;
     }
 
     /// @notice Transfers out ERC20 tokens from this contract to a recipient

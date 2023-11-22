@@ -18,7 +18,6 @@ pragma solidity 0.8.23;
 /// Package Imports (alphabetical)
 /// -----------------------------------------------------------------------
 
-import {AccessManaged} from "@openzeppelin/contracts/access/manager/AccessManaged.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {IUniswapV2Factory} from "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
@@ -36,11 +35,9 @@ import {IWETH} from "./lib/IWETH.sol";
 import {EpochVolumeTracker} from "./utils/EpochVolumeTracker.sol";
 import {ISoulFeeManager} from "./fee-manager/ISoulFeeManager.sol";
 import {ISoulZap_UniV2} from "./ISoulZap_UniV2.sol";
+import {SoulAccessManaged} from "./access/SoulAccessManaged.sol";
 import {TransferHelper} from "./utils/TransferHelper.sol";
 import {LocalVarsLib} from "./utils/LocalVarsLib.sol";
-
-// TODO: Remove console.log before production
-import "hardhat/console.sol";
 
 /*
 /// @dev The receive method is used as a fallback function in a contract
@@ -49,19 +46,15 @@ import "hardhat/console.sol";
 */
 /**
  * @title SoulZap_UniV2
- * @dev This contract is an implementation of ISoulZap interface. It includes functionalities for zapping in and out of
- *   UniswapV2 type liquidity pools.
- * @notice This contract uses SafeERC20 for safe token transfers.
+ * @notice This contract includes functionalities for zapping in and out of UniswapV2 type liquidity pools.
+ * @dev Do not use this contract for any tokens that do not have a standard ERC20 implementation.
  * @author Soul Solidity - Contact for mainnet licensing until 730 days after first deployment
  *   transaction with matching bytecode.
  * Otherwise feel free to experiment locally or on testnets.
- * @notice Do not use this contract for any tokens that do not have a standard ERC20 implementation.
  */
-
 contract SoulZap_UniV2 is
     ISoulZap_UniV2,
-    /// @dev other extensions in alphabetical order
-    AccessManaged,
+    SoulAccessManaged,
     EpochVolumeTracker,
     Initializable,
     Pausable,
@@ -76,6 +69,9 @@ contract SoulZap_UniV2 is
 
     ISoulFeeManager public soulFeeManager;
 
+    bytes32 public SOUL_ZAP_PAUSER_ROLE = _getRoleHash("SOUL_ZAP_PAUSER_ROLE");
+    bytes32 public SOUL_ZAP_ADMIN_ROLE = _getRoleHash("SOUL_ZAP_ADMIN_ROLE");
+
     /// -----------------------------------------------------------------------
     /// Events
     /// -----------------------------------------------------------------------
@@ -88,12 +84,12 @@ contract SoulZap_UniV2 is
     /// -----------------------------------------------------------------------
 
     constructor(
-        address _accessManager,
+        address _accessRegistry,
         IWETH _wnative,
         ISoulFeeManager _soulFeeManager,
         /// @dev Set to zero to start epoch tracking immediately
         uint256 _epochStartTime
-    ) AccessManaged(_accessManager) EpochVolumeTracker(0, _epochStartTime) TransferHelper(_wnative) {
+    ) SoulAccessManaged(_accessRegistry) EpochVolumeTracker(0, _epochStartTime) TransferHelper(_wnative) {
         require(_soulFeeManager.isSoulFeeManager(), "SoulZap: soulFeeManager is not ISoulFeeManager");
         soulFeeManager = _soulFeeManager;
     }
@@ -116,10 +112,10 @@ contract SoulZap_UniV2 is
         if (msg.value > 0) {
             require(
                 address(_inputToken) == address(Constants.NATIVE_ADDRESS),
-                "SoulZap: inputToken MUST be NATIVE_ADDRESS with msg.value"
+                "SoulZap: tokenIn MUST be NATIVE_ADDRESS with msg.value"
             );
             (, uint256 wrappedAmount) = _wrapNative();
-            require(_inputAmount == wrappedAmount, "SoulZap: inputAmount not equal to wrappedAmount");
+            require(_inputAmount == wrappedAmount, "SoulZap: amountIn not equal to wrappedAmount");
         }
         _;
     }
@@ -128,11 +124,11 @@ contract SoulZap_UniV2 is
     /// Pausing
     /// -----------------------------------------------------------------------
 
-    function pause() public restricted {
+    function pause() external onlyAccessRegistryRole(SOUL_ZAP_PAUSER_ROLE) {
         _pause();
     }
 
-    function unpause() public restricted {
+    function unpause() external onlyAccessRegistryRole(SOUL_ZAP_ADMIN_ROLE) {
         _unpause();
     }
 
@@ -152,16 +148,16 @@ contract SoulZap_UniV2 is
         override
         nonReentrant
         whenNotPaused
-        verifyMsgValueAndWrap(swapParams.inputToken, swapParams.inputAmount)
+        verifyMsgValueAndWrap(swapParams.tokenIn, swapParams.amountIn)
     {
-        if (address(swapParams.inputToken) == address(Constants.NATIVE_ADDRESS)) {
-            _swap(swapParams, feeSwapPath);
+        if (address(swapParams.tokenIn) == address(Constants.NATIVE_ADDRESS)) {
+            _swap(swapParams, feeSwapPath, true);
         } else {
             // No msg.value
-            uint256 balanceBefore = _getBalance(swapParams.inputToken);
-            swapParams.inputToken.safeTransferFrom(msg.sender, address(this), swapParams.inputAmount);
-            swapParams.inputAmount = _getBalance(swapParams.inputToken) - balanceBefore;
-            _swap(swapParams, feeSwapPath);
+            uint256 balanceBefore = _getBalance(swapParams.tokenIn);
+            swapParams.tokenIn.safeTransferFrom(msg.sender, address(this), swapParams.amountIn);
+            swapParams.amountIn = _getBalance(swapParams.tokenIn) - balanceBefore;
+            _swap(swapParams, feeSwapPath, true);
         }
     }
 
@@ -170,34 +166,36 @@ contract SoulZap_UniV2 is
     /// - whenNotPaused: Only works when not paused which also pauses all other extensions which extend this
     /// @param swapParams all parameters for swap
     /// @param feeSwapPath swap path for protocol fee
-    function _swap(SwapParams memory swapParams, SwapPath memory feeSwapPath) internal whenNotPaused {
+    function _swap(SwapParams memory swapParams, SwapPath memory feeSwapPath, bool takeFee) internal whenNotPaused {
         // Verify inputs
-        require(swapParams.inputAmount > 0, "SoulZap: inputAmount must be > 0");
+        require(swapParams.amountIn > 0, "SoulZap: amountIn must be > 0");
         require(swapParams.to != address(0), "SoulZap: Can't swap to null address");
-        require(swapParams.token != address(0), "SoulZap: token can't be address(0)");
-        require(address(swapParams.inputToken) != swapParams.token, "SoulZap: tokens can't be the same");
+        require(swapParams.tokenOut != address(0), "SoulZap: tokenOut can't be address(0)");
+        require(address(swapParams.tokenIn) != swapParams.tokenOut, "SoulZap: tokens can't be the same");
 
-        bool native = address(swapParams.inputToken) == address(Constants.NATIVE_ADDRESS);
-        if (native) swapParams.inputToken = WNATIVE;
+        bool native = address(swapParams.tokenIn) == address(Constants.NATIVE_ADDRESS);
+        if (native) swapParams.tokenIn = WNATIVE;
 
-        swapParams.inputAmount -= _handleFee(
-            swapParams.inputToken,
-            swapParams.inputAmount,
-            feeSwapPath,
-            swapParams.deadline
-        );
+        if (takeFee) {
+            swapParams.amountIn -= _handleFee(
+                swapParams.tokenIn,
+                swapParams.amountIn,
+                feeSwapPath,
+                swapParams.deadline
+            );
+        }
 
         /**
          * Handle token Swap
          */
         require(swapParams.path.swapRouter != address(0), "SoulZap: swap router can not be address(0)");
-        require(swapParams.path.path[0] == address(swapParams.inputToken), "SoulZap: wrong path path[0]");
+        require(swapParams.path.path[0] == address(swapParams.tokenIn), "SoulZap: wrong path path[0]");
         require(
-            swapParams.path.path[swapParams.path.path.length - 1] == swapParams.token,
+            swapParams.path.path[swapParams.path.path.length - 1] == swapParams.tokenOut,
             "SoulZap: wrong path path[-1]"
         );
-        swapParams.inputToken.approve(swapParams.path.swapRouter, swapParams.inputAmount);
-        _routerSwapFromPath(swapParams.path, swapParams.inputAmount, swapParams.to, swapParams.deadline);
+        swapParams.tokenIn.approve(swapParams.path.swapRouter, swapParams.amountIn);
+        _routerSwapFromPath(swapParams.path, swapParams.amountIn, swapParams.to, swapParams.deadline);
 
         emit Swap(swapParams);
     }
@@ -218,15 +216,15 @@ contract SoulZap_UniV2 is
         override
         nonReentrant
         whenNotPaused
-        verifyMsgValueAndWrap(zapParams.inputToken, zapParams.inputAmount)
+        verifyMsgValueAndWrap(zapParams.tokenIn, zapParams.amountIn)
     {
-        if (address(zapParams.inputToken) == address(Constants.NATIVE_ADDRESS)) {
-            _zap(zapParams, feeSwapPath);
+        if (address(zapParams.tokenIn) == address(Constants.NATIVE_ADDRESS)) {
+            _zap(zapParams, feeSwapPath, true);
         } else {
-            uint256 balanceBefore = _getBalance(zapParams.inputToken);
-            zapParams.inputToken.safeTransferFrom(msg.sender, address(this), zapParams.inputAmount);
-            zapParams.inputAmount = _getBalance(zapParams.inputToken) - balanceBefore;
-            _zap(zapParams, feeSwapPath);
+            uint256 balanceBefore = _getBalance(zapParams.tokenIn);
+            zapParams.tokenIn.safeTransferFrom(msg.sender, address(this), zapParams.amountIn);
+            zapParams.amountIn = _getBalance(zapParams.tokenIn) - balanceBefore;
+            _zap(zapParams, feeSwapPath, true);
         }
     }
 
@@ -236,19 +234,16 @@ contract SoulZap_UniV2 is
     /// - Native input zap MUST be done with Constants.NATIVE_ADDRESS
     /// @param zapParams see ISoulZap_UniV2.ZapParams struct
     /// @param feeSwapPath see ISoulZap_UniV2.SwapPath struct
-    function _zap(ZapParams memory zapParams, SwapPath memory feeSwapPath) internal whenNotPaused {
-        // TODO: Remove console.log before production
-        console.log("actual start _zap");
-
+    function _zap(ZapParams memory zapParams, SwapPath memory feeSwapPath, bool takeFee) internal whenNotPaused {
         // Verify inputs
-        require(zapParams.inputAmount > 0, "SoulZap: inputAmount must be > 0");
+        require(zapParams.amountIn > 0, "SoulZap: amountIn must be > 0");
         require(zapParams.to != address(0), "SoulZap: Can't zap to null address");
         require(zapParams.liquidityPath.lpRouter != address(0), "SoulZap: lp router can not be address(0)");
         require(zapParams.token0 != address(0), "SoulZap: token0 can not be address(0)");
         require(zapParams.token1 != address(0), "SoulZap: token1 can not be address(0)");
 
-        bool native = address(zapParams.inputToken) == address(Constants.NATIVE_ADDRESS);
-        if (native) zapParams.inputToken = WNATIVE;
+        bool native = address(zapParams.tokenIn) == address(Constants.NATIVE_ADDRESS);
+        if (native) zapParams.tokenIn = WNATIVE;
 
         // Setup struct to prevent stack overflow
         LocalVarsLib.LocalVars memory vars;
@@ -258,12 +253,9 @@ contract SoulZap_UniV2 is
             (zapParams.path0, zapParams.path1) = (zapParams.path1, zapParams.path0);
         }
 
-        zapParams.inputAmount -= _handleFee(
-            zapParams.inputToken,
-            zapParams.inputAmount,
-            feeSwapPath,
-            zapParams.deadline
-        );
+        if (takeFee) {
+            zapParams.amountIn -= _handleFee(zapParams.tokenIn, zapParams.amountIn, feeSwapPath, zapParams.deadline);
+        }
 
         /**
          * Setup swap amount0 and amount1
@@ -277,8 +269,8 @@ contract SoulZap_UniV2 is
                 ) != address(0),
                 "SoulZap: Pair doesn't exist"
             );
-            vars.amount0In = zapParams.inputAmount / 2;
-            vars.amount1In = zapParams.inputAmount / 2;
+            vars.amount0In = zapParams.amountIn / 2;
+            vars.amount1In = zapParams.amountIn / 2;
         } else {
             revert("SoulZap: LPType not supported");
         }
@@ -286,35 +278,34 @@ contract SoulZap_UniV2 is
         /**
          * Handle token0 Swap
          */
-        if (zapParams.token0 != address(zapParams.inputToken)) {
+        if (zapParams.token0 != address(zapParams.tokenIn)) {
             require(zapParams.path0.swapRouter != address(0), "SoulZap: swap router can not be address(0)");
-            require(zapParams.path0.path[0] == address(zapParams.inputToken), "SoulZap: wrong path path0[0]");
+            require(zapParams.path0.path[0] == address(zapParams.tokenIn), "SoulZap: wrong path path0[0]");
             require(
                 zapParams.path0.path[zapParams.path0.path.length - 1] == zapParams.token0,
                 "SoulZap: wrong path path0[-1]"
             );
-            zapParams.inputToken.approve(zapParams.path0.swapRouter, vars.amount0In);
+            zapParams.tokenIn.approve(zapParams.path0.swapRouter, vars.amount0In);
             vars.amount0Out = _routerSwapFromPath(zapParams.path0, vars.amount0In, address(this), zapParams.deadline);
         } else {
-            vars.amount0Out = zapParams.inputAmount - vars.amount1In;
+            vars.amount0Out = zapParams.amountIn - vars.amount1In;
         }
         /**
          * Handle token1 Swap
          */
-        if (zapParams.token1 != address(zapParams.inputToken)) {
+        if (zapParams.token1 != address(zapParams.tokenIn)) {
             require(zapParams.path1.swapRouter != address(0), "SoulZap: swap router can not be address(0)");
-            require(zapParams.path1.path[0] == address(zapParams.inputToken), "SoulZap: wrong path path1[0]");
+            require(zapParams.path1.path[0] == address(zapParams.tokenIn), "SoulZap: wrong path path1[0]");
             require(
                 zapParams.path1.path[zapParams.path1.path.length - 1] == zapParams.token1,
                 "SoulZap: wrong path path1[-1]"
             );
-            zapParams.inputToken.approve(zapParams.path1.swapRouter, vars.amount1In);
+            zapParams.tokenIn.approve(zapParams.path1.swapRouter, vars.amount1In);
             vars.amount1Out = _routerSwapFromPath(zapParams.path1, vars.amount1In, address(this), zapParams.deadline);
         } else {
-            vars.amount1Out = zapParams.inputAmount - vars.amount0In;
+            vars.amount1Out = zapParams.amountIn - vars.amount0In;
         }
 
-        console.log("handle liquidity");
         /**
          * Handle Liquidity Add
          */
@@ -322,12 +313,6 @@ contract SoulZap_UniV2 is
         IERC20(zapParams.token1).approve(address(zapParams.liquidityPath.lpRouter), vars.amount1Out);
 
         if (zapParams.liquidityPath.lpType == LPType.V2) {
-            console.log(
-                vars.amount0Out,
-                vars.amount1Out,
-                zapParams.liquidityPath.minAmountLP0,
-                zapParams.liquidityPath.minAmountLP1
-            );
             // Add liquidity to UniswapV2 Pool
             (vars.amount0Lp, vars.amount1Lp, ) = IUniswapV2Router02(zapParams.liquidityPath.lpRouter).addLiquidity(
                 zapParams.token0,
@@ -386,9 +371,6 @@ contract SoulZap_UniV2 is
         uint256 deadline
     ) private {
         if (swapType == SwapType.V2) {
-            // TODO: Remove console.log before production
-            console.log("router swap", amountIn, amountOutMin, deadline);
-            console.log("router swap", _to, path[path.length - 1]);
             IUniswapV2Router02(router).swapExactTokensForTokens(amountIn, amountOutMin, path, _to, deadline);
         } else {
             revert("SoulZap: SwapType not supported");
@@ -451,11 +433,7 @@ contract SoulZap_UniV2 is
             return 0;
         }
 
-        // TODO: Remove console.log before production
-        console.log("take fee");
         inputFeeAmount = (_inputAmount * feePercentage) / feeDenominator;
-        // TODO: Remove console.log before production
-        console.log("feeAmount", inputFeeAmount, feePercentage, _inputAmount);
 
         if (_feeSwapPath.path.length >= 2) {
             address outputToken = _feeSwapPath.path[_feeSwapPath.path.length - 1];
@@ -473,8 +451,5 @@ contract SoulZap_UniV2 is
                 _accumulateFeeVolume(inputFeeAmount);
             }
         }
-
-        // TODO: Remove console.log before production
-        console.log("done taking fee. volume: ", getEpochVolume());
     }
 }

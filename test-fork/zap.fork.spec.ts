@@ -56,7 +56,7 @@ describe('SoulZap', function () {
 
     return {
       soulZap: zapDeploymentApeBond.soulZap,
-      soulAccessManager: zapDeploymentApeBond.soulAccessManager,
+      soulAccessRegistry: zapDeploymentApeBond.soulAccessRegistry,
       soulFeeManager: zapDeploymentApeBond.soulFeeManager,
       soulZap_ApeBond_Lens: routingDeploymentApeBond.soulZap_Lens,
       soulZap_Quick_Lens: routingDeploymentQuickSwap.soulZap_Lens,
@@ -65,7 +65,7 @@ describe('SoulZap', function () {
 
   describe('LPs', function () {
     it('ApeBond Native -> APE USDT-MATIC LP', async function () {
-      const { soulAccessManager, soulFeeManager, soulZap, soulZap_ApeBond_Lens, soulZap_Quick_Lens } =
+      const { soulAccessRegistry, soulFeeManager, soulZap, soulZap_ApeBond_Lens, soulZap_Quick_Lens } =
         await loadFixture(fixture)
       const signer = ethers.provider.getSigner()
       const amount = '1000000000000000000'
@@ -85,7 +85,7 @@ describe('SoulZap', function () {
     })
 
     it('ApeBond USDC -> APE USDT-MATIC LP', async function () {
-      const { soulAccessManager, soulFeeManager, soulZap, soulZap_ApeBond_Lens, soulZap_Quick_Lens } =
+      const { soulAccessRegistry, soulFeeManager, soulZap, soulZap_ApeBond_Lens, soulZap_Quick_Lens } =
         await loadFixture(fixture)
       const signer = ethers.provider.getSigner()
       const amount = '1000000'
@@ -119,7 +119,7 @@ describe('SoulZap', function () {
     })
 
     it('QS Native -> APE USDT-MATIC LP', async function () {
-      const { soulAccessManager, soulFeeManager, soulZap, soulZap_ApeBond_Lens, soulZap_Quick_Lens } =
+      const { soulAccessRegistry, soulFeeManager, soulZap, soulZap_ApeBond_Lens, soulZap_Quick_Lens } =
         await loadFixture(fixture)
       const signer = ethers.provider.getSigner()
       const amount = '1000000000000000000'
@@ -139,7 +139,7 @@ describe('SoulZap', function () {
     })
 
     it('QS USDC -> APE USDT-MATIC LP', async function () {
-      const { soulAccessManager, soulFeeManager, soulZap, soulZap_ApeBond_Lens, soulZap_Quick_Lens } =
+      const { soulAccessRegistry, soulFeeManager, soulZap, soulZap_ApeBond_Lens, soulZap_Quick_Lens } =
         await loadFixture(fixture)
       const signer = ethers.provider.getSigner()
       const amount = '1000000'
