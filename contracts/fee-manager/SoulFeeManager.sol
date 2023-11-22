@@ -86,8 +86,6 @@ contract SoulFeeManager is ISoulFeeManager, AccessManaged {
             revert SoulFeeManager_InvalidFeeCollector();
         }
         _feeCollector = __feeCollector;
-
-        //This doesnt work with the restricted part, does it?
         _setVolumeFeeThresholds(_volumes, _fees);
     }
 
@@ -97,12 +95,16 @@ contract SoulFeeManager is ISoulFeeManager, AccessManaged {
 
     function _setVolumeFeeThresholds(uint256[] memory _volumes, uint256[] memory _fees) internal {
         require(_volumes.length == _fees.length, "Volumes and fees should have same length");
+
+        // Clear the existing volumeFeeThresholds array
+        delete volumeFeeThresholds;
+
         uint256 previousVolume = 0;
         for (uint256 i = 0; i < _volumes.length; i++) {
             uint256 volume = _volumes[i];
             /// @dev On the first round previousVolume can be 0, so we skip the check
-            require(i == 0 || volume > previousVolume, "volume not in ascending order");
-            require(_fees[i] <= MAX_FEE, "fee exceeds max fee");
+            require(i == 0 || volume > previousVolume, "Volume not in ascending order");
+            require(_fees[i] <= MAX_FEE, "Fee exceeds max fee");
             VolumeFeeThreshold memory volumeFeeThreshold = VolumeFeeThreshold({volume: volume, fee: _fees[i]});
             volumeFeeThresholds.push(volumeFeeThreshold);
             previousVolume = volume;
@@ -150,6 +152,15 @@ contract SoulFeeManager is ISoulFeeManager, AccessManaged {
         return _feeCollector;
     }
 
+    /**
+     * @notice Sets a new address as the fee collector.
+     * @param newFeeCollector The new address to be set as the fee collector.
+     */
+    function setFeeCollector(address newFeeCollector) public restricted {
+        require(newFeeCollector != address(0), "Invalid fee collector address");
+        _feeCollector = newFeeCollector;
+    }
+
     /// -----------------------------------------------------------------------
     /// Fee Token Management
     /// -----------------------------------------------------------------------
@@ -171,8 +182,28 @@ contract SoulFeeManager is ISoulFeeManager, AccessManaged {
         return _validFeeTokens.length();
     }
 
-    function isFeeToken(address _token) external view override returns (bool valid) {
+    function isFeeToken(address _token) public view override returns (bool valid) {
         return _validFeeTokens.contains(_token);
+    }
+
+    function addValidFeeTokens(address[] memory _newValidFeeTokens) public restricted {
+        _addValidFeeTokens(_newValidFeeTokens);
+    }
+
+    /**
+     * @notice Removes the specified fee tokens from the list of valid fee tokens.
+     * @param tokens The array of fee tokens to be removed.
+     */
+    function removeValidFeeTokens(address[] memory tokens) public restricted {
+        for (uint256 i = 0; i < tokens.length; i++) {
+            address tokenToRemove = tokens[i];
+            if (!isFeeToken(tokenToRemove)) {
+                revert SoulFeeManager_NoFeeTokensAdded();
+            }
+            if (_validFeeTokens.remove(tokenToRemove)) {
+                emit SoulFeeManager_FeeTokenRemoved(tokenToRemove);
+            }
+        }
     }
 
     function _addValidFeeTokens(address[] memory _newValidFeeTokens) internal {

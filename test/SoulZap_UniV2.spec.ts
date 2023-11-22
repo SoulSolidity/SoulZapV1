@@ -9,6 +9,7 @@ import { deployZap_UniV2_Extended_V1 } from './fixtures/deployZap_Mock'
 import {
   ADDRESS_NATIVE,
   createERC20BalanceSnapshotter,
+  createNativeBalanceSnapshotter,
   formatBNValueToString,
   getContractGetterSnapshot,
 } from './utils'
@@ -27,8 +28,8 @@ import { ether } from './fixtures/UniV2/deployUniV2Dex'
 export async function fixture() {
   // Contracts are deployed using the first signer/account by default
   const accounts = await ethers.getSigners()
-  const activeAccounts = accounts.slice(0, 5)
-  const [owner, feeTo, tokensOwner, zapReceiver, feeCollector] = activeAccounts
+  const activeAccounts = accounts.slice(0, 6)
+  const [owner, feeTo, tokensOwner, zapReceiver, feeCollector, recipient] = activeAccounts
 
   const dexAndHopTokens_deployment = await deployDexAndHopTokens(ethers, [owner, feeTo, tokensOwner])
   const {
@@ -50,16 +51,11 @@ export async function fixture() {
     ...outputLpPairs,
   ]
 
-  const takeERC20BalanceSnapshot = createERC20BalanceSnapshotter(
-    ethers,
-    activeAccounts,
-    allTokens.map((token) => token.address)
-  )
-  await takeERC20BalanceSnapshot()
-
   /**
    * Setup Zap Contracts
-   */
+  */
+  // TODO: Use stable
+  const feeTokens = [hopTokens[2]]
   const ZapUniV2_Extended_V1_deployment = await deployZap_UniV2_Extended_V1(
     ethers,
     owner.address,
@@ -67,18 +63,38 @@ export async function fixture() {
     dexRouter.address,
     hopTokens.map((token) => token.address),
     feeCollector.address,
-    // TODO: Use stable
-    [hopTokens[0].address] //feeTokens
+    feeTokens.map(token => token.address)
   )
   const { soulZap, soulZap_Lens, soulFeeManager } = ZapUniV2_Extended_V1_deployment
+
+  /**
+   * Setup Snapshotters
+   */
+  const accountsToSnapshot = [
+    ...activeAccounts.map((x) => {
+      return x.address
+    }),
+    soulZap.address,
+  ]
+
+  const takeNativeBalanceSnapshot = createNativeBalanceSnapshotter(ethers, accountsToSnapshot)
+  const takeERC20BalanceSnapshot = createERC20BalanceSnapshotter(
+    ethers,
+    accountsToSnapshot,
+    allTokens.map((token) => token.address)
+  )
+  await takeERC20BalanceSnapshot()
 
   const takeFeeSnapshot = async () => await getContractGetterSnapshot(soulZap, ['getFeeInfo'])
 
   return {
+    feeTokens,
+    mockWBNB,
     dexAndHopTokens_deployment,
     ZapUniV2_Extended_V1_deployment,
-    accounts: [owner, feeTo, tokensOwner, zapReceiver],
+    accounts: activeAccounts,
     snapshotters: {
+      takeNativeBalanceSnapshot,
       takeERC20BalanceSnapshot,
       takeFeeSnapshot,
     },
