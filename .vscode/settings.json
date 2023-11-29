@@ -21,6 +21,7 @@
         "Pausable",
         "POLYGONSCAN",
         "precommit",
+        "semgrep",
         "Snapshotter",
         "snapshotters",
         "soulsolidity",
