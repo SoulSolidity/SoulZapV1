@@ -7,7 +7,7 @@ import { ChainId, DEX, NATIVE_ADDRESS, Project } from '../constants'
 import SoulZap_UniV2_Extended_V1_ABI from '../ABI/SoulZap_UniV2_Extended_V1_ABI.json'
 import SoulZap_UniV2_Extended_V1_Lens_ABI from '../ABI/SoulZap_UniV2_Extended_V1_Lens_ABI.json'
 
-import { SwapPath, ZapData, ZapDataBond, ZapParams, ZapParams_Ext_Bonds } from '../types'
+import { SwapPath, ZapData, ZapDataBond, ZapDataBondResult, ZapParams, ZapParams_Ext_Bonds } from '../types'
 import { SoulZap_UniV2 } from './SoulZap_UniV2'
 import { JsonRpcSigner } from '@ethersproject/providers'
 
@@ -32,9 +32,9 @@ export class SoulZap_UniV2_ApeBond extends SoulZap_UniV2 {
     bond: string,
     allowedPriceImpactPercentage: number,
     to: string
-  ): Promise<ZapDataBond> {
+  ): Promise<ZapDataBondResult> {
     const lensContract = this.getLensContract(dex)
-    const zapData = await lensContract.getZapDataBond(
+    const zapData: ZapDataBond = await lensContract.getZapDataBond(
       tokenIn,
       amountIn,
       bond,
@@ -42,8 +42,8 @@ export class SoulZap_UniV2_ApeBond extends SoulZap_UniV2 {
       to
     )
     const priceImpactError = await this.checkPriceImpact(
-      zapData.priceImpactPercentage0,
-      zapData.priceImpactPercentage1,
+      zapData.priceImpactPercentages[0],
+      zapData.priceImpactPercentages[1],
       allowedPriceImpactPercentage
     )
     if (!priceImpactError.success) {
@@ -59,7 +59,7 @@ export class SoulZap_UniV2_ApeBond extends SoulZap_UniV2 {
     bill: string,
     allowedPriceImpactPercentage: number,
     to: string
-  ): Promise<ZapDataBond> {
+  ): Promise<ZapDataBondResult> {
     return this.getZapDataBond(dex, NATIVE_ADDRESS, amountIn, bill, allowedPriceImpactPercentage, to)
   }
 

@@ -42,7 +42,7 @@ export type LiquidityPath = {
   lpType: LPType
   amountAMin: BigNumber
   amountBMin: BigNumber
-  amountOut: BigNumber
+  lpAmount: BigNumber
 }
 
 /// -----------------------------------------------------------------------
@@ -101,12 +101,14 @@ export type ZapParams_Ext_Bonds = {
   maxPrice: BigNumber
 }
 
-export type ZapDataBond =
-  | Success<{
-      encodedTx: string
-      zapParams: ZapParams
-      feeSwapPath: SwapPath
-      priceImpactPercentages: BigNumber[]
-      zapParamsBonds: ZapParams_Ext_Bonds
-    }>
-  | Failure
+export type ZapDataBond = {
+  encodedTx: string
+  zapParams: ZapParams
+  feeSwapPath: SwapPath
+  priceImpactPercentages: BigNumber[]
+  zapParamsBonds: ZapParams_Ext_Bonds
+}
+
+export type ZapDataBondResult =
+  | Success<ZapDataBond>
+  | Failure 
