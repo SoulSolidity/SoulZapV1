@@ -391,30 +391,36 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
     /**
      * @dev Get the Liquidity Path for a specified Uniswap V2 pair.
      * @param lp The Uniswap V2 pair contract.
-     * @param minAmountLP0 The minimum amount of LP token0 to receive.
-     * @param minAmountLP1 The minimum amount of LP token1 to receive.
+     * @param amountAMin The minimum amount of LP token0 to add to liquidity.
+     * @param amountBMin The minimum amount of LP token1 to add to liquidity.
      * @return params LiquidityPath structure containing relevant data.
      */
     function _getLiquidityPath(
         IUniswapV2Pair lp,
-        uint256 minAmountLP0,
-        uint256 minAmountLP1
+        uint256 amountAMin,
+        uint256 amountBMin
     ) internal view returns (ISoulZap_UniV2.LiquidityPath memory params) {
         (uint256 reserveA, uint256 reserveB, ) = lp.getReserves();
-        uint256 amountB = router.quote(minAmountLP0, reserveA, reserveB);
+        uint256 totalSupply = lp.totalSupply();
+        uint256 amountB = router.quote(amountAMin, reserveA, reserveB);
 
         //The min amount B to add for LP can be lower than the received tokenB amount.
         //If that's the case calculate min amount with tokenA amount so it doesn't revert
-        if (amountB > minAmountLP1) {
-            minAmountLP0 = router.quote(minAmountLP1, reserveB, reserveA);
-            amountB = minAmountLP1;
+        if (amountB > amountBMin) {
+            amountAMin = router.quote(amountBMin, reserveB, reserveA);
+            amountB = amountBMin;
         }
+
+        uint256 lpAmountA = (amountAMin * totalSupply) / reserveA;
+        uint256 lpAmountB = (amountB * totalSupply) / reserveB;
+        uint256 lpAmount = lpAmountA < lpAmountB ? lpAmountA : lpAmountB;
 
         params = ISoulZap_UniV2.LiquidityPath({
             lpRouter: address(router),
             lpType: ISoulZap_UniV2.LPType.V2,
-            minAmountLP0: minAmountLP0,
-            minAmountLP1: amountB
+            amountAMin: amountAMin,
+            amountBMin: amountB,
+            lpAmount: lpAmount
         });
     }
 
@@ -422,7 +428,7 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
         address _fromToken,
         address _toToken,
         uint _amountIn
-    ) internal view returns (address[] memory bestPath, uint256 bestAmountOutMin) {
+    ) internal view returns (address[] memory bestPath, uint256 bestAmountOut) {
         if (_fromToken == _toToken) {
             return (bestPath, _amountIn);
         }
@@ -435,7 +441,7 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
             bestPath = new address[](2);
             bestPath[0] = _fromToken;
             bestPath[1] = _toToken;
-            bestAmountOutMin = calculateOutputAmount(_amountIn, bestPath);
+            bestAmountOut = calculateOutputAmount(_amountIn, bestPath);
         }
 
         // Find all pairs between input token and hop tokens
@@ -450,7 +456,7 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
                 // TODO: Fail gracefully
                 revert("No swap path found");
             }
-            return (bestPath, bestAmountOutMin);
+            return (bestPath, bestAmountOut);
         }
 
         // -----------------------------------------------------------------------
@@ -469,9 +475,9 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
                 uint256 amountOut = calculateOutputAmount(_amountIn, path);
 
                 // Update the best path and best amount out min if this path is better
-                if (amountOut > bestAmountOutMin) {
+                if (amountOut > bestAmountOut) {
                     bestPath = path;
-                    bestAmountOutMin = amountOut;
+                    bestAmountOut = amountOut;
                 }
             }
         }
@@ -498,14 +504,14 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
                 uint256 amountOut = calculateOutputAmount(_amountIn, path);
 
                 // Update the best path and best amount out min if this path is better
-                if (amountOut > bestAmountOutMin) {
+                if (amountOut > bestAmountOut) {
                     bestPath = path;
-                    bestAmountOutMin = amountOut;
+                    bestAmountOut = amountOut;
                 }
             }
         }
 
-        return (bestPath, bestAmountOutMin);
+        return (bestPath, bestAmountOut);
     }
 
     /**
@@ -534,8 +540,9 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
         bestPath.swapType = ISoulZap_UniV2.SwapType.V2;
         bestPath.swapRouter = address(router);
 
-        (address[] memory bestPathAddresses, uint256 bestAmountOutMin) = _getBestPath(_fromToken, _toToken, _amountIn);
+        (address[] memory bestPathAddresses, uint256 bestAmountOut) = _getBestPath(_fromToken, _toToken, _amountIn);
         bestPath.path = bestPathAddresses;
+        bestPath.amountOut = bestAmountOut;
 
         // Calculation of price impact.
         // Actual price is the current actual price which does not take slippage into account for less liquid pairs.
@@ -558,10 +565,10 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
         }
         priceImpactPercentage =
             Constants.DENOMINATOR -
-            ((bestAmountOutMin * (Constants.DENOMINATOR * Constants.PRECISION)) / actualPrice);
+            ((bestAmountOut * (Constants.DENOMINATOR * Constants.PRECISION)) / actualPrice);
 
         // Add slippage after price impact caluclation is done
-        bestPath.amountOutMin = (bestAmountOutMin * (Constants.DENOMINATOR - _slippage)) / Constants.DENOMINATOR;
+        bestPath.amountOutMin = (bestAmountOut * (Constants.DENOMINATOR - _slippage)) / Constants.DENOMINATOR;
     }
 
     /// -----------------------------------------------------------------------

@@ -314,16 +314,19 @@ contract SoulZap_UniV2 is
 
         if (zapParams.liquidityPath.lpType == LPType.V2) {
             // Add liquidity to UniswapV2 Pool
-            (vars.amount0Lp, vars.amount1Lp, ) = IUniswapV2Router02(zapParams.liquidityPath.lpRouter).addLiquidity(
-                zapParams.token0,
-                zapParams.token1,
-                vars.amount0Out,
-                vars.amount1Out,
-                zapParams.liquidityPath.minAmountLP0,
-                zapParams.liquidityPath.minAmountLP1,
-                zapParams.to,
-                zapParams.deadline
-            );
+            (vars.amount0Lp, vars.amount1Lp, vars.lpAmount) = IUniswapV2Router02(zapParams.liquidityPath.lpRouter)
+                .addLiquidity(
+                    zapParams.token0,
+                    zapParams.token1,
+                    vars.amount0Out,
+                    vars.amount1Out,
+                    zapParams.liquidityPath.amountAMin,
+                    zapParams.liquidityPath.amountBMin,
+                    zapParams.to,
+                    zapParams.deadline
+                );
+            // Possible option to check for min amount of LP tokens received
+            // require(vars.lpAmount >= zapParams.liquidityPath.lpAmount, "SoulZap: Not enough LP tokens received");
         } else {
             revert("SoulZap: lpType not supported");
         }

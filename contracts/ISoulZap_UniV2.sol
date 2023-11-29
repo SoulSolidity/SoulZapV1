@@ -34,6 +34,7 @@ interface ISoulZap_UniV2 is ISoulAccessManaged, ITransferHelper, IEpochVolumeTra
         address swapRouter;
         SwapType swapType;
         address[] path;
+        uint256 amountOut;
         uint256 amountOutMin;
     }
 
@@ -48,8 +49,9 @@ interface ISoulZap_UniV2 is ISoulAccessManaged, ITransferHelper, IEpochVolumeTra
     struct LiquidityPath {
         address lpRouter;
         LPType lpType;
-        uint256 minAmountLP0;
-        uint256 minAmountLP1;
+        uint256 amountAMin;
+        uint256 amountBMin;
+        uint256 lpAmount;
     }
 
     /// -----------------------------------------------------------------------

@@ -9,5 +9,6 @@ library LocalVarsLib {
         uint256 amount1Out;
         uint256 amount0Lp;
         uint256 amount1Lp;
+        uint256 lpAmount;
     }
 }
