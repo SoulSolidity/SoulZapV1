@@ -5,7 +5,6 @@ import { SoulZap_UniV2_ApeBond } from '../src/index'
 import { ChainId, DEX, Project } from '../src/constants'
 import { ethers } from 'hardhat'
 import { getEnv, Logger, logger, testRunner } from '../hardhat/utils'
-import { zapDataBond } from '../src/index'
 
 // const WMATIC = "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270";
 // const DAI = "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063";
@@ -31,41 +30,56 @@ const TO_ADDRESS = '0x5c7C7246bD8a18DF5f6Ee422f9F8CCDF716A6aD2'
 export const ether = (value: string) => utils.parseUnits(value, 'ether').toString()
 
 describe('SDK - lens contract', () => {
-  logger.log('SDK Tests are disabled for now.', 'warn')
-  /*
-  it("Should return data", async () => {
-    const signer = ethers.provider.getSigner();
+  it('Should return data', async () => {
     const rpc = getEnv('POLYGON_RPC_URL')
-    const provider = new ethers.providers.JsonRpcProvider(rpc);
+    const provider = new ethers.providers.JsonRpcProvider(rpc)
+    const wallet = ethers.Wallet.fromMnemonic(getEnv('TESTNET_MNEMONIC'))
+    const signer = wallet.connect(provider)
 
     //Create soulZap object
-    const soulZap = new SoulZap_UniV2_ApeBond(ChainId.POLYGON, provider)
+    const soulZap = new SoulZap_UniV2_ApeBond(ChainId.POLYGON, signer)
+    soulZap.setSlippage(1)
+    const dex = DEX.QUICKSWAP
+    const amount = '10000000000000000'
+    const BOND_ADDRESS = '0x4F256deDd156fB1Aa6e485E92FeCeB7bc15EBFcA'
+    const LP_ADDRESS = '0x304e57c752E854E9A233Ae82fcC42F7568b81180'
+    //APE LP '0x034293f21f1cce5908bc605ce5850df2b1059ac0'
+    //QS LP '0x304e57c752E854E9A233Ae82fcC42F7568b81180'
+    const recipient = '0x551DcB2Cf6155CBc4d1a8151576EEC43f3aE5559'
+    const allowedPriceImpactPercentage = 3 //max 3% price impact or it returns an error (for low liquidity or large zaps)
 
-    const amount = "1000000000000000000";
-    const BOND_ADDRESS = "0x4F256deDd156fB1Aa6e485E92FeCeB7bc15EBFcA";
-    const recipient = "0x551DcB2Cf6155CBc4d1a8151576EEC43f3aE5559";
-    const allowedPriceImpactPercentage = 3; //max 3% price impact or it returns an error (for low liquidity or large zaps)
-
-    const zapData = await soulZap.getZapDataBondNative(DEX.APEBOND, amount, BOND_ADDRESS, allowedPriceImpactPercentage, recipient);
+    const zapDataBond = await soulZap.getZapDataNative(
+      dex,
+      amount,
+      LP_ADDRESS,
+      allowedPriceImpactPercentage,
+      recipient
+    )
+    console.log(zapDataBond)
 
     //Error handling
-    if ('error' in zapData) {
+    if (!zapDataBond.success) {
       // Log or handle the error appropriately
-      console.error(zapData.error);
+      console.error(zapDataBond.error)
       return
     }
 
     // Data to possibly show on UI
-    zapData.priceImpactPercentages;
-    zapData.zapParams.liquidityPath.minAmountLP0
-    zapData.zapParams.path0.amountOutMin
+    zapDataBond.priceImpactPercentages
+    zapDataBond.zapParams.liquidityPath.amountOut
+    zapDataBond.zapParams.path0.amountOut
 
-    //Actual zap tx
-    const soulZapContract = soulZap.getZapContract();
-    const zapTx = await signer.sendTransaction({
-      to: soulZapContract.address, // Address of the contract
-      data: zapData.encodedTx,
-    });
-  });
-  */
+    //Actual zap tx different options
+    // await soulZap.zap(zapDataBond)
+    // await soulZap.zapBond(zapDataBond.encodedTx)
+    // await soulZap.zapBond(zapDataBond.zapParams, zapDataBond.zapParamsBonds, zapDataBond.feeSwapPath)
+
+    //Or own variation
+    // const soulZapContract = soulZap.getZapContract()
+    // await signer.sendTransaction({
+    //   to: soulZapContract.address, // Address of the contract
+    //   data: zapDataBond.encodedTx,
+    //   value: zapDataBond.zapParams.amountIn,
+    // })
+  })
 })

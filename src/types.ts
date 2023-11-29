@@ -1,5 +1,5 @@
-import { BigNumber } from "ethers";
-import { LPType, SwapType } from "./constants";
+import { BigNumber } from 'ethers'
+import { LPType, SwapType } from './constants'
 
 /// -----------------------------------------------------------------------
 /// Generic types
@@ -7,77 +7,106 @@ import { LPType, SwapType } from "./constants";
 
 // Define a type for the successful result
 type BasicSuccess<T> = {
-  success: true;
-  value: T;
-};
+  success: true
+  value: T
+}
 
 // Define a utility type that flattens the structure if the value is an object
-export type Success<T> = T extends object ? BasicSuccess<T> & T : BasicSuccess<T>;
+export type Success<T> = T extends object ? { success: true } & T : BasicSuccess<T>
 
 // Define a type for the error
 export type Failure = {
-  success: false;
-  error: string; // You can customize the error type based on your needs
-};
+  success: false
+  error: string // You can customize the error type based on your needs
+}
 
 /// -----------------------------------------------------------------------
-/// Specific types
+/// Swap Path
 /// -----------------------------------------------------------------------
 
 export type SwapPath = {
-  swapRouter: string;
-  swapType: SwapType;
-  path: string[];
-  amountOutMin: number | string;
-};
-
-export type LiquidityPath = {
-  lpRouter: string;
-  lpType: LPType;
-  minAmountLP0: number | string;
-  minAmountLP1: number | string;
-};
-
-export type ZapParams = {
-  inputToken: string,
-  inputAmount: number | string,
-  token0: string,
-  token1: string,
-  path0: SwapPath,
-  path1: SwapPath,
-  liquidityPath: LiquidityPath,
-  to: string,
-  deadline: number | string
-};
-
-export type ZapParamsNative = {
-  token0: string,
-  token1: string,
-  path0: SwapPath,
-  path1: SwapPath,
-  liquidityPath: LiquidityPath,
-  to: string,
-  deadline: number | string
-};
-
-export type zapData = Success<{
-  encodedTx: string,
-  zapParams: ZapParams | ZapParamsNative,
-  feeSwapPath: SwapPath,
-  priceImpactPercentages: BigNumber[]
-}> | Failure
-
-export type ZapParams_Ext_Bonds = {
-  bond: string,
-  maxPrice: number | string
+  swapRouter: string
+  swapType: SwapType
+  path: string[]
+  amountOutMin: BigNumber
+  //Extra vars
+  amountOut: BigNumber
 }
 
-export type zapDataBond = Success<{
-  encodedTx: string,
-  zapParams: ZapParams | ZapParamsNative,
-  feeSwapPath: SwapPath,
-  priceImpactPercentages: BigNumber[],
-  zapParamsBonds: ZapParams_Ext_Bonds
-}> | Failure
+/// -----------------------------------------------------------------------
+/// Liquidity Path
+/// -----------------------------------------------------------------------
 
+export type LiquidityPath = {
+  lpRouter: string
+  lpType: LPType
+  amountAMin: BigNumber
+  amountBMin: BigNumber
+  amountOut: BigNumber
+}
 
+/// -----------------------------------------------------------------------
+/// Swap Params
+/// -----------------------------------------------------------------------
+
+export type SwapParams = {
+  tokenIn: string
+  amountIn: BigNumber
+  tokenOut: string
+  path: SwapPath
+  to: string
+  deadline: BigNumber
+}
+
+export type SwapData = {
+  encodedTx: string
+  swapParams: SwapParams
+  feeSwapPath: SwapPath
+  priceImpactPercentages: BigNumber[]
+}
+
+export type SwapDataResult = Success<SwapData> | Failure
+
+/// -----------------------------------------------------------------------
+/// Zap Params
+/// -----------------------------------------------------------------------
+
+export type ZapParams = {
+  tokenIn: string
+  amountIn: BigNumber
+  token0: string
+  token1: string
+  path0: SwapPath
+  path1: SwapPath
+  liquidityPath: LiquidityPath
+  to: string
+  deadline: BigNumber
+}
+
+export type ZapData = {
+  encodedTx: string
+  zapParams: ZapParams
+  feeSwapPath: SwapPath
+  priceImpactPercentages: BigNumber[]
+}
+
+export type ZapDataResult = Success<ZapData> | Failure
+
+/// -----------------------------------------------------------------------
+/// Zap Bond Params
+/// -----------------------------------------------------------------------
+
+export type ZapParams_Ext_Bonds = {
+  bond: string
+  maxPrice: BigNumber
+}
+
+export type ZapDataBond =
+  | Success<{
+      encodedTx: string
+      zapParams: ZapParams
+      feeSwapPath: SwapPath
+      priceImpactPercentages: BigNumber[]
+      zapParamsBonds: ZapParams_Ext_Bonds
+    }>
+  | Failure

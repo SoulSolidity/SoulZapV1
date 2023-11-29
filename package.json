@@ -1,6 +1,6 @@
 {
-  "name": "@soulsolidity/soulzap-v1",
-  "version": "0.0.1",
+  "name": "@doublo/soulzap-v1",
+  "version": "0.0.7",
   "description": "Zap contract for transforming a single input token into liquidity pool tokens, or other possible extensions.",
   "main": "./dist/index.js",
   "files": [
@@ -10,11 +10,10 @@
     "dist/typechain-types/**/*"
   ],
   "scripts": {
-    "postinstall": "hardhat",
-    "prebuild": "yarn compile && yarn lint:sol && yarn clean ./dist",
+    "postinstall": "npx hardhat compile",
+    "prebuild": "yarn compile && yarn clean ./dist",
     "build": "tsc",
     "precommit": "yarn lint:fix && yarn lint:ci",
-    "prepublishOnly": "yarn audit && node prepublish.js",
     "precompile": "yarn clean ./artifacts && yarn clean ./cache",
     "compile:quick": "hardhat compile",
     "compile": "hardhat compile",

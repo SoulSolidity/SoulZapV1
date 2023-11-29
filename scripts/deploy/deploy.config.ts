@@ -40,8 +40,9 @@ interface DeploymentVariables {
   protocolFee: number
   maxFee: number
   soulFeeManager?: string
-  soulAccessManager?: string
+  soulAccessRegistry?: string
   SoulZap_UniV2?: string
+  volumesAndFees: { volumes: number[]; fees: number[] }
 }
 
 export const enum Dex {
@@ -88,8 +89,9 @@ const deployableNetworkConfig: Record<DeployableNetworks, (signers?: SignerWithA
       protocolFee: 300,
       maxFee: 1000,
       soulFeeManager: '0x',
-      soulAccessManager: '0x',
-      SoulZap_UniV2: '0x'
+      soulAccessRegistry: '0x',
+      SoulZap_UniV2: '0x',
+      volumesAndFees: { volumes: [0], fees: [100] },
     }
   },
   polygon: (signers?: SignerWithAddress[]) => {
@@ -128,9 +130,11 @@ const deployableNetworkConfig: Record<DeployableNetworks, (signers?: SignerWithA
       feeCollector: '0x5c7C7246bD8a18DF5f6Ee422f9F8CCDF716A6aD2',
       protocolFee: 300,
       maxFee: 1000,
-      soulFeeManager: '0x',
-      soulAccessManager: '0x',
-      SoulZap_UniV2: '0x'
+      soulFeeManager: '0x5A79F4446ff39e9519F379A99184cFb43C641674', //'0x832FAa0244eE3972473b5d7DA708972d50fF3476',
+      soulAccessRegistry: '0x61B428C02CB1058F9AAf2bFeACCB00333c50E0A1', //'0xDe8b10E44A099d28A8991F5b678D3F991CD4566d',
+      SoulZap_UniV2: '0xDD20343AeB210f5b7Ec9Db7B3727F8D0a8070c42', //0xf95A84d25Af7575110489566d85827e28108c80a',
+      volumesAndFees: { volumes: [0], fees: [100] },
+      //lens: 0xA400A9a00bd1b7ca90BbC5F8DB0d3d723da8D72c
     }
   },
   bscTestnet: (signers?: SignerWithAddress[]) => {
@@ -150,8 +154,9 @@ const deployableNetworkConfig: Record<DeployableNetworks, (signers?: SignerWithA
       protocolFee: 300,
       maxFee: 1000,
       soulFeeManager: '0x',
-      soulAccessManager: '0x',
-      SoulZap_UniV2: '0x'
+      soulAccessRegistry: '0x',
+      SoulZap_UniV2: '0x',
+      volumesAndFees: { volumes: [0], fees: [100] },
     }
   },
 }

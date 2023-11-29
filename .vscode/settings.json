@@ -1,33 +1,34 @@
 {
-    "workbench.colorCustomizations": {
-        "activityBar.background": "#000",
-        "activityBar.foreground": "#FCFCFD",
-        "titleBar.activeBackground": "#268575",
-        "titleBar.activeForeground": "#FCFCFD"
-    },
-    "editor.formatOnSave": true,
-    "cSpell.words": [
-        "apebond",
-        "ARBISCAN",
-        "Arrakis",
-        "bignumber",
-        "dont",
-        "IWETH",
-        "mixedcase",
-        "mstore",
-        "nomicfoundation",
-        "nomiclabs",
-        "Numberish",
-        "Pausable",
-        "POLYGONSCAN",
-        "precommit",
-        "Snapshotter",
-        "snapshotters",
-        "soulsolidity",
-        "soulzap",
-        "telos",
-        "TELOSSCAN",
-        "WBNB",
-        "WNATIVE"
-    ]
+  "workbench.colorCustomizations": {
+    "activityBar.background": "#000",
+    "activityBar.foreground": "#FCFCFD",
+    "titleBar.activeBackground": "#268575",
+    "titleBar.activeForeground": "#FCFCFD"
+  },
+  "editor.formatOnSave": true,
+  "cSpell.words": [
+    "apebond",
+    "ARBISCAN",
+    "Arrakis",
+    "bignumber",
+    "dont",
+    "IWETH",
+    "mixedcase",
+    "mstore",
+    "nomicfoundation",
+    "nomiclabs",
+    "Numberish",
+    "Pausable",
+    "POLYGONSCAN",
+    "precommit",
+    "QUICKSWAP",
+    "Snapshotter",
+    "snapshotters",
+    "soulsolidity",
+    "soulzap",
+    "telos",
+    "TELOSSCAN",
+    "WBNB",
+    "WNATIVE"
+  ]
 }
