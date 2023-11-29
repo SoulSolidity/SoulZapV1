@@ -11,11 +11,14 @@ async function main() {
   const currentNetwork = network.name as DeployableNetworks
   // Optionally pass in accounts to be able to use them in the deployConfig
   const accounts = await ethers.getSigners()
-  const { wNative, adminAddress, dexInfo, hopTokens, feeCollector, soulFee, protocolFee, maxFee } = getDeployConfig(currentNetwork, accounts)
+  const { wNative, adminAddress, dexInfo, hopTokens, feeCollector, soulFee, protocolFee, maxFee } = getDeployConfig(
+    currentNetwork,
+    accounts
+  )
   // Optionally pass in signer to deploy contracts
   const deployManager = await DeployManager.create(accounts[0])
 
-  let soulFeeAddress = soulFee;
+  let soulFeeAddress = soulFee
   if (!soulFee || soulFee == '0x') {
     const SoulFee = 'SoulFee'
     const SoulFeeContract = await ethers.getContractFactory(SoulFee)
@@ -24,7 +27,7 @@ async function main() {
       [feeCollector, protocolFee, maxFee],
       SoulFee // Pass in contract name to log contract
     )
-    soulFeeAddress = soulFeeContract.address;
+    soulFeeAddress = soulFeeContract.address
   }
   console.log('SoulFee contract at:', soulFeeAddress)
 
@@ -37,7 +40,7 @@ async function main() {
   )
   console.log('Zap contract deployed at:', routingContract.address)
 
-  await delay(20000);
+  await delay(20000)
   // await deployManager.addDeployedContract('20231031-bsc-deployment.json')
   await deployManager.verifyContracts()
 }
