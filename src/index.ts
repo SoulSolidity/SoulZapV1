@@ -11,3 +11,4 @@ export {
 } from './types'
 export * from './ApeBond/SoulZap_UniV2'
 export * from './ApeBond/SoulZap_UniV2_ApeBond'
+export { sendMessage } from './Discord/Discord'

@@ -40,9 +40,9 @@ describe('SDK - lens contract', () => {
     const soulZap = new SoulZap_UniV2_ApeBond(ChainId.POLYGON, signer)
     soulZap.setSlippage(1)
     const dex = DEX.APEBOND
-    const amount = '10000000000000000'
+    const amount = '1000000000000000000'
     const BOND_ADDRESS = '0x4F256deDd156fB1Aa6e485E92FeCeB7bc15EBFcA'
-    const LP_ADDRESS = '0x304e57c752E854E9A233Ae82fcC42F7568b81180'
+    const LP_ADDRESS = '0x034293f21f1cce5908bc605ce5850df2b1059ac0'
     //APE LP '0x034293f21f1cce5908bc605ce5850df2b1059ac0'
     //QS LP '0x304e57c752E854E9A233Ae82fcC42F7568b81180'
     const recipient = '0x551DcB2Cf6155CBc4d1a8151576EEC43f3aE5559'

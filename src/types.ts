@@ -20,6 +20,8 @@ export type Failure = {
   error: string // You can customize the error type based on your needs
 }
 
+export type SuccessOrFailure<T> = Success<T> | Failure;
+
 /// -----------------------------------------------------------------------
 /// Swap Path
 /// -----------------------------------------------------------------------
@@ -65,7 +67,12 @@ export type SwapData = {
   priceImpactPercentages: BigNumber[]
 }
 
-export type SwapDataResult = Success<SwapData> | Failure
+export type SwapDataExtras = {
+  tokenInUsdPrice: BigNumber
+  tokenOutUsdPrice: BigNumber
+}
+
+export type SwapDataResult = Success<SwapData & SwapDataExtras> | Failure
 
 /// -----------------------------------------------------------------------
 /// Zap Params
@@ -90,7 +97,12 @@ export type ZapData = {
   priceImpactPercentages: BigNumber[]
 }
 
-export type ZapDataResult = Success<ZapData> | Failure
+export type ZapDataExtras = {
+  tokenInUsdPrice: BigNumber
+  tokenOutUsdPrice: BigNumber
+}
+
+export type ZapDataResult = Success<ZapData & ZapDataExtras> | Failure
 
 /// -----------------------------------------------------------------------
 /// Zap Bond Params

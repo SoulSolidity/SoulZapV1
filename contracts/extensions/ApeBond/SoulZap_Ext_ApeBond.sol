@@ -83,6 +83,13 @@ abstract contract SoulZap_Ext_ApeBond is SoulZap_Ext_BondNftWhitelist, SoulZap_U
         ICustomBillRefillable bond,
         uint256 maxPrice
     ) private {
+        // Verify inputs
+        require(zapParams.amountIn > 0, "SoulZap: amountIn must be > 0");
+        require(zapParams.to != address(0), "SoulZap: Can't zap to null address");
+        require(zapParams.liquidityPath.lpRouter != address(0), "SoulZap: lp router can not be address(0)");
+        require(zapParams.token0 != address(0), "SoulZap: token0 can not be address(0)");
+        require(zapParams.token1 != address(0), "SoulZap: token1 can not be address(0)");
+
         IUniswapV2Pair bondPrincipalToken = IUniswapV2Pair(bond.principalToken());
         bool skipFee = isBondNftWhitelisted(bond);
 
