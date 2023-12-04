@@ -158,7 +158,8 @@ contract SoulFeeManager is ISoulFeeManager, SoulAccessManaged {
                 return volumeFeeThresholds[i - 1].fee;
             }
         }
-        return 0;
+        // Apply the fee for the lowest index in case the volume is lower than the least configured volume threshold.
+        return volumeFeeThresholds[0].fee;
     }
 
     /// -----------------------------------------------------------------------
