@@ -153,9 +153,9 @@ contract SoulFeeManager is ISoulFeeManager, SoulAccessManaged {
      * @return fee The fee percentage corresponding to the given volume.
      */
     function getFee(uint256 epochFeeVolume) public view returns (uint256 fee) {
-        for (uint256 i = volumeFeeThresholds.length - 1; i >= 0; i--) {
-            if (epochFeeVolume >= volumeFeeThresholds[i].volume) {
-                return volumeFeeThresholds[i].fee;
+        for (uint256 i = volumeFeeThresholds.length; i > 0; i--) {
+            if (epochFeeVolume >= volumeFeeThresholds[i - 1].volume) {
+                return volumeFeeThresholds[i - 1].fee;
             }
         }
         return 0;
