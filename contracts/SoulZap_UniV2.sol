@@ -245,11 +245,6 @@ contract SoulZap_UniV2 is
 
         // Setup struct to prevent stack overflow
         LocalVarsLib.LocalVars memory vars;
-        // Ensure token addresses and paths are in ascending numerical order
-        if (zapParams.token1 < zapParams.token0) {
-            (zapParams.token0, zapParams.token1) = (zapParams.token1, zapParams.token0);
-            (zapParams.path0, zapParams.path1) = (zapParams.path1, zapParams.path0);
-        }
 
         if (takeFee) {
             zapParams.amountIn -= _handleFee(zapParams.tokenIn, zapParams.amountIn, feeSwapPath, zapParams.deadline);
