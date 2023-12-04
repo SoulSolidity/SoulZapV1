@@ -192,7 +192,7 @@ contract SoulZap_UniV2 is
             swapParams.path.path[swapParams.path.path.length - 1] == swapParams.tokenOut,
             "SoulZap: wrong path path[-1]"
         );
-        swapParams.tokenIn.approve(swapParams.path.swapRouter, swapParams.amountIn);
+        swapParams.tokenIn.forceApprove(swapParams.path.swapRouter, swapParams.amountIn);
         _routerSwapFromPath(swapParams.path, swapParams.amountIn, swapParams.to, swapParams.deadline);
 
         emit Swap(swapParams);
@@ -283,7 +283,7 @@ contract SoulZap_UniV2 is
                 zapParams.path0.path[zapParams.path0.path.length - 1] == zapParams.token0,
                 "SoulZap: wrong path path0[-1]"
             );
-            zapParams.tokenIn.approve(zapParams.path0.swapRouter, vars.amount0In);
+            zapParams.tokenIn.forceApprove(zapParams.path0.swapRouter, vars.amount0In);
             vars.amount0Out = _routerSwapFromPath(zapParams.path0, vars.amount0In, address(this), zapParams.deadline);
         } else {
             vars.amount0Out = zapParams.amountIn - vars.amount1In;
@@ -298,7 +298,7 @@ contract SoulZap_UniV2 is
                 zapParams.path1.path[zapParams.path1.path.length - 1] == zapParams.token1,
                 "SoulZap: wrong path path1[-1]"
             );
-            zapParams.tokenIn.approve(zapParams.path1.swapRouter, vars.amount1In);
+            zapParams.tokenIn.forceApprove(zapParams.path1.swapRouter, vars.amount1In);
             vars.amount1Out = _routerSwapFromPath(zapParams.path1, vars.amount1In, address(this), zapParams.deadline);
         } else {
             vars.amount1Out = zapParams.amountIn - vars.amount0In;
@@ -307,8 +307,8 @@ contract SoulZap_UniV2 is
         /**
          * Handle Liquidity Add
          */
-        IERC20(zapParams.token0).approve(address(zapParams.liquidityPath.lpRouter), vars.amount0Out);
-        IERC20(zapParams.token1).approve(address(zapParams.liquidityPath.lpRouter), vars.amount1Out);
+        IERC20(zapParams.token0).forceApprove(address(zapParams.liquidityPath.lpRouter), vars.amount0Out);
+        IERC20(zapParams.token1).forceApprove(address(zapParams.liquidityPath.lpRouter), vars.amount1Out);
 
         if (zapParams.liquidityPath.lpType == LPType.V2) {
             // Add liquidity to UniswapV2 Pool
@@ -341,8 +341,8 @@ contract SoulZap_UniV2 is
         /**
          * Remove approval
          */
-        IERC20(zapParams.token0).approve(address(zapParams.liquidityPath.lpRouter), 0);
-        IERC20(zapParams.token1).approve(address(zapParams.liquidityPath.lpRouter), 0);
+        IERC20(zapParams.token0).forceApprove(address(zapParams.liquidityPath.lpRouter), 0);
+        IERC20(zapParams.token1).forceApprove(address(zapParams.liquidityPath.lpRouter), 0);
 
         emit Zap(zapParams);
     }
@@ -378,7 +378,13 @@ contract SoulZap_UniV2 is
         uint256 deadline
     ) private {
         if (swapType == SwapType.V2) {
-            IUniswapV2Router02(router).swapExactTokensForTokens(amountIn, amountOutMin, path, _to, deadline);
+            IUniswapV2Router02(router).swapExactTokensForTokensSupportingFeeOnTransferTokens(
+                amountIn,
+                amountOutMin,
+                path,
+                _to,
+                deadline
+            );
         } else {
             revert("SoulZap: SwapType not supported");
         }
@@ -446,7 +452,7 @@ contract SoulZap_UniV2 is
             address outputToken = _feeSwapPath.path[_feeSwapPath.path.length - 1];
             require(soulFeeManager.isFeeToken(outputToken), "SoulZap: Invalid output token in feeSwapPath");
 
-            _inputToken.approve(_feeSwapPath.swapRouter, inputFeeAmount);
+            _inputToken.forceApprove(_feeSwapPath.swapRouter, inputFeeAmount);
             uint256 amountOut = _routerSwapFromPath(_feeSwapPath, inputFeeAmount, feeCollector, _deadline);
             _accumulateFeeVolume(amountOut);
         } else {

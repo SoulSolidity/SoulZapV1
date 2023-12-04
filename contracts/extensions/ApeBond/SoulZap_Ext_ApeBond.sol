@@ -126,9 +126,9 @@ abstract contract SoulZap_Ext_ApeBond is SoulZap_Ext_BondNftWhitelist, SoulZap_U
         }
 
         uint256 balance = bondPrincipalToken.balanceOf(address(this));
-        bondPrincipalToken.approve(address(bond), balance);
+        IERC20(address(bondPrincipalToken)).forceApprove(address(bond), balance);
         bond.deposit(balance, maxPrice, to);
-        bondPrincipalToken.approve(address(bond), 0);
+        IERC20(address(bondPrincipalToken)).forceApprove(address(bond), 0);
 
         emit ZapBond(zapParams, bond, maxPrice);
     }
