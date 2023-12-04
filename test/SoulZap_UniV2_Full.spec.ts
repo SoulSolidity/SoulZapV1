@@ -879,8 +879,6 @@ describe('SoulZap_UniV2 Full', function () {
         zapReceiver.address
       )
 
-      console.log(zapData)
-
       await soulZap.connect(tokensOwner).zap(zapData.zapParams, zapData.feeSwapPath)
 
       const balanceSnapshot = await takeERC20BalanceSnapshot()
@@ -1182,7 +1180,7 @@ describe('SoulZap_UniV2 Full', function () {
 
         //Change tokenIn to invalid token
         const zapParams = { ...zapData.zapParams }
-        zapParams.amountIn = '0'
+        zapParams.amountIn = BigNumber.from(0)
 
         await expect(soulZap.connect(tokensOwner).zap(zapParams, zapData.feeSwapPath)).to.be.revertedWith(
           'SoulZap: amountIn must be > 0'

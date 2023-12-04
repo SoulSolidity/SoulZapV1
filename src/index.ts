@@ -1,4 +1,14 @@
-export { ZERO_ADDRESS, NATIVE_ADDRESS, ZAP_ADDRESS, SwapType, LPType } from './constants'
-export { LiquidityPath, SwapPath, ZapParams, ZapParamsNative, ZapParams_Ext_Bonds, zapData, zapDataBond } from './types'
+export { ZERO_ADDRESS, NATIVE_ADDRESS, DEX, Project, ChainId } from './constants'
+export {
+    LiquidityPath,
+    SwapPath,
+    ZapParams,
+    ZapParams_Ext_Bonds,
+    ZapDataResult,
+    ZapDataBondResult,
+    SwapDataResult,
+    SwapParams,
+} from './types'
 export * from './ApeBond/SoulZap_UniV2'
 export * from './ApeBond/SoulZap_UniV2_ApeBond'
+export { sendMessage } from './Discord/Discord'

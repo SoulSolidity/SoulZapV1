@@ -207,7 +207,6 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
     {
         // Verify inputs
         require(amountIn > 0, "SoulZap_UniV2_Lens: amountIn must be > 0");
-        require(to != address(0), "SoulZap_UniV2_Lens: Can't swap to null address");
         require(tokenOut != address(0), "SoulZap_UniV2_Lens: token can't be address(0)");
         require(tokenIn != tokenOut, "SoulZap_UniV2_Lens: tokens can't be the same");
 
@@ -327,7 +326,6 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
     {
         // Verify inputs
         require(amountIn > 0, "SoulZap_UniV2_Lens: amountIn must be > 0");
-        require(to != address(0), "SoulZap_UniV2_Lens: Can't zap to null address");
         require(address(lp) != address(0), "SoulZap_UniV2_Lens: lp can't be address(0)");
         try lp.factory() returns (address _factory) {
             require(_factory == address(factory), "SoulZap_UniV2_Lens: LP factory doesn't match factory");

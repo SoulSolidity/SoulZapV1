@@ -11,37 +11,64 @@ async function main() {
   const currentNetwork = network.name as DeployableNetworks
   // Optionally pass in accounts to be able to use them in the deployConfig
   const accounts = await ethers.getSigners()
-  const { wNative, adminAddress, dexInfo, hopTokens, feeCollector, soulFee, protocolFee, maxFee } = getDeployConfig(
-    currentNetwork,
-    accounts
-  )
+  const {
+    wNative,
+    admin,
+    dexInfo,
+    feeCollector,
+    soulFeeManager,
+    soulAccessRegistry,
+    protocolFee,
+    maxFee,
+    volumesAndFees,
+  } = getDeployConfig(currentNetwork, accounts)
   // Optionally pass in signer to deploy contracts
   const deployManager = await DeployManager.create(accounts[0])
 
-  let soulFeeAddress = soulFee
-  if (!soulFee || soulFee == '0x') {
-    const SoulFee = 'SoulFee'
-    const SoulFeeContract = await ethers.getContractFactory(SoulFee)
-    const soulFeeContract = await deployManager.deployContractFromFactory(
-      SoulFeeContract,
-      [feeCollector, protocolFee, maxFee],
-      SoulFee // Pass in contract name to log contract
+  let soulAccessRegistryAddress = soulAccessRegistry
+  if (!soulAccessRegistry || soulAccessRegistry == '0x') {
+    const SoulAccessRegistry = 'SoulAccessRegistry'
+    const SoulAccessRegistryContract = await ethers.getContractFactory(SoulAccessRegistry)
+    const soulAccessRegistryContract = await deployManager.deployContractFromFactory(
+      SoulAccessRegistryContract,
+      [],
+      SoulAccessRegistry
     )
-    soulFeeAddress = soulFeeContract.address
+    await soulAccessRegistryContract.initialize(admin)
+    soulAccessRegistryAddress = soulAccessRegistryContract.address
   }
-  console.log('SoulFee contract at:', soulFeeAddress)
+  console.log('SoulAccessManager contract at:', soulAccessRegistryAddress)
 
-  const SoulZap = 'SoulZapFullV1'
-  const RoutingContract = await ethers.getContractFactory(SoulZap)
+  let soulFeeManagerAddress = soulFeeManager
+  if (!soulFeeManager || soulFeeManager == '0x') {
+    const SoulFeeManager = 'SoulFeeManager'
+    const SoulFeeManagerContract = await ethers.getContractFactory(SoulFeeManager)
+    const soulFeeManagerContract = await deployManager.deployContractFromFactory(
+      SoulFeeManagerContract,
+      [
+        soulAccessRegistryAddress!,
+        [dexInfo.ApeBond?.hopTokens[0]!],
+        feeCollector,
+        volumesAndFees.volumes,
+        volumesAndFees.fees,
+      ],
+      SoulFeeManager
+    )
+    soulFeeManagerAddress = soulFeeManagerContract.address
+  }
+  console.log('SoulFeeManager contract at:', soulFeeManagerAddress)
+
+  const SoulZap_UniV2 = 'SoulZap_UniV2_Extended_V1'
+  const RoutingContract = await ethers.getContractFactory(SoulZap_UniV2)
   const routingContract = await deployManager.deployContractFromFactory(
     RoutingContract,
-    [wNative, soulFeeAddress!],
-    SoulZap // Pass in contract name to log contract
+    [soulAccessRegistryAddress!, wNative, soulFeeManagerAddress!, 0],
+    SoulZap_UniV2 // Pass in contract name to log contract
   )
-  console.log('Zap contract deployed at:', routingContract.address)
+  console.log('SoulZap_UniV2 contract deployed at:', routingContract.address)
 
-  await delay(20000)
-  // await deployManager.addDeployedContract('20231031-bsc-deployment.json')
+  await delay(20000);
+  // await deployManager.addDeployedContract('20231122-polygon-deployment.json')
   await deployManager.verifyContracts()
 }
 

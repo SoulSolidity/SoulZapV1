@@ -5,7 +5,7 @@ import { expect } from 'chai'
 import '@nomicfoundation/hardhat-chai-matchers'
 
 import { dynamicFixture } from './fixtures'
-import { AccessManagedMock, SoulAccessRegistry } from '../typechain-types'
+import { SoulAccessRegistry } from '../typechain-types'
 import { getContractGetterSnapshot } from './utils'
 
 /**
