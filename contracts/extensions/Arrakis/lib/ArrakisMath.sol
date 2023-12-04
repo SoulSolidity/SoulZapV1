@@ -91,11 +91,25 @@ library ArrakisMath {
         amount1 = swapRatioParams.inputAmount - amount0;
     }
 
-    /// @notice Normalize token decimals to 18
-    /// @param amount Amount of tokens
-    /// @param decimals Decimals of given token amount to scale. MUST be <=18
+    /**
+     * @notice Adjusts the amount of tokens to a normalized 18 decimal format.
+     * @dev Tokens with less than 18 decimals will loose precision to 18 decimals.
+     * @param amount The original amount of tokens with `decimals` decimal places.
+     * @param decimals The number of decimal places the token uses.
+     * @return The adjusted amount of tokens, normalized to 18 decimal places.
+     */
     function _normalizeTokenDecimals(uint256 amount, uint256 decimals) internal pure returns (uint256) {
-        return amount * 10 ** (18 - decimals);
+        // If the token has more than 18 decimals, we divide the amount to normalize to 18 decimals.
+        if (decimals > 18) {
+            // Dividing by 10 ** (decimals - 18) to reduce the number of decimals.
+            return amount / 10 ** (decimals - 18);
+        } else if (decimals < 18) {
+            // Multiplying by 10 ** (18 - decimals) to increase the number of decimals.
+            return amount * 10 ** (18 - decimals);
+        } else {
+            // If the token already has 18 decimals, return the amount unchanged.
+            return amount;
+        }
     }
 
     /// @notice Returns value based on other token
