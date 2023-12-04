@@ -126,8 +126,9 @@ library ArrakisMath {
     }
 
     /// @notice Returns value based on other token
+    /// @dev MUST only be used for off-chain processing. If price is needed on-chain, it should come from a TWAP.
     /// @param token0 initial token
-    /// @param token1 end token that needs vaue based of token0
+    /// @param token1 end token that needs value based of token0
     /// @param fee uniV3 pool fee
     /// @param uniV3Factory uniV3 factory
     /// @return price value of token1 based of token0
@@ -147,7 +148,7 @@ library ArrakisMath {
         require(size != 0, "ArrakisMath: UniV3 pair not found");
 
         uint256 sqrtPriceX96;
-
+        /// @dev MUST only be used for off-chain processing. If price is needed on-chain, it should come from a TWAP.
         (sqrtPriceX96, , , , , , ) = IUniswapV3Pool(tokenPegPair).slot0();
 
         uint256 token0Decimals = getTokenDecimals(token0);
