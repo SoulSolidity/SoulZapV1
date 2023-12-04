@@ -338,6 +338,12 @@ contract SoulZap_UniV2 is
             _transferOut(IERC20(zapParams.token1), vars.amount1Out - vars.amount1Lp, msg.sender, native);
         }
 
+        /**
+         * Remove approval
+         */
+        IERC20(zapParams.token0).approve(address(zapParams.liquidityPath.lpRouter), 0);
+        IERC20(zapParams.token1).approve(address(zapParams.liquidityPath.lpRouter), 0);
+
         emit Zap(zapParams);
     }
 
