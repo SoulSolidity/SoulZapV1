@@ -122,10 +122,13 @@ contract SoulZap_UniV2 is
     /// Pausing
     /// -----------------------------------------------------------------------
 
+    /// @notice Pauses the contract functionality.
     function pause() external onlyAccessRegistryRole(SOUL_ZAP_PAUSER_ROLE) {
         _pause();
     }
 
+    /// @notice Unpauses the contract functionality.
+    /// @dev This operation should only be performed by an admin role as it can be a critical operation.
     function unpause() external onlyAccessRegistryRole(SOUL_ZAP_ADMIN_ROLE) {
         _unpause();
     }
