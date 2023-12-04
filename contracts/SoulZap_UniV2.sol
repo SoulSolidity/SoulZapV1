@@ -109,13 +109,11 @@ contract SoulZap_UniV2 is
      * @param _inputAmount The amount of the token that the user wants to use for the transaction.
      */
     modifier verifyMsgValueAndWrap(IERC20 _inputToken, uint256 _inputAmount) {
-        if (msg.value > 0) {
-            require(
-                address(_inputToken) == address(Constants.NATIVE_ADDRESS),
-                "SoulZap: tokenIn MUST be NATIVE_ADDRESS with msg.value"
-            );
+        if (address(_inputToken) == address(Constants.NATIVE_ADDRESS)) {
             (, uint256 wrappedAmount) = _wrapNative();
             require(_inputAmount == wrappedAmount, "SoulZap: amountIn not equal to wrappedAmount");
+        } else {
+            require(msg.value == 0, "SoulZap: msg.value should be 0");
         }
         _;
     }
