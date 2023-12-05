@@ -5,9 +5,9 @@ import { ChainId, DEX, FACTORIES, NATIVE_ADDRESS, PRICE_GETTER_ADDRESS, PriceGet
 // TODO: can't get this /\ to work because in package it's not compiling the contracts
 // import SoulZap_UniV2_Extended_V1_ABI from '../../artifacts/contracts/full-versions/SoulZap_UniV2_Extended_V1.sol/SoulZap_UniV2_Extended_V1.json'
 // import SoulZap_UniV2_Extended_V1_Lens_ABI from '../../artifacts/contracts/full-versions/SoulZap_UniV2_Extended_V1_Lens.sol/SoulZap_UniV2_Extended_V1_Lens.json'
-import SoulZap_UniV2_Extended_V1_ABI from '../ABI/SoulZap_UniV2_Extended_V1_ABI.json'
-import SoulZap_UniV2_Extended_V1_Lens_ABI from '../ABI/SoulZap_UniV2_Extended_V1_Lens_ABI.json'
-import PriceGetterExtended_ABI from '../ABI/PriceGetterExtended_ABI.json'
+import SoulZap_UniV2_Extended_V1_ABI from '../abi/SoulZap_UniV2_Extended_V1_ABI.json'
+import SoulZap_UniV2_Extended_V1_Lens_ABI from '../abi/SoulZap_UniV2_Extended_V1_Lens_ABI.json'
+import PriceGetterExtended_ABI from '../abi/PriceGetterExtended_ABI.json'
 
 import {
     Failure,
