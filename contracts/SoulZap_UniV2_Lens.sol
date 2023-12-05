@@ -595,6 +595,7 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
      * @return The hop token at the specified index.
      */
     function getHopTokenAtIndex(uint256 _index) public view returns (address) {
+        require(_index < getHopTokensLength(), "SoulZap_UniV2_Lens: index out of bounds");
         return _hopTokens.at(_index);
     }
 
