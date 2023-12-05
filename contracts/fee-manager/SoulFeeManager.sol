@@ -23,7 +23,8 @@ import {ISoulFeeManager} from "./ISoulFeeManager.sol";
 
 /**
  * @title SoulFeeManager_Interface
- * @dev This contract is an interface for the SoulFeeManager. It includes a function for getting the fee based on epoch volume.
+ * @notice This SoulFeeManager includes a function for getting the fee based on epoch volume.
+ * @dev Fee tokens are intended to be stable coins. Volume is intended to be normalized with 18 decimals.
  * @author Soul Solidity - Contact for mainnet licensing until 730 days after first deployment transaction with matching bytecode.
  * Otherwise feel free to experiment locally or on testnets.
  */

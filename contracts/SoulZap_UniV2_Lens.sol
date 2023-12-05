@@ -704,9 +704,8 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
                 feeVars.feeAmount,
                 _slippage
             );
-            // Pull token decimals to normalize amountOut
-            uint8 feeTokenDecimals = TokenHelper.getTokenDecimals(feeVars.feeToken);
-            uint256 normalizedAmountOut = TokenHelper.normalizeTokenAmount(bestPath.amountOutMin, feeTokenDecimals);
+            // Normalize the amount out to 18 decimals
+            uint256 normalizedAmountOut = TokenHelper.normalizeTokenAmount(feeVars.feeToken, bestPath.amountOutMin);
             if (normalizedAmountOut > normalizedBestAmountOut) {
                 normalizedBestAmountOut = normalizedAmountOut;
                 feeSwapPath = bestPath;

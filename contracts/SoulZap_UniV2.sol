@@ -38,6 +38,7 @@ import {ISoulZap_UniV2} from "./ISoulZap_UniV2.sol";
 import {SoulAccessManaged} from "./access/SoulAccessManaged.sol";
 import {SoulZap_UniV2_Whitelist} from "./SoulZap_UniV2_Whitelist.sol";
 import {TransferHelper} from "./utils/TransferHelper.sol";
+import {TokenHelper} from "./utils/TokenHelper.sol";
 import {LocalVarsLib} from "./utils/LocalVarsLib.sol";
 import {Sweeper} from "./utils/Sweeper.sol";
 
@@ -451,14 +452,16 @@ contract SoulZap_UniV2 is
 
             _inputToken.forceApprove(_feeSwapPath.swapRouter, inputFeeAmount);
             uint256 amountOut = _routerSwapFromPath(_feeSwapPath, inputFeeAmount, feeCollector, _deadline);
-            _accumulateFeeVolume(amountOut);
+            // Accumulate normalized fee volume
+            _accumulateFeeVolume(TokenHelper.normalizeTokenAmount(outputToken, amountOut));
         } else {
             /// @dev Input token is considered fee token or a token with no output route
             /// In order to not create a denial of service, we take any input token in this case.
             _transferOut(_inputToken, inputFeeAmount, feeCollector, false);
             // Only increase fee volume if input token is a fee token
             if (soulFeeManager.isFeeToken(address(_inputToken))) {
-                _accumulateFeeVolume(inputFeeAmount);
+                // Accumulate normalized fee volume
+                _accumulateFeeVolume(TokenHelper.normalizeTokenAmount(address(_inputToken), inputFeeAmount));
             }
         }
     }

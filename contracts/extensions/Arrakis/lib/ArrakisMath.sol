@@ -57,8 +57,8 @@ library ArrakisMath {
 
         vars.token0decimals = ERC20(address(swapRatioParams.token0)).decimals();
         vars.token1decimals = ERC20(address(swapRatioParams.token1)).decimals();
-        vars.underlying0 = TokenHelper.normalizeTokenAmount(vars.underlying0, uint8(vars.token0decimals));
-        vars.underlying1 = TokenHelper.normalizeTokenAmount(vars.underlying1, uint8(vars.token1decimals));
+        vars.underlying0 = TokenHelper.normalizeAmountByDecimals(vars.underlying0, uint8(vars.token0decimals));
+        vars.underlying1 = TokenHelper.normalizeAmountByDecimals(vars.underlying1, uint8(vars.token1decimals));
 
         vars.weightedPrice0 = swapRatioParams.inputToken == swapRatioParams.token0
             ? 1e18
@@ -113,7 +113,7 @@ library ArrakisMath {
             uint256 tokenDecimals = getTokenDecimals(path[path.length - 1]);
 
             uint256[] memory amountsOut0 = IUniswapV2Router02(uniV2Router).getAmountsOut(1e18, path);
-            weightedPrice = TokenHelper.normalizeTokenAmount(amountsOut0[amountsOut0.length - 1], uint8(tokenDecimals));
+            weightedPrice = TokenHelper.normalizeAmountByDecimals(amountsOut0[amountsOut0.length - 1], uint8(tokenDecimals));
         } else {
             for (uint256 index = 0; index < path.length - 1; index++) {
                 weightedPrice =
