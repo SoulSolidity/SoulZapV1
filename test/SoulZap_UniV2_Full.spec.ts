@@ -160,7 +160,7 @@ describe('SoulZap_UniV2 Full', function () {
 
       await expect(
         soulZap.connect(tokensOwner).zap(zapData.zapParams, zapData.feeSwapPath, { value: ether('1') })
-      ).to.be.revertedWith('SoulZap: tokenIn MUST be NATIVE_ADDRESS with msg.value')
+      ).to.be.revertedWith('SoulZap: msg.value should be 0')
     })
     it('Should pass when msg.value is 0', async function () {
       const {
@@ -672,6 +672,9 @@ describe('SoulZap_UniV2 Full', function () {
           'SoulZap: amountIn must be > 0'
         )
       })
+
+      /*
+      NOTE: This check is done in the Zap contract
       it('Should fail when swap to null address Lens', async function () {
         const {
           dexAndHopTokens_deployment: {
@@ -699,6 +702,7 @@ describe('SoulZap_UniV2 Full', function () {
           )
         ).to.be.revertedWith("SoulZap_UniV2_Lens: Can't swap to null address")
       })
+      */
       it('Should fail when swap to null address Zap', async function () {
         const {
           dexAndHopTokens_deployment: {
@@ -820,7 +824,7 @@ describe('SoulZap_UniV2 Full', function () {
 
         await expect(
           soulZap.connect(tokensOwner).swap(swapData.swapParams, swapData.feeSwapPath)
-        ).to.be.revertedWithCustomError(soulZap, 'EnforcedPause')
+        ).to.be.revertedWith('Pausable: paused')
       })
     })
   })
@@ -1186,6 +1190,9 @@ describe('SoulZap_UniV2 Full', function () {
           'SoulZap: amountIn must be > 0'
         )
       })
+
+      /*
+      // NOTE: This check is done in the Zap contract
       it('Should fail when zap to null address Lens', async function () {
         const {
           dexAndHopTokens_deployment: {
@@ -1211,8 +1218,11 @@ describe('SoulZap_UniV2 Full', function () {
             300,
             ZERO_ADDRESS
           )
-        ).to.be.revertedWith("SoulZap_UniV2_Lens: Can't zap to null address")
+        ).to.be.revertedWith("SoulZap: Can't zap to null address")
       })
+      */
+
+
       it('Should fail when zap to null address Zap', async function () {
         const {
           dexAndHopTokens_deployment: {
@@ -1303,7 +1313,7 @@ describe('SoulZap_UniV2 Full', function () {
 
         await expect(
           soulZap.connect(tokensOwner).zap(zapData.zapParams, zapData.feeSwapPath)
-        ).to.be.revertedWithCustomError(soulZap, 'EnforcedPause')
+        ).to.be.revertedWith('Pausable: paused')
       })
     })
   })
