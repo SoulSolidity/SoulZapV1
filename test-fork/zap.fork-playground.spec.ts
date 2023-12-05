@@ -39,7 +39,7 @@ describe('Fork: SoulZap', function () {
     // Contracts are deployed using the first signer/account by default
     const accounts = await ethers.getSigners()
     const activeAccounts = accounts.slice(0, 9)
-    const [owner, zapReceiver] = activeAccounts
+    const [owner, zapReceiver, zapPauserRole, zapAdminRole] = activeAccounts
     // Impersonate whale
     const whaleSigner = await unlockSigner(WHALE_ADDRESS_POLYGON, '10000')
     // Polygon Onchain Tokens
@@ -47,27 +47,37 @@ describe('Fork: SoulZap', function () {
 
     const chain: DeployableNetworks = 'polygon'
     const { wNative, admin, dexInfo, feeCollector, protocolFee, proxyAdminAddress, maxFee } = getDeployConfig(chain)
-    const zapDeploymentApeBond = await deployZapFixture(ethers, chain)
+    const { soulAccessRegistry, soulFeeManager, soulZap} = await deployZapFixture(ethers, chain)
     const routingDeploymentApeBond = await deployRoutingFixture(
       ethers,
       chain,
-      zapDeploymentApeBond.soulZap.address,
+      soulZap.address,
       dexInfo.ApeBond?.router!
     )
     const routingDeploymentQuickSwap = await deployRoutingFixture(
       ethers,
       chain,
-      zapDeploymentApeBond.soulZap.address,
+      soulZap.address,
       dexInfo.QuickSwap?.router!
     )
+    // MOTE: Setup roles
+    const adminSigner = await unlockSigner(admin);
+    await soulAccessRegistry.connect(adminSigner).grantRoleName('SOUL_ZAP_ADMIN_ROLE', zapAdminRole.address)
+    await soulAccessRegistry.connect(adminSigner).setRoleAdminByName('SOUL_ZAP_PAUSER_ROLE', 'SOUL_ZAP_ADMIN_ROLE')
+    await soulAccessRegistry.connect(zapAdminRole).grantRoleName('SOUL_ZAP_ADMIN_ROLE', zapPauserRole.address)
+  
+    // WHitelist the router
+    await soulZap.connect(zapAdminRole).setRouterWhitelist(dexInfo.QuickSwap?.router!, true);
+    await soulZap.connect(zapAdminRole).setRouterWhitelist(dexInfo.ApeBond?.router!, true);
+    
 
     return {
-      soulZap: zapDeploymentApeBond.soulZap,
-      soulAccessRegistry: zapDeploymentApeBond.soulAccessRegistry,
-      soulFeeManager: zapDeploymentApeBond.soulFeeManager,
+      soulZap: soulZap,
+      soulAccessRegistry: soulAccessRegistry,
+      soulFeeManager: soulFeeManager,
       soulZap_ApeBond_Lens: routingDeploymentApeBond.soulZap_Lens,
       soulZap_Quick_Lens: routingDeploymentQuickSwap.soulZap_Lens,
-      accounts: { whaleSigner, owner, zapReceiver, activeAccounts },
+      accounts: { whaleSigner, owner, zapReceiver, zapPauserRole, zapAdminRole, activeAccounts },
       tokens: { USDC },
     }
   }

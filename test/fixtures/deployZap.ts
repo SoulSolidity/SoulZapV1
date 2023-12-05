@@ -11,7 +11,7 @@ export async function deployZapFixture(_ethers: typeof ethers, chain: Deployable
   const SoulAccessRegistry = (await _ethers.getContractFactory('SoulAccessRegistry')) as SoulAccessRegistry__factory
   const soulAccessRegistry = await SoulAccessRegistry.deploy(true)
   await soulAccessRegistry.initialize(admin)
-  // TODO: Currently using mock contract
+
   const SoulFeeManager = await _ethers.getContractFactory('SoulFeeManager')
   // NOTE: Fixed fee volume using wNative as fee token
   const volumes = [0]

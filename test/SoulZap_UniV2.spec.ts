@@ -74,6 +74,10 @@ export async function fixture() {
 
   await soulAccessRegistry.connect(owner).setRoleAdminByName('FEE_MANAGER_ROLE', 'ADMIN_ROLE')
   await soulAccessRegistry.connect(owner).grantRoleName('FEE_MANAGER_ROLE', feeManagerRole.address)
+
+  // WHitelist the router
+  await soulZap.connect(zapAdminRole).setRouterWhitelist(dexRouter.address, true);
+
   /**
    * Setup Snapshotters
    */

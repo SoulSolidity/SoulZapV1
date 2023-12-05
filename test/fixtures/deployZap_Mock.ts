@@ -69,6 +69,8 @@ export async function deployZap_UniV2_Extended_V1(
     soulFeeManager.address,
     0
   )
+  // NOTE: need to whitelist router to be able to zap/swap. This is done at at higher level currently in the fixture function.
+  // await soulZap.setRouterWhitelist(routerAddress, true);
 
   // Setting up role access for SoulZap
   const [SOUL_ZAP_PAUSER_ROLE, SOUL_ZAP_ADMIN_ROLE] = await Promise.all([

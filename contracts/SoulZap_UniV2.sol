@@ -36,6 +36,7 @@ import {EpochVolumeTracker} from "./utils/EpochVolumeTracker.sol";
 import {ISoulFeeManager} from "./fee-manager/ISoulFeeManager.sol";
 import {ISoulZap_UniV2} from "./ISoulZap_UniV2.sol";
 import {SoulAccessManaged} from "./access/SoulAccessManaged.sol";
+import {SoulZap_UniV2_Whitelist} from "./SoulZap_UniV2_Whitelist.sol";
 import {TransferHelper} from "./utils/TransferHelper.sol";
 import {LocalVarsLib} from "./utils/LocalVarsLib.sol";
 
@@ -55,6 +56,7 @@ import {LocalVarsLib} from "./utils/LocalVarsLib.sol";
 contract SoulZap_UniV2 is
     ISoulZap_UniV2,
     SoulAccessManaged,
+    SoulZap_UniV2_Whitelist,
     EpochVolumeTracker,
     Initializable,
     Pausable,
@@ -351,41 +353,25 @@ contract SoulZap_UniV2 is
         address _to,
         uint256 _deadline
     ) private returns (uint256 amountOut) {
+        require(isRouterWhitelisted(_uniSwapPath.swapRouter), "SoulZap: router not whitelisted");
         require(_uniSwapPath.path.length >= 2, "SoulZap: need path0 of >=2");
+
         address outputToken = _uniSwapPath.path[_uniSwapPath.path.length - 1];
         uint256 balanceBefore = _getBalance(IERC20(outputToken), _to);
-        _routerSwap(
-            _uniSwapPath.swapRouter,
-            _uniSwapPath.swapType,
-            _amountIn,
-            _uniSwapPath.amountOutMin,
-            _uniSwapPath.path,
-            _to,
-            _deadline
-        );
-        amountOut = _getBalance(IERC20(outputToken), _to) - balanceBefore;
-    }
-
-    function _routerSwap(
-        address router,
-        SwapType swapType,
-        uint256 amountIn,
-        uint256 amountOutMin,
-        address[] memory path,
-        address _to,
-        uint256 deadline
-    ) private {
-        if (swapType == SwapType.V2) {
-            IUniswapV2Router02(router).swapExactTokensForTokensSupportingFeeOnTransferTokens(
-                amountIn,
-                amountOutMin,
-                path,
+        // Swap based on swap type
+        if (_uniSwapPath.swapType == SwapType.V2) {
+            IUniswapV2Router02(_uniSwapPath.swapRouter).swapExactTokensForTokensSupportingFeeOnTransferTokens(
+                _amountIn,
+                _uniSwapPath.amountOutMin,
+                _uniSwapPath.path,
                 _to,
-                deadline
+                _deadline
             );
         } else {
             revert("SoulZap: SwapType not supported");
         }
+        // Return the balance increase of the output token sent to _to
+        amountOut = _getBalance(IERC20(outputToken), _to) - balanceBefore;
     }
 
     /// -----------------------------------------------------------------------
