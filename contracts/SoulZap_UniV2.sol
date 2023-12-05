@@ -174,10 +174,9 @@ contract SoulZap_UniV2 is
 
     /// @notice Ultimate ZAP function
     /// @dev Assumes tokens are already transferred to this contract.
-    /// - whenNotPaused: Only works when not paused which also pauses all other extensions which extend this
     /// @param swapParams all parameters for swap
     /// @param feeSwapPath swap path for protocol fee
-    function _swap(SwapParams memory swapParams, SwapPath memory feeSwapPath, bool takeFee) internal whenNotPaused {
+    function _swap(SwapParams memory swapParams, SwapPath memory feeSwapPath, bool takeFee) internal {
         // Verify inputs
         require(swapParams.amountIn > 0, "SoulZap: amountIn must be > 0");
         require(swapParams.to != address(0), "SoulZap: Can't swap to null address");
@@ -241,11 +240,10 @@ contract SoulZap_UniV2 is
 
     /// @notice Ultimate ZAP function
     /// @dev Assumes tokens are already transferred to this contract.
-    /// - whenNotPaused: Only works when not paused which also pauses all other extensions which extend this
     /// - Native input zap MUST be done with Constants.NATIVE_ADDRESS
     /// @param zapParams see ISoulZap_UniV2.ZapParams struct
     /// @param feeSwapPath see ISoulZap_UniV2.SwapPath struct
-    function _zap(ZapParams memory zapParams, SwapPath memory feeSwapPath, bool takeFee) internal whenNotPaused {
+    function _zap(ZapParams memory zapParams, SwapPath memory feeSwapPath, bool takeFee) internal {
         // Verify inputs
         require(zapParams.amountIn > 0, "SoulZap: amountIn must be > 0");
         require(zapParams.to != address(0), "SoulZap: Can't zap to null address");
