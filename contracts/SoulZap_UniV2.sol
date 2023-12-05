@@ -39,6 +39,7 @@ import {SoulAccessManaged} from "./access/SoulAccessManaged.sol";
 import {SoulZap_UniV2_Whitelist} from "./SoulZap_UniV2_Whitelist.sol";
 import {TransferHelper} from "./utils/TransferHelper.sol";
 import {LocalVarsLib} from "./utils/LocalVarsLib.sol";
+import {Sweeper} from "./utils/Sweeper.sol";
 
 /*
 /// @dev The receive method is used as a fallback function in a contract
@@ -61,7 +62,8 @@ contract SoulZap_UniV2 is
     Initializable,
     Pausable,
     ReentrancyGuard,
-    TransferHelper
+    TransferHelper,
+    Sweeper
 {
     using SafeERC20 for IERC20;
 
@@ -72,7 +74,7 @@ contract SoulZap_UniV2 is
     ISoulFeeManager public soulFeeManager;
 
     bytes32 public SOUL_ZAP_PAUSER_ROLE = _getRoleHash("SOUL_ZAP_PAUSER_ROLE");
-    bytes32 public SOUL_ZAP_ADMIN_ROLE = _getRoleHash("SOUL_ZAP_ADMIN_ROLE");
+    // SOUL_ZAP_ADMIN_ROLE in Sweeper.sol
 
     /// -----------------------------------------------------------------------
     /// Events
@@ -91,7 +93,12 @@ contract SoulZap_UniV2 is
         ISoulFeeManager _soulFeeManager,
         /// @dev Set to zero to start epoch tracking immediately
         uint256 _epochStartTime
-    ) SoulAccessManaged(_accessRegistry) EpochVolumeTracker(_epochStartTime, 0) TransferHelper(_wnative) {
+    )
+        SoulAccessManaged(_accessRegistry)
+        EpochVolumeTracker(_epochStartTime, 0)
+        TransferHelper(_wnative)
+        Sweeper(new address[](0), true)
+    {
         require(_soulFeeManager.isSoulFeeManager(), "SoulZap: soulFeeManager is not ISoulFeeManager");
         soulFeeManager = _soulFeeManager;
     }
