@@ -123,7 +123,7 @@ contract SoulAccessRegistry is AccessControlEnumerableUpgradeable {
      * @notice The caller must have the ADMIN_ROLE to call this function.
      */
     function setRoleAdminByName(string memory roleName, string memory adminRoleName) external onlyRole(ADMIN_ROLE) {
-        if(_getRoleHash(roleName) == ADMIN_ROLE) {
+        if (_getRoleHash(roleName) == ADMIN_ROLE) {
             revert SoulAccessRegistryAdminIsHighestRole();
         }
         _setRoleAdminFromName(roleName, adminRoleName);

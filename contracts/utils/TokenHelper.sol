@@ -14,11 +14,9 @@ pragma solidity 0.8.19;
  *     Web: https://SoulSolidity.com
  */
 
-
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 library TokenHelper {
-
     /**
      * @notice Retrieves the number of decimal places used by a given token.
      * @dev If the token supports the IERC20Metadata interface, it will return the token's decimals.
@@ -36,7 +34,7 @@ library TokenHelper {
 
     /**
      * @notice Normalizes the amount of tokens to a standard 18 decimal format.
-     * @dev This function adjusts the amount of tokens to a normalized 18 decimal format, 
+     * @dev This function adjusts the amount of tokens to a normalized 18 decimal format,
      *      taking into account the number of decimal places the token uses.
      * @param token The address of the ERC20 token for which to normalize the amount.
      * @param amount The original amount of tokens to be normalized.

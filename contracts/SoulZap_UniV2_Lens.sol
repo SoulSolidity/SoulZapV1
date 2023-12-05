@@ -146,7 +146,14 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
             uint256 priceImpactPercentage
         )
     {
-        (swapParams, feeSwapPath, priceImpactPercentage) = _getSwapData(tokenIn, amountIn, tokenOut, slippage, to, deadlineOffset);
+        (swapParams, feeSwapPath, priceImpactPercentage) = _getSwapData(
+            tokenIn,
+            amountIn,
+            tokenOut,
+            slippage,
+            to,
+            deadlineOffset
+        );
         encodedTx = abi.encodeCall(ISoulZap_UniV2.swap, (swapParams, feeSwapPath));
     }
 
@@ -270,7 +277,14 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
             uint256[] memory priceImpactPercentages
         )
     {
-        (zapParams, feeSwapPath, priceImpactPercentages) = _getZapData(tokenIn, amountIn, lp, slippage, to, deadlineOffset);
+        (zapParams, feeSwapPath, priceImpactPercentages) = _getZapData(
+            tokenIn,
+            amountIn,
+            lp,
+            slippage,
+            to,
+            deadlineOffset
+        );
         encodedTx = abi.encodeCall(ISoulZap_UniV2.zap, (zapParams, feeSwapPath));
     }
 

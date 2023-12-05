@@ -113,7 +113,10 @@ library ArrakisMath {
             uint256 tokenDecimals = getTokenDecimals(path[path.length - 1]);
 
             uint256[] memory amountsOut0 = IUniswapV2Router02(uniV2Router).getAmountsOut(1e18, path);
-            weightedPrice = TokenHelper.normalizeAmountByDecimals(amountsOut0[amountsOut0.length - 1], uint8(tokenDecimals));
+            weightedPrice = TokenHelper.normalizeAmountByDecimals(
+                amountsOut0[amountsOut0.length - 1],
+                uint8(tokenDecimals)
+            );
         } else {
             for (uint256 index = 0; index < path.length - 1; index++) {
                 weightedPrice =

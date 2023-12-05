@@ -105,7 +105,7 @@ export async function fixture() {
     dexAndHopTokens_deployment,
     ZapUniV2_Extended_V1_deployment,
     settings: {
-      DEADLINE_OFFSET
+      DEADLINE_OFFSET,
     },
     accounts: {
       owner,
@@ -155,7 +155,14 @@ describe('SoulZap_UniV2.sol Tests', function () {
       const tokenIn = ADDRESS_NATIVE
       const lpToken = pairs.hopLpPairs[5]
 
-      const zapData = await soulZap_Lens.getZapData(tokenIn, amountIn, lpToken.address, slippage, zapReceiver.address, DEADLINE_OFFSET)
+      const zapData = await soulZap_Lens.getZapData(
+        tokenIn,
+        amountIn,
+        lpToken.address,
+        slippage,
+        zapReceiver.address,
+        DEADLINE_OFFSET
+      )
 
       const lastSnapshot = await takeERC20BalanceSnapshot()
 
@@ -224,7 +231,14 @@ describe('SoulZap_UniV2.sol Tests', function () {
         const tokenIn = ADDRESS_NATIVE
         const lpToken = pairs.hopLpPairs[5]
 
-        const zapData = await soulZap_Lens.getZapData(tokenIn, amountIn, lpToken.address, slippage, zapReceiver.address, DEADLINE_OFFSET)
+        const zapData = await soulZap_Lens.getZapData(
+          tokenIn,
+          amountIn,
+          lpToken.address,
+          slippage,
+          zapReceiver.address,
+          DEADLINE_OFFSET
+        )
 
         // Check zapReceiver balance before
         const beforeBalance = await lpToken.balanceOf(zapReceiver.address)
