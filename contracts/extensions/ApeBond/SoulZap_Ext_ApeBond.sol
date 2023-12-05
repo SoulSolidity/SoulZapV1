@@ -112,7 +112,7 @@ abstract contract SoulZap_Ext_ApeBond is SoulZap_Ext_BondNftWhitelist, SoulZap_U
             require(swapParams.tokenOut == address(bondPrincipalToken), "ApeBond: Wrong token for Bond");
             to = swapParams.to;
             swapParams.to = address(this);
-            _swap(swapParams, feeSwapPath, skipFee);
+            _swap(swapParams, feeSwapPath, !skipFee);
         } else {
             require(
                 (zapParams.token0 == bondPrincipalToken.token0() && zapParams.token1 == bondPrincipalToken.token1()) ||
@@ -122,7 +122,7 @@ abstract contract SoulZap_Ext_ApeBond is SoulZap_Ext_BondNftWhitelist, SoulZap_U
             );
             to = zapParams.to;
             zapParams.to = address(this);
-            _zap(zapParams, feeSwapPath, skipFee);
+            _zap(zapParams, feeSwapPath, !skipFee);
         }
 
         uint256 balance = bondPrincipalToken.balanceOf(address(this));
