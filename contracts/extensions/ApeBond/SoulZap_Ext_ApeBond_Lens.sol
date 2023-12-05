@@ -66,7 +66,10 @@ abstract contract SoulZap_Ext_ApeBond_Lens is SoulZap_UniV2_Lens {
             slippage,
             to
         );
-        encodedTx = abi.encodeCall(SoulZap_Ext_ApeBond.zapBond, (zapParams, feeSwapPath, bond, zapParamsBonds.maxPrice));
+        encodedTx = abi.encodeCall(
+            SoulZap_Ext_ApeBond.zapBond,
+            (zapParams, feeSwapPath, bond, zapParamsBonds.maxPrice)
+        );
     }
 
     /**

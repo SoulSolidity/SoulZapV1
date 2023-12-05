@@ -22,16 +22,16 @@ import { logger } from 'ethers'
 async function fixture() {
   // Contracts are deployed using the first signer/account by default
   const accounts = await ethers.getSigners()
-  const arrakisMath_Test = await ethers.deployContract('ArrakisMath_Test') as ArrakisMath_Test
+  const arrakisMath_Test = (await ethers.deployContract('ArrakisMath_Test')) as ArrakisMath_Test
 
   type InputsType = {
-    _inputAmount: number,
-    _underlying0: number,
-    _underlying1: number,
-    _weightedPrice0: number,
-    _weightedPrice1: number,
+    _inputAmount: number
+    _underlying0: number
+    _underlying1: number
+    _weightedPrice0: number
+    _weightedPrice1: number
   }
-  
+
   const inputs_0: InputsType = {
     _inputAmount: 1_000_000,
     _underlying0: 1_000_000,
@@ -55,17 +55,23 @@ async function fixture() {
     _weightedPrice1: 1_000_000,
   }
 
-  return { arrakisMath_Test, accounts, inputs: {inputs_0, inputs_1, inputs_2} }
+  return { arrakisMath_Test, accounts, inputs: { inputs_0, inputs_1, inputs_2 } }
 }
 
 describe('ArrakisMath_Test', function () {
   it('inputs_0', async () => {
     logger.info('inputs_0')
-    const { arrakisMath_Test, inputs: {inputs_0, inputs_1} } = await loadFixture(fixture)
+    const {
+      arrakisMath_Test,
+      inputs: { inputs_0, inputs_1 },
+    } = await loadFixture(fixture)
 
-    
-    const getSwapRatio_0_return = await arrakisMath_Test.getSwapRatio_0(...Object.values(inputs_0) as [number, number, number, number, number])
-    const getSwapRatio_1_return = await arrakisMath_Test.getSwapRatio_1(...Object.values(inputs_0) as [number, number, number, number, number])
+    const getSwapRatio_0_return = await arrakisMath_Test.getSwapRatio_0(
+      ...(Object.values(inputs_0) as [number, number, number, number, number])
+    )
+    const getSwapRatio_1_return = await arrakisMath_Test.getSwapRatio_1(
+      ...(Object.values(inputs_0) as [number, number, number, number, number])
+    )
 
     console.dir({
       getSwapRatio_0_return: formatBNValueToString(getSwapRatio_0_return),
@@ -78,11 +84,17 @@ describe('ArrakisMath_Test', function () {
 
   it('inputs_1', async () => {
     logger.info('inputs_1')
-    const { arrakisMath_Test, inputs: {inputs_1} } = await loadFixture(fixture)
+    const {
+      arrakisMath_Test,
+      inputs: { inputs_1 },
+    } = await loadFixture(fixture)
 
-    
-    const getSwapRatio_0_return = await arrakisMath_Test.getSwapRatio_0(...Object.values(inputs_1) as [number, number, number, number, number])
-    const getSwapRatio_1_return = await arrakisMath_Test.getSwapRatio_1(...Object.values(inputs_1) as [number, number, number, number, number])
+    const getSwapRatio_0_return = await arrakisMath_Test.getSwapRatio_0(
+      ...(Object.values(inputs_1) as [number, number, number, number, number])
+    )
+    const getSwapRatio_1_return = await arrakisMath_Test.getSwapRatio_1(
+      ...(Object.values(inputs_1) as [number, number, number, number, number])
+    )
 
     console.dir({
       getSwapRatio_0_return: formatBNValueToString(getSwapRatio_0_return),

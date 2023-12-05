@@ -30,7 +30,7 @@ contract ArrakisMath_Test {
         // Calculate the total weighted value
         uint256 totalWeightedValue = _underlying0 * _weightedPrice0 + _underlying1 * _weightedPrice1;
         // Ensure totalWeightedValue is not zero to prevent division by zero
-        if(totalWeightedValue == 0) {
+        if (totalWeightedValue == 0) {
             return (0, 0);
         }
 
@@ -39,7 +39,7 @@ contract ArrakisMath_Test {
         uint256 percentage1 = (_underlying1 * _weightedPrice1 * 1e18) / totalWeightedValue;
         uint256 totalPercentage = percentage0 + percentage1;
         // Ensure totalPercentage is not zero to prevent division by zero
-        if(totalPercentage == 0) {
+        if (totalPercentage == 0) {
             return (0, 0);
         }
         // Calculate amounts

@@ -17,11 +17,10 @@ pragma solidity 0.8.19;
 import {AccessControlEnumerableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 
 contract SoulAccessRegistry is AccessControlEnumerableUpgradeable {
-
     /// -----------------------------------------------------------------------
     /// Storage variables
     /// -----------------------------------------------------------------------
-    
+
     /// @notice Initial Admin role
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
 
@@ -33,7 +32,7 @@ contract SoulAccessRegistry is AccessControlEnumerableUpgradeable {
     /// -----------------------------------------------------------------------
     /// Events
     /// -----------------------------------------------------------------------
-    
+
     event RoleNameCreated(string role, bytes32 roleHash);
 
     /// -----------------------------------------------------------------------
@@ -45,13 +44,13 @@ contract SoulAccessRegistry is AccessControlEnumerableUpgradeable {
     /// -----------------------------------------------------------------------
     /// Constructor + Initializer
     /// -----------------------------------------------------------------------
-    
+
     /**
      * @dev Constructor for SoulAccessRegistry contract.
      * @param _enableInitializers Defaults to disable initializers.
      */
     constructor(bool _enableInitializers) {
-        if(!_enableInitializers) {
+        if (!_enableInitializers) {
             _disableInitializers();
         }
     }

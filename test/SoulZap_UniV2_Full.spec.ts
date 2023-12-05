@@ -822,9 +822,9 @@ describe('SoulZap_UniV2 Full', function () {
           zapReceiver.address
         )
 
-        await expect(
-          soulZap.connect(tokensOwner).swap(swapData.swapParams, swapData.feeSwapPath)
-        ).to.be.revertedWith('Pausable: paused')
+        await expect(soulZap.connect(tokensOwner).swap(swapData.swapParams, swapData.feeSwapPath)).to.be.revertedWith(
+          'Pausable: paused'
+        )
       })
     })
   })
@@ -1222,7 +1222,6 @@ describe('SoulZap_UniV2 Full', function () {
       })
       */
 
-
       it('Should fail when zap to null address Zap', async function () {
         const {
           dexAndHopTokens_deployment: {
@@ -1311,9 +1310,9 @@ describe('SoulZap_UniV2 Full', function () {
 
         console.log(zapData)
 
-        await expect(
-          soulZap.connect(tokensOwner).zap(zapData.zapParams, zapData.feeSwapPath)
-        ).to.be.revertedWith('Pausable: paused')
+        await expect(soulZap.connect(tokensOwner).zap(zapData.zapParams, zapData.feeSwapPath)).to.be.revertedWith(
+          'Pausable: paused'
+        )
       })
     })
   })

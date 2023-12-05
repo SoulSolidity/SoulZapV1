@@ -67,7 +67,7 @@ async function main() {
   )
   console.log('SoulZap_UniV2 contract deployed at:', routingContract.address)
 
-  await delay(20000);
+  await delay(20000)
   // await deployManager.addDeployedContract('20231122-polygon-deployment.json')
   await deployManager.verifyContracts()
 }
