@@ -13,10 +13,10 @@ import {SoulAccessManaged} from "../access/SoulAccessManaged.sol";
  * This contract makes sure any erc20 tokens can be removed from the contract.
  */
 abstract contract Sweeper is SoulAccessManaged {
-    bytes32 public SOUL_ZAP_ADMIN_ROLE = _getRoleHash("SOUL_ZAP_ADMIN_ROLE");
+    bytes32 private immutable sweeperAdminRole;
 
     struct NFT {
-        IERC721 nftaddress;
+        IERC721 nftAddress;
         uint256[] ids;
     }
     mapping(address => bool) public lockedTokens;
@@ -28,16 +28,17 @@ abstract contract Sweeper is SoulAccessManaged {
 
     event SweepWithdrawNative(address indexed receiver, uint256 balance);
 
-    constructor(address[] memory _lockedTokens, bool _allowNativeSweep) {
-        lockTokens(_lockedTokens);
+    constructor(address[] memory _lockedTokens, bool _allowNativeSweep, bytes32 _sweeperAdminRole) {
+        _lockTokens(_lockedTokens);
         allowNativeSweep = _allowNativeSweep;
+        sweeperAdminRole = _sweeperAdminRole;
     }
 
     /**
      * @dev Transfers erc20 tokens to owner
      * Only owner of contract can call this function
      */
-    function sweepTokens(IERC20[] memory tokens, address to) public onlyAccessRegistryRole(SOUL_ZAP_ADMIN_ROLE) {
+    function sweepTokens(IERC20[] memory tokens, address to) external onlyAccessRegistryRole(sweeperAdminRole) {
         NFT[] memory empty;
         sweepTokensAndNFTs(tokens, empty, to);
     }
@@ -46,7 +47,7 @@ abstract contract Sweeper is SoulAccessManaged {
      * @dev Transfers NFT to owner
      * Only owner of contract can call this function
      */
-    function sweepNFTs(NFT[] memory nfts, address to) public onlyAccessRegistryRole(SOUL_ZAP_ADMIN_ROLE) {
+    function sweepNFTs(NFT[] memory nfts, address to) external onlyAccessRegistryRole(sweeperAdminRole) {
         IERC20[] memory empty;
         sweepTokensAndNFTs(empty, nfts, to);
     }
@@ -59,7 +60,7 @@ abstract contract Sweeper is SoulAccessManaged {
         IERC20[] memory tokens,
         NFT[] memory nfts,
         address to
-    ) public onlyAccessRegistryRole(SOUL_ZAP_ADMIN_ROLE) {
+    ) public onlyAccessRegistryRole(sweeperAdminRole) {
         for (uint256 i = 0; i < tokens.length; i++) {
             IERC20 token = tokens[i];
             require(!lockedTokens[address(token)], "Tokens can't be swept");
@@ -69,11 +70,11 @@ abstract contract Sweeper is SoulAccessManaged {
         }
 
         for (uint256 i = 0; i < nfts.length; i++) {
-            IERC721 nftaddress = nfts[i].nftaddress;
-            require(!lockedTokens[address(nftaddress)], "Tokens can't be swept");
+            IERC721 nftAddress = nfts[i].nftAddress;
+            require(!lockedTokens[address(nftAddress)], "Tokens can't be swept");
             uint256[] memory ids = nfts[i].ids;
             for (uint256 j = 0; j < ids.length; j++) {
-                nftaddress.safeTransferFrom(address(this), to, ids[j]);
+                nftAddress.safeTransferFrom(address(this), to, ids[j]);
             }
         }
         emit SweepWithdrawNFTs(to, nfts);
@@ -81,7 +82,7 @@ abstract contract Sweeper is SoulAccessManaged {
 
     /// @notice Sweep native coin
     /// @param _to address the native coins should be transferred to
-    function sweepNative(address payable _to) public onlyAccessRegistryRole(SOUL_ZAP_ADMIN_ROLE) {
+    function sweepNative(address payable _to) external onlyAccessRegistryRole(sweeperAdminRole) {
         require(allowNativeSweep, "Not allowed");
         uint256 balance = address(this).balance;
         _to.transfer(balance);
@@ -92,7 +93,7 @@ abstract contract Sweeper is SoulAccessManaged {
      * @dev Refuse native sweep.
      * Once refused can't be allowed again
      */
-    function refuseNativeSweep() public onlyAccessRegistryRole(SOUL_ZAP_ADMIN_ROLE) {
+    function refuseNativeSweep() external onlyAccessRegistryRole(sweeperAdminRole) {
         allowNativeSweep = false;
     }
 
@@ -100,17 +101,23 @@ abstract contract Sweeper is SoulAccessManaged {
      * @dev Lock single token so they can't be transferred from the contract.
      * Once locked it can't be unlocked
      */
-    function lockToken(address token) public onlyAccessRegistryRole(SOUL_ZAP_ADMIN_ROLE) {
-        lockedTokens[token] = true;
+    function lockToken(address token) external onlyAccessRegistryRole(sweeperAdminRole) {
+        address[] memory tokenArray = new address[](1);
+        tokenArray[0] = token;
+        _lockTokens(tokenArray);
     }
 
     /**
      * @dev Lock multiple tokens so they can't be transferred from the contract.
      * Once locked it can't be unlocked
      */
-    function lockTokens(address[] memory tokens) public onlyAccessRegistryRole(SOUL_ZAP_ADMIN_ROLE) {
+    function lockTokens(address[] memory tokens) external onlyAccessRegistryRole(sweeperAdminRole) {
+        _lockTokens(tokens);
+    }
+
+    function _lockTokens(address[] memory tokens) private {
         for (uint256 i = 0; i < tokens.length; i++) {
-            lockToken(tokens[i]);
+            lockedTokens[tokens[i]] = true;
         }
     }
 }

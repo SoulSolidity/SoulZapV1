@@ -74,8 +74,8 @@ contract SoulZap_UniV2 is
 
     ISoulFeeManager public soulFeeManager;
 
+    bytes32 public SOUL_ZAP_ADMIN_ROLE = _getRoleHash("SOUL_ZAP_ADMIN_ROLE");
     bytes32 public SOUL_ZAP_PAUSER_ROLE = _getRoleHash("SOUL_ZAP_PAUSER_ROLE");
-    // SOUL_ZAP_ADMIN_ROLE in Sweeper.sol
 
     /// -----------------------------------------------------------------------
     /// Events
@@ -98,7 +98,7 @@ contract SoulZap_UniV2 is
         SoulAccessManaged(_accessRegistry)
         EpochVolumeTracker(_epochStartTime, 0)
         TransferHelper(_wnative)
-        Sweeper(new address[](0), true)
+        Sweeper(new address[](0), true, SOUL_ZAP_ADMIN_ROLE)
     {
         require(_soulFeeManager.isSoulFeeManager(), "SoulZap: soulFeeManager is not ISoulFeeManager");
         soulFeeManager = _soulFeeManager;
