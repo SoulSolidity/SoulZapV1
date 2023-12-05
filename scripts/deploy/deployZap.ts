@@ -31,7 +31,7 @@ async function main() {
     const SoulAccessRegistryContract = await ethers.getContractFactory(SoulAccessRegistry)
     const soulAccessRegistryContract = await deployManager.deployContractFromFactory(
       SoulAccessRegistryContract,
-      [],
+      [true],
       SoulAccessRegistry
     )
     await soulAccessRegistryContract.initialize(admin)

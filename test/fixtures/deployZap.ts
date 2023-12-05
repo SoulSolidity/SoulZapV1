@@ -9,7 +9,7 @@ export async function deployZapFixture(_ethers: typeof ethers, chain: Deployable
   const [owner, otherAccount] = await _ethers.getSigners()
 
   const SoulAccessRegistry = (await _ethers.getContractFactory('SoulAccessRegistry')) as SoulAccessRegistry__factory
-  const soulAccessRegistry = await SoulAccessRegistry.deploy()
+  const soulAccessRegistry = await SoulAccessRegistry.deploy(true)
   await soulAccessRegistry.initialize(admin)
   // TODO: Currently using mock contract
   const SoulFeeManager = await _ethers.getContractFactory('SoulFeeManager')

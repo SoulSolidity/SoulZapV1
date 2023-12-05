@@ -30,7 +30,7 @@ export async function deployZapSetup_Mock(
   feeTokens: string[]
 ) {
   const SoulAccessRegistry = (await _ethers.getContractFactory('SoulAccessRegistry')) as SoulAccessRegistry__factory
-  const soulAccessRegistry = await SoulAccessRegistry.deploy()
+  const soulAccessRegistry = await SoulAccessRegistry.deploy(true)
   await soulAccessRegistry.initialize(accessManagerAdmin)
 
   // NOTE: Can support multiple fee tokens, only passing 1

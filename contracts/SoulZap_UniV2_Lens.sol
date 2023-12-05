@@ -59,8 +59,6 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
     /// Storage variables internal/private
     /// -----------------------------------------------------------------------
 
-    bytes4 private constant _ZAP_SELECTOR = ISoulZap_UniV2.zap.selector;
-    bytes4 private constant _SWAP_SELECTOR = ISoulZap_UniV2.swap.selector;
     uint256 private constant _ACCEPTED_FEE_PRICE_IMPACT = (3 * Constants.DENOMINATOR) / 100; // 3%
 
     EnumerableSet.AddressSet private _hopTokens;
@@ -147,7 +145,7 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
         )
     {
         (swapParams, feeSwapPath, priceImpactPercentage) = _getSwapData(tokenIn, amountIn, tokenOut, slippage, to);
-        encodedTx = abi.encodeWithSelector(_SWAP_SELECTOR, swapParams, feeSwapPath);
+        encodedTx = abi.encodeCall(ISoulZap_UniV2.swap, (swapParams, feeSwapPath));
     }
 
     /**
@@ -266,7 +264,7 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
         )
     {
         (zapParams, feeSwapPath, priceImpactPercentages) = _getZapData(tokenIn, amountIn, lp, slippage, to);
-        encodedTx = abi.encodeWithSelector(_ZAP_SELECTOR, zapParams, feeSwapPath);
+        encodedTx = abi.encodeCall(ISoulZap_UniV2.zap, (zapParams, feeSwapPath));
     }
 
     /**

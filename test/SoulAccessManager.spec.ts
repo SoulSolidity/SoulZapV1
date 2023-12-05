@@ -22,7 +22,7 @@ async function fixture() {
   // Contracts are deployed using the first signer/account by default
   const [admin, manager, notAdmin] = await ethers.getSigners()
 
-  const soulAccessRegistry = await (await ethers.getContractFactory('SoulAccessRegistry')).deploy()
+  const soulAccessRegistry = await (await ethers.getContractFactory('SoulAccessRegistry')).deploy(true)
   await soulAccessRegistry.initialize(admin.address)
   const soulAccessRegistrySnapshot = async () =>
     await getContractGetterSnapshot(soulAccessRegistry, [
@@ -56,7 +56,7 @@ async function fixture() {
 }
 
 describe('SoulAccessRegistry', function () {
-  it('Should be able to load fixture', async () => {
+  it('Should verify that two roles have the correct access.', async () => {
     const {
       contracts: { soulAccessRegistry, soulAccessRegistryMock },
       snapshotters: { soulAccessRegistrySnapshot },
