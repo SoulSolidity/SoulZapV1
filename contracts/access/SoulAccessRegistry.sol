@@ -17,16 +17,38 @@ pragma solidity 0.8.19;
 import {AccessControlEnumerableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 
 contract SoulAccessRegistry is AccessControlEnumerableUpgradeable {
+
+    /// -----------------------------------------------------------------------
+    /// Storage variables
+    /// -----------------------------------------------------------------------
+    
+    /// @notice Initial Admin role
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
 
-    // Mapping for role existence to prevent duplicates
+    /// @notice Mapping for role existence to prevent duplicates
     mapping(string => bool) public roleNameExists;
-    // Array to keep track of all human-readable roles
+    /// @notice  Array to keep track of all human-readable roles
     string[] private _roleNamesList;
 
+    /// -----------------------------------------------------------------------
+    /// Events
+    /// -----------------------------------------------------------------------
+    
     event RoleNameCreated(string role, bytes32 roleHash);
 
+    /// -----------------------------------------------------------------------
+    /// Errors
+    /// -----------------------------------------------------------------------
+
     error SoulAccessRegistryIndexOutOfBounds(uint256 index);
+
+    /// -----------------------------------------------------------------------
+    /// Constructor + Initializer
+    /// -----------------------------------------------------------------------
+    
+    constructor() {
+        _disableInitializers();
+    }
 
     function initialize(address _initialAdmin) external initializer {
         __AccessControlEnumerable_init();
