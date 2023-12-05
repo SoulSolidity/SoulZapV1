@@ -89,7 +89,7 @@ contract SoulZap_UniV2 is
         ISoulFeeManager _soulFeeManager,
         /// @dev Set to zero to start epoch tracking immediately
         uint256 _epochStartTime
-    ) SoulAccessManaged(_accessRegistry) EpochVolumeTracker(0, _epochStartTime) TransferHelper(_wnative) {
+    ) SoulAccessManaged(_accessRegistry) EpochVolumeTracker(_epochStartTime, 0) TransferHelper(_wnative) {
         require(_soulFeeManager.isSoulFeeManager(), "SoulZap: soulFeeManager is not ISoulFeeManager");
         soulFeeManager = _soulFeeManager;
     }
