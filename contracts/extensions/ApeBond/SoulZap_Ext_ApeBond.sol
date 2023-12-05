@@ -47,8 +47,6 @@ abstract contract SoulZap_Ext_ApeBond is SoulZap_Ext_BondNftWhitelist, SoulZap_U
 
     event ZapBond(ZapParams zapParams, ICustomBillRefillable bond, uint256 maxPrice);
 
-    constructor() {}
-
     /// -----------------------------------------------------------------------
     /// External Functions
     /// -----------------------------------------------------------------------
