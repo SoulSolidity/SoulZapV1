@@ -27,6 +27,7 @@ import {IUniswapV2Router02} from "@uniswap/v2-periphery/contracts/interfaces/IUn
 /// Internal Imports
 /// -----------------------------------------------------------------------
 import {Constants} from "./utils/Constants.sol";
+import {TokenHelper} from "./utils/TokenHelper.sol";
 import {SoulAccessManaged} from "./access/SoulAccessManaged.sol";
 import {ISoulZap_UniV2} from "./ISoulZap_UniV2.sol";
 import {IWETH} from "./lib/IWETH.sol";
@@ -693,7 +694,8 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
 
         feeVars.feePercentage = currentFeePercentage;
         feeVars.feeAmount = (_amountIn * currentFeePercentage) / feeDenominator;
-
+        // Keep track of the output normalized to 18 decimals
+        uint256 normalizedBestAmountOut = 0;
         for (uint256 i = 0; i < feeTokens.length; i++) {
             feeVars.feeToken = feeTokens[i];
             (ISoulZap_UniV2.SwapPath memory bestPath, uint256 priceImpactPercentage) = _getBestSwapPathWithImpact(
@@ -702,7 +704,11 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
                 feeVars.feeAmount,
                 _slippage
             );
-            if (bestPath.amountOutMin > feeSwapPath.amountOutMin) {
+            // Pull token decimals to normalize amountOut
+            uint8 feeTokenDecimals = TokenHelper.getTokenDecimals(feeVars.feeToken);
+            uint256 normalizedAmountOut = TokenHelper.normalizeTokenAmount(bestPath.amountOutMin, feeTokenDecimals);
+            if (normalizedAmountOut > normalizedBestAmountOut) {
+                normalizedBestAmountOut = normalizedAmountOut;
                 feeSwapPath = bestPath;
                 // To save gas usage we break if we get any accepted fee price impact
                 // If no path has an accepted fee price impact we just take the best one

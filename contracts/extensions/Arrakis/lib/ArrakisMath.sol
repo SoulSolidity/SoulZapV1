@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "./IArrakisFactoryV1.sol";
+import "../../../utils/TokenHelper.sol";
 
 library ArrakisMath {
     struct SwapRatioParams {
@@ -56,8 +57,8 @@ library ArrakisMath {
 
         vars.token0decimals = ERC20(address(swapRatioParams.token0)).decimals();
         vars.token1decimals = ERC20(address(swapRatioParams.token1)).decimals();
-        vars.underlying0 = _normalizeTokenDecimals(vars.underlying0, vars.token0decimals);
-        vars.underlying1 = _normalizeTokenDecimals(vars.underlying1, vars.token1decimals);
+        vars.underlying0 = TokenHelper.normalizeTokenAmount(vars.underlying0, uint8(vars.token0decimals));
+        vars.underlying1 = TokenHelper.normalizeTokenAmount(vars.underlying1, uint8(vars.token1decimals));
 
         vars.weightedPrice0 = swapRatioParams.inputToken == swapRatioParams.token0
             ? 1e18
@@ -96,27 +97,6 @@ library ArrakisMath {
         amount1 = swapRatioParams.inputAmount - amount0;
     }
 
-    /**
-     * @notice Adjusts the amount of tokens to a normalized 18 decimal format.
-     * @dev Tokens with less than 18 decimals will loose precision to 18 decimals.
-     * @param amount The original amount of tokens with `decimals` decimal places.
-     * @param decimals The number of decimal places the token uses.
-     * @return The adjusted amount of tokens, normalized to 18 decimal places.
-     */
-    function _normalizeTokenDecimals(uint256 amount, uint256 decimals) internal pure returns (uint256) {
-        // If the token has more than 18 decimals, we divide the amount to normalize to 18 decimals.
-        if (decimals > 18) {
-            // Dividing by 10 ** (decimals - 18) to reduce the number of decimals.
-            return amount / 10 ** (decimals - 18);
-        } else if (decimals < 18) {
-            // Multiplying by 10 ** (18 - decimals) to increase the number of decimals.
-            return amount * 10 ** (18 - decimals);
-        } else {
-            // If the token already has 18 decimals, return the amount unchanged.
-            return amount;
-        }
-    }
-
     /// @notice Returns value based on other token
     /// @param path swap path
     /// @param uniV3PoolFees uniV3 pool fees from path Lps
@@ -133,7 +113,7 @@ library ArrakisMath {
             uint256 tokenDecimals = getTokenDecimals(path[path.length - 1]);
 
             uint256[] memory amountsOut0 = IUniswapV2Router02(uniV2Router).getAmountsOut(1e18, path);
-            weightedPrice = _normalizeTokenDecimals(amountsOut0[amountsOut0.length - 1], tokenDecimals);
+            weightedPrice = TokenHelper.normalizeTokenAmount(amountsOut0[amountsOut0.length - 1], uint8(tokenDecimals));
         } else {
             for (uint256 index = 0; index < path.length - 1; index++) {
                 weightedPrice =
