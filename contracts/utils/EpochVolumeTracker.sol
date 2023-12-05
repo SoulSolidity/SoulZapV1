@@ -87,16 +87,13 @@ contract EpochVolumeTracker is IEpochVolumeTracker {
             uint256 epochDuration
         )
     {
-        epochVolume = getEpochVolume();
-        timeLeftInEpoch = getTimeLeftInEpoch();
-        epochDuration = _EPOCH_DURATION;
         return (
-            epochVolume,
-            lifetimeCumulativeVolume,
-            epochStartCumulativeVolume,
-            lastEpochStartTime,
-            timeLeftInEpoch,
-            epochDuration
+            getEpochVolume(),
+            _lifetimeCumulativeVolume,
+            _epochStartCumulativeVolume,
+            _lastEpochStartTime,
+            getTimeLeftInEpoch(),
+            _EPOCH_DURATION
         );
     }
 
