@@ -54,7 +54,6 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
     ISoulZap_UniV2 public soulZap;
 
     uint256 public constant MAX_HOP_TOKENS = 20;
-    uint256 public constant DEADLINE = 20 minutes;
 
     /// -----------------------------------------------------------------------
     /// Storage variables internal/private
@@ -124,6 +123,7 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
      * @param tokenOut The output token of swap.
      * @param slippage The slippage tolerance (1 = 0.01%, 100 = 1%).
      * @param to The address to receive the swapped tokens.
+     * @param deadlineOffset The number of seconds into the future for which the data will be valid.
      * @return swapParams SwapParams structure containing relevant data.
      * @return encodedTx Encoded transaction with the given parameters.
      * @return feeSwapPath SwapPath for protocol fees
@@ -134,7 +134,8 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
         uint256 amountIn,
         address tokenOut,
         uint256 slippage,
-        address to
+        address to,
+        uint256 deadlineOffset
     )
         public
         view
@@ -145,7 +146,7 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
             uint256 priceImpactPercentage
         )
     {
-        (swapParams, feeSwapPath, priceImpactPercentage) = _getSwapData(tokenIn, amountIn, tokenOut, slippage, to);
+        (swapParams, feeSwapPath, priceImpactPercentage) = _getSwapData(tokenIn, amountIn, tokenOut, slippage, to, deadlineOffset);
         encodedTx = abi.encodeCall(ISoulZap_UniV2.swap, (swapParams, feeSwapPath));
     }
 
@@ -155,6 +156,7 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
      * @param tokenOut The output token of swap.
      * @param slippage The slippage tolerance percentage. See Constants.DENOMINATOR for percentage denominator.
      * @param to The address to receive the zapped tokens.
+     * @param deadlineOffset The number of seconds into the future for which the data will be valid.
      * @return swapParams SwapParams structure containing relevant data.
      * @return encodedTx Encoded transaction with the given parameters.
      * @return feeSwapPath SwapPath for protocol fees
@@ -164,7 +166,8 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
         uint256 amountIn,
         address tokenOut,
         uint256 slippage,
-        address to
+        address to,
+        uint256 deadlineOffset
     )
         public
         view
@@ -175,7 +178,7 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
             uint256 priceImpactPercentage
         )
     {
-        return getSwapData(Constants.NATIVE_ADDRESS, amountIn, tokenOut, slippage, to);
+        return getSwapData(Constants.NATIVE_ADDRESS, amountIn, tokenOut, slippage, to, deadlineOffset);
     }
 
     /**
@@ -194,7 +197,8 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
         uint256 amountIn,
         address tokenOut,
         uint256 slippage,
-        address to
+        address to,
+        uint256 deadlineOffset
     )
         internal
         view
@@ -227,7 +231,7 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
             amountIn: amountIn, // Use full input amount here
             tokenOut: tokenOut,
             to: to,
-            deadline: block.timestamp + DEADLINE,
+            deadline: block.timestamp + deadlineOffset,
             path: swapPath
         });
     }
@@ -243,6 +247,7 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
      * @param lp The Uniswap V2 pair contract.
      * @param slippage The slippage tolerance (1 = 0.01%, 100 = 1%).
      * @param to The address to receive the zapped tokens.
+     * @param deadlineOffset The number of seconds into the future for which the data will be valid.
      * @return zapParams ZapParams structure containing relevant data.
      * @return encodedTx Encoded transaction with the given parameters.
      * @return feeSwapPath SwapPath for protocol fees
@@ -253,7 +258,8 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
         uint256 amountIn,
         IUniswapV2Pair lp,
         uint256 slippage,
-        address to
+        address to,
+        uint256 deadlineOffset
     )
         public
         view
@@ -264,7 +270,7 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
             uint256[] memory priceImpactPercentages
         )
     {
-        (zapParams, feeSwapPath, priceImpactPercentages) = _getZapData(tokenIn, amountIn, lp, slippage, to);
+        (zapParams, feeSwapPath, priceImpactPercentages) = _getZapData(tokenIn, amountIn, lp, slippage, to, deadlineOffset);
         encodedTx = abi.encodeCall(ISoulZap_UniV2.zap, (zapParams, feeSwapPath));
     }
 
@@ -274,6 +280,7 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
      * @param lp The Uniswap V2 pair contract.
      * @param slippage The slippage tolerance percentage. See Constants.DENOMINATOR for percentage denominator.
      * @param to The address to receive the zapped tokens.
+     * @param deadlineOffset The number of seconds into the future for which the data will be valid.
      * @return zapParams ZapParams structure containing relevant data.
      * @return encodedTx Encoded transaction with the given parameters.
      * @return feeSwapPath SwapPath for protocol fees
@@ -283,7 +290,8 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
         uint256 amountIn,
         IUniswapV2Pair lp,
         uint256 slippage,
-        address to
+        address to,
+        uint256 deadlineOffset
     )
         public
         view
@@ -294,7 +302,7 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
             uint256[] memory priceImpactPercentages
         )
     {
-        return getZapData(Constants.NATIVE_ADDRESS, amountIn, lp, slippage, to);
+        return getZapData(Constants.NATIVE_ADDRESS, amountIn, lp, slippage, to, deadlineOffset);
     }
 
     /**
@@ -313,7 +321,8 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
         uint256 amountIn,
         IUniswapV2Pair lp,
         uint256 slippage,
-        address to
+        address to,
+        uint256 deadlineOffset
     )
         internal
         view
@@ -337,7 +346,7 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
             tokenIn = address(WNATIVE);
         }
 
-        zapParams.deadline = block.timestamp + DEADLINE;
+        zapParams.deadline = block.timestamp + deadlineOffset;
         zapParams.amountIn = amountIn; // Use full input amount here
         // Set input token to NATIVE_ADDRESS if nativeZap
         zapParams.tokenIn = nativeZap ? IERC20(Constants.NATIVE_ADDRESS) : IERC20(tokenIn);

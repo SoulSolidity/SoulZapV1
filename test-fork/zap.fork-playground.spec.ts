@@ -79,6 +79,7 @@ describe('Fork: SoulZap', function () {
       soulZap_Quick_Lens: routingDeploymentQuickSwap.soulZap_Lens,
       accounts: { whaleSigner, owner, zapReceiver, zapPauserRole, zapAdminRole, activeAccounts },
       tokens: { USDC },
+      settings: { DEADLINE_OFFSET: 60 * 20 },
     }
   }
 
@@ -92,6 +93,7 @@ describe('Fork: SoulZap', function () {
         soulZap_Quick_Lens,
         accounts: { whaleSigner, zapReceiver },
         tokens: { USDC },
+        settings: { DEADLINE_OFFSET },
       } = await loadFixture(fixture)
       const amount = '1000000'
 
@@ -100,7 +102,8 @@ describe('Fork: SoulZap', function () {
         amount,
         '0x65D43B64E3B31965Cd5EA367D4c2b94c03084797',
         0,
-        zapReceiver.address
+        zapReceiver.address,
+        DEADLINE_OFFSET
       )
 
       await USDC.connect(whaleSigner).approve(soulZap.address, amount)
@@ -118,6 +121,7 @@ describe('Fork: SoulZap', function () {
         soulZap_ApeBond_Lens,
         soulZap_Quick_Lens,
         accounts: { whaleSigner, zapReceiver },
+        settings: { DEADLINE_OFFSET },
       } = await loadFixture(fixture)
       const amount = '1000000'
 
@@ -125,7 +129,8 @@ describe('Fork: SoulZap', function () {
         amount,
         '0xefE300c0d5c4A6F3106B28668082689b4e18B8D1',
         0,
-        zapReceiver.address
+        zapReceiver.address,
+        DEADLINE_OFFSET
       )
       console.log(JSON.stringify(bestRoute))
 
