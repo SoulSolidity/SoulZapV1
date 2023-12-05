@@ -439,11 +439,6 @@ contract SoulZap_UniV2 is
         inputFeeAmount = (_inputAmount * feePercentage) / feeDenominator;
 
         if (_feeSwapPath.path.length >= 2) {
-            require(_feeSwapPath.path.length <= 4, "SoulZap: Path too long");
-            if (_feeSwapPath.path.length == 4) {
-                require(_feeSwapPath.path[0] != _feeSwapPath.path[2], "SoulZap: Duplicate token in path");
-                require(_feeSwapPath.path[3] != _feeSwapPath.path[1], "SoulZap: Duplicate token in path");
-            }
             require(address(_inputToken) == _feeSwapPath.path[0], "SoulZap: Invalid input token in feeSwapPath");
             address outputToken = _feeSwapPath.path[_feeSwapPath.path.length - 1];
             require(soulFeeManager.isFeeToken(outputToken), "SoulZap: Invalid output token in feeSwapPath");

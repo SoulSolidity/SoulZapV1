@@ -507,10 +507,17 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
         // -----------------------------------------------------------------------
         // Iterate through all possible pairs to find the best path
         for (uint i = 0; i < fromTokenHopTokens.length; i++) {
+            /// @dev In this case, _toToken will be used twice in the path
+            if (fromTokenHopTokens[i] == _toToken) {
+                continue;
+            }
             for (uint j = 0; j < toTokenHopTokens.length; j++) {
-                if (_fromToken == sharedHopTokens[j] || _toToken == sharedHopTokens[i]) continue;
-                // Skip if they equal each other as this is handled in the sharedHopTokens section
-                if (fromTokenHopTokens[i] == toTokenHopTokens[j]) {
+                if (
+                    /// @dev In this case, _fromToken will be used twice in the path
+                    _fromToken == toTokenHopTokens[j] ||
+                    // Skip if they equal each other as this is handled in the sharedHopTokens section
+                    fromTokenHopTokens[i] == toTokenHopTokens[j]
+                ) {
                     continue;
                 }
 
