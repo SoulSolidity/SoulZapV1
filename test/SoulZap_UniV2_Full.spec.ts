@@ -59,7 +59,6 @@ describe('SoulZap_UniV2 Full', function () {
           pairs,
         },
         ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
-        settings: { DEADLINE_OFFSET },
         accounts: { owner, feeTo, tokensOwner, zapReceiver, feeCollector, recipient },
         snapshotters: { takeERC20BalanceSnapshot, takeFeeSnapshot },
       } = await loadFixture(fixture)
@@ -83,7 +82,6 @@ describe('SoulZap_UniV2 Full', function () {
           pairs,
         },
         ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
-          settings: { DEADLINE_OFFSET },
         accounts: { owner, feeTo, tokensOwner, zapReceiver, feeCollector, recipient },
         snapshotters: { takeERC20BalanceSnapshot, takeFeeSnapshot },
       } = await loadFixture(fixture)
@@ -100,7 +98,6 @@ describe('SoulZap_UniV2 Full', function () {
           pairs,
         },
         ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
-        settings: { DEADLINE_OFFSET },
         accounts: { owner, feeTo, tokensOwner, zapReceiver, feeCollector, recipient },
         snapshotters: { takeERC20BalanceSnapshot, takeFeeSnapshot },
       } = await loadFixture(fixture)
@@ -122,7 +119,6 @@ describe('SoulZap_UniV2 Full', function () {
           pairs,
         },
         ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
-        settings: { DEADLINE_OFFSET },
         accounts: { owner, feeTo, tokensOwner, zapReceiver, feeCollector, recipient },
         snapshotters: { takeERC20BalanceSnapshot, takeFeeSnapshot },
       } = await loadFixture(fixture)
@@ -132,8 +128,7 @@ describe('SoulZap_UniV2 Full', function () {
         ether('1'),
         pairs.hopLpPairs[0].address,
         300,
-        zapReceiver.address,
-        DEADLINE_OFFSET
+        zapReceiver.address
       )
 
       await soulZap.zap(zapData.zapParams, zapData.feeSwapPath, { value: ether('1') })
@@ -146,7 +141,6 @@ describe('SoulZap_UniV2 Full', function () {
           pairs,
         },
         ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
-        settings: { DEADLINE_OFFSET },
         accounts: { owner, feeTo, tokensOwner, zapReceiver, feeCollector, recipient },
         snapshotters: { takeERC20BalanceSnapshot, takeFeeSnapshot },
       } = await loadFixture(fixture)
@@ -161,13 +155,36 @@ describe('SoulZap_UniV2 Full', function () {
         ether('1'),
         pairs.hopLpPairs[0].address,
         300,
-        zapReceiver.address,
-        DEADLINE_OFFSET
+        zapReceiver.address
       )
 
       await expect(
         soulZap.connect(tokensOwner).zap(zapData.zapParams, zapData.feeSwapPath, { value: ether('1') })
       ).to.be.revertedWith('SoulZap: msg.value should be 0')
+    })
+    it('Should fail when msg.value != amountIn and tokenIn is NATIVE_ADDRESS', async function () {
+      const {
+        dexAndHopTokens_deployment: {
+          baseTokens: { inputTokens, outputTokens },
+          pairs,
+        },
+        ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
+        accounts: { owner, feeTo, tokensOwner, zapReceiver, feeCollector, recipient },
+        snapshotters: { takeERC20BalanceSnapshot, takeFeeSnapshot },
+      } = await loadFixture(fixture)
+
+      // NOTE: 1 Ether hardcoded
+      const zapData = await soulZap_Lens.getZapData(
+        NATIVE_ADDRESS,
+        ether('2'),
+        pairs.hopLpPairs[0].address,
+        300,
+        zapReceiver.address
+      )
+
+      await expect(
+        soulZap.connect(tokensOwner).zap(zapData.zapParams, zapData.feeSwapPath, { value: ether('1') })
+      ).to.be.revertedWith('SoulZap: amountIn not equal to wrappedAmount')
     })
     it('Should pass when msg.value is 0', async function () {
       const {
@@ -176,7 +193,6 @@ describe('SoulZap_UniV2 Full', function () {
           pairs,
         },
         ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
-        settings: { DEADLINE_OFFSET },
         accounts: { owner, feeTo, tokensOwner, zapReceiver, feeCollector, recipient },
         snapshotters: { takeERC20BalanceSnapshot, takeFeeSnapshot },
       } = await loadFixture(fixture)
@@ -191,8 +207,7 @@ describe('SoulZap_UniV2 Full', function () {
         currentInputAmount,
         pairs.hopLpPairs[0].address,
         300,
-        zapReceiver.address,
-        DEADLINE_OFFSET
+        zapReceiver.address
       )
 
       await soulZap.connect(tokensOwner).zap(zapData.zapParams, zapData.feeSwapPath)
@@ -207,7 +222,6 @@ describe('SoulZap_UniV2 Full', function () {
           pairs,
         },
         ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
-        settings: { DEADLINE_OFFSET },
         accounts: { owner, feeTo, tokensOwner, zapReceiver, feeCollector, recipient, zapPauserRole },
         snapshotters: { takeERC20BalanceSnapshot, takeFeeSnapshot },
       } = await loadFixture(fixture)
@@ -221,7 +235,6 @@ describe('SoulZap_UniV2 Full', function () {
           pairs,
         },
         ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
-        settings: { DEADLINE_OFFSET },
         accounts: { owner, feeTo, tokensOwner, zapReceiver, feeCollector, recipient, zapPauserRole, zapAdminRole },
         snapshotters: { takeERC20BalanceSnapshot, takeFeeSnapshot },
       } = await loadFixture(fixture)
@@ -236,7 +249,6 @@ describe('SoulZap_UniV2 Full', function () {
           pairs,
         },
         ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
-        settings: { DEADLINE_OFFSET },
         accounts: { owner, feeTo, tokensOwner, zapReceiver, feeCollector, recipient },
         snapshotters: { takeERC20BalanceSnapshot, takeFeeSnapshot },
       } = await loadFixture(fixture)
@@ -253,7 +265,6 @@ describe('SoulZap_UniV2 Full', function () {
           pairs,
         },
         ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
-        settings: { DEADLINE_OFFSET },
         accounts: { owner, feeTo, tokensOwner, zapReceiver, zapPauserRole, feeCollector, recipient },
         snapshotters: { takeERC20BalanceSnapshot, takeFeeSnapshot },
       } = await loadFixture(fixture)
@@ -274,7 +285,6 @@ describe('SoulZap_UniV2 Full', function () {
           pairs,
         },
         ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
-        settings: { DEADLINE_OFFSET },
         accounts: { owner, feeTo, tokensOwner, zapReceiver, feeCollector, recipient },
         snapshotters: { takeERC20BalanceSnapshot, takeFeeSnapshot },
       } = await loadFixture(fixture)
@@ -290,8 +300,7 @@ describe('SoulZap_UniV2 Full', function () {
         currentInputAmount,
         currentToToken.address,
         100,
-        zapReceiver.address,
-        DEADLINE_OFFSET
+        zapReceiver.address
       )
     })
 
@@ -302,7 +311,6 @@ describe('SoulZap_UniV2 Full', function () {
           pairs,
         },
         ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
-        settings: { DEADLINE_OFFSET },
         accounts: { owner, feeTo, tokensOwner, zapReceiver, feeCollector, recipient },
         snapshotters: { takeERC20BalanceSnapshot, takeFeeSnapshot },
       } = await loadFixture(fixture)
@@ -320,8 +328,7 @@ describe('SoulZap_UniV2 Full', function () {
         currentInputAmount,
         currentToToken.address,
         300,
-        zapReceiver.address,
-        DEADLINE_OFFSET
+        zapReceiver.address
       )
 
       console.log(swapData)
@@ -341,7 +348,6 @@ describe('SoulZap_UniV2 Full', function () {
           pairs,
         },
         ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
-        settings: { DEADLINE_OFFSET },
         accounts: { owner, feeTo, tokensOwner, zapReceiver, feeCollector, recipient },
         snapshotters: { takeERC20BalanceSnapshot, takeFeeSnapshot },
       } = await loadFixture(fixture)
@@ -359,8 +365,7 @@ describe('SoulZap_UniV2 Full', function () {
         currentInputAmount,
         currentToToken.address,
         100,
-        zapReceiver.address,
-        DEADLINE_OFFSET
+        zapReceiver.address
       )
 
       await soulZap.connect(tokensOwner).swap(swapData.swapParams, swapData.feeSwapPath)
@@ -379,7 +384,6 @@ describe('SoulZap_UniV2 Full', function () {
           pairs,
         },
         ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
-        settings: { DEADLINE_OFFSET },
         accounts: { owner, feeTo, tokensOwner, zapReceiver, feeCollector, recipient },
         snapshotters: { takeERC20BalanceSnapshot, takeNativeBalanceSnapshot, takeFeeSnapshot },
       } = await loadFixture(fixture)
@@ -398,8 +402,7 @@ describe('SoulZap_UniV2 Full', function () {
         currentInputAmount,
         currentToToken.address,
         100,
-        zapReceiver.address,
-        DEADLINE_OFFSET
+        zapReceiver.address
       )
 
       await soulZap.connect(tokensOwner).swap(swapData.swapParams, swapData.feeSwapPath)
@@ -436,7 +439,6 @@ describe('SoulZap_UniV2 Full', function () {
           pairs,
         },
         ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
-        settings: { DEADLINE_OFFSET },
         accounts: { owner, feeTo, tokensOwner, zapReceiver, feeCollector, recipient },
         snapshotters: { takeERC20BalanceSnapshot, takeNativeBalanceSnapshot, takeFeeSnapshot },
       } = await loadFixture(fixture)
@@ -454,8 +456,7 @@ describe('SoulZap_UniV2 Full', function () {
         currentInputAmount,
         currentToToken.address,
         100,
-        zapReceiver.address,
-        DEADLINE_OFFSET
+        zapReceiver.address
       )
 
       await soulZap.connect(tokensOwner).swap(swapData.swapParams, swapData.feeSwapPath, { value: currentInputAmount })
@@ -476,7 +477,6 @@ describe('SoulZap_UniV2 Full', function () {
           pairs,
         },
         ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
-          settings: { DEADLINE_OFFSET },
         accounts: { owner, feeTo, tokensOwner, zapReceiver, feeCollector, recipient },
         snapshotters: { takeERC20BalanceSnapshot, takeNativeBalanceSnapshot, takeFeeSnapshot },
       } = await loadFixture(fixture)
@@ -495,8 +495,7 @@ describe('SoulZap_UniV2 Full', function () {
         currentInputAmount,
         currentToToken,
         300,
-        zapReceiver.address,
-        DEADLINE_OFFSET
+        zapReceiver.address
       )
 
       await soulZap.connect(tokensOwner).swap(swapData.swapParams, swapData.feeSwapPath)
@@ -515,7 +514,6 @@ describe('SoulZap_UniV2 Full', function () {
           pairs,
         },
         ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
-        settings: { DEADLINE_OFFSET },
         accounts: { owner, feeTo, tokensOwner, zapReceiver, feeCollector, recipient },
         snapshotters: { takeERC20BalanceSnapshot, takeFeeSnapshot },
       } = await loadFixture(fixture)
@@ -533,8 +531,7 @@ describe('SoulZap_UniV2 Full', function () {
         currentInputAmount,
         currentToToken.address,
         100,
-        zapReceiver.address,
-        DEADLINE_OFFSET
+        zapReceiver.address
       )
 
       await soulZap.connect(tokensOwner).swap(swapData.swapParams, swapData.feeSwapPath)
@@ -552,7 +549,6 @@ describe('SoulZap_UniV2 Full', function () {
           pairs,
         },
         ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
-        settings: { DEADLINE_OFFSET },
         accounts: { owner, feeTo, tokensOwner, zapReceiver, feeCollector, recipient },
         snapshotters: { takeERC20BalanceSnapshot, takeFeeSnapshot },
       } = await loadFixture(fixture)
@@ -570,8 +566,7 @@ describe('SoulZap_UniV2 Full', function () {
         currentInputAmount,
         currentToToken.address,
         100,
-        recipient.address,
-        DEADLINE_OFFSET
+        recipient.address
       )
 
       await soulZap.connect(tokensOwner).swap(swapData.swapParams, swapData.feeSwapPath)
@@ -590,7 +585,6 @@ describe('SoulZap_UniV2 Full', function () {
             pairs,
           },
           ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
-          settings: { DEADLINE_OFFSET },
           accounts: { owner, feeTo, tokensOwner, zapReceiver, feeCollector, recipient },
           snapshotters: { takeERC20BalanceSnapshot, takeFeeSnapshot },
         } = await loadFixture(fixture)
@@ -607,8 +601,7 @@ describe('SoulZap_UniV2 Full', function () {
             currentInputAmount,
             currentToToken.address,
             300,
-            zapReceiver.address,
-            DEADLINE_OFFSET
+            zapReceiver.address
           )
         ).to.be.reverted
       })
@@ -619,7 +612,6 @@ describe('SoulZap_UniV2 Full', function () {
             pairs,
           },
           ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
-          settings: { DEADLINE_OFFSET },
           accounts: { owner, feeTo, tokensOwner, zapReceiver, feeCollector, recipient },
           snapshotters: { takeERC20BalanceSnapshot, takeFeeSnapshot },
         } = await loadFixture(fixture)
@@ -635,8 +627,7 @@ describe('SoulZap_UniV2 Full', function () {
           currentInputAmount,
           currentToToken.address,
           300,
-          zapReceiver.address,
-          DEADLINE_OFFSET
+          zapReceiver.address
         )
 
         //Change tokenIn to invalid token
@@ -652,7 +643,6 @@ describe('SoulZap_UniV2 Full', function () {
             pairs,
           },
           ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
-          settings: { DEADLINE_OFFSET },
           accounts: { owner, feeTo, tokensOwner, zapReceiver, feeCollector, recipient },
           snapshotters: { takeERC20BalanceSnapshot, takeFeeSnapshot },
         } = await loadFixture(fixture)
@@ -669,8 +659,7 @@ describe('SoulZap_UniV2 Full', function () {
             currentInputAmount,
             currentToToken.address,
             300,
-            zapReceiver.address,
-            DEADLINE_OFFSET
+            zapReceiver.address
           )
         ).to.be.revertedWith('SoulZap_UniV2_Lens: amountIn must be > 0')
       })
@@ -681,7 +670,6 @@ describe('SoulZap_UniV2 Full', function () {
             pairs,
           },
           ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
-          settings: { DEADLINE_OFFSET },
           accounts: { owner, feeTo, tokensOwner, zapReceiver, feeCollector, recipient },
           snapshotters: { takeERC20BalanceSnapshot, takeFeeSnapshot },
         } = await loadFixture(fixture)
@@ -697,8 +685,7 @@ describe('SoulZap_UniV2 Full', function () {
           currentInputAmount,
           currentToToken.address,
           300,
-          zapReceiver.address,
-          DEADLINE_OFFSET
+          zapReceiver.address
         )
 
         //Change tokenIn to invalid token
@@ -709,38 +696,6 @@ describe('SoulZap_UniV2 Full', function () {
           'SoulZap: amountIn must be > 0'
         )
       })
-
-      /*
-      NOTE: This check is done in the Zap contract
-      it('Should fail when swap to null address Lens', async function () {
-        const {
-          dexAndHopTokens_deployment: {
-            baseTokens: { inputTokens, outputTokens },
-            pairs,
-          },
-          ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
-          settings: { DEADLINE_OFFSET },
-          accounts: { owner, feeTo, tokensOwner, zapReceiver, feeCollector, recipient },
-          snapshotters: { takeERC20BalanceSnapshot, takeFeeSnapshot },
-        } = await loadFixture(fixture)
-
-        // NOTE: 1 Ether hardcoded
-        const currentInputAmount = ether('1').div(100)
-        const currentInputToken = inputTokens[0]
-        await currentInputToken.connect(tokensOwner).approve(soulZap.address, currentInputAmount)
-        const currentToToken = outputTokens[0]
-
-        await expect(
-          soulZap_Lens.getSwapData(
-            currentInputToken.address,
-            currentInputAmount,
-            currentToToken.address,
-            300,
-            ZERO_ADDRESS
-          )
-        ).to.be.revertedWith("SoulZap_UniV2_Lens: Can't swap to null address")
-      })
-      */
       it('Should fail when swap to null address Zap', async function () {
         const {
           dexAndHopTokens_deployment: {
@@ -748,7 +703,6 @@ describe('SoulZap_UniV2 Full', function () {
             pairs,
           },
           ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
-          settings: { DEADLINE_OFFSET },
           accounts: { owner, feeTo, tokensOwner, zapReceiver, feeCollector, recipient },
           snapshotters: { takeERC20BalanceSnapshot, takeFeeSnapshot },
         } = await loadFixture(fixture)
@@ -764,8 +718,7 @@ describe('SoulZap_UniV2 Full', function () {
           currentInputAmount,
           currentToToken.address,
           300,
-          zapReceiver.address,
-          DEADLINE_OFFSET
+          zapReceiver.address
         )
 
         //Change recipient to zero address
@@ -783,7 +736,6 @@ describe('SoulZap_UniV2 Full', function () {
             pairs,
           },
           ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
-          settings: { DEADLINE_OFFSET },
           accounts: { owner, feeTo, tokensOwner, zapReceiver, feeCollector, recipient },
           snapshotters: { takeERC20BalanceSnapshot, takeFeeSnapshot },
         } = await loadFixture(fixture)
@@ -799,8 +751,7 @@ describe('SoulZap_UniV2 Full', function () {
             currentInputAmount,
             currentInputToken.address,
             300,
-            zapReceiver.address,
-            DEADLINE_OFFSET
+            zapReceiver.address
           )
         ).to.be.revertedWith("SoulZap_UniV2_Lens: tokens can't be the same")
       })
@@ -811,7 +762,6 @@ describe('SoulZap_UniV2 Full', function () {
             pairs,
           },
           ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
-          settings: { DEADLINE_OFFSET },
           accounts: { owner, feeTo, tokensOwner, zapReceiver, feeCollector, recipient },
           snapshotters: { takeERC20BalanceSnapshot, takeFeeSnapshot },
         } = await loadFixture(fixture)
@@ -827,8 +777,7 @@ describe('SoulZap_UniV2 Full', function () {
           currentInputAmount,
           currentOutputToken.address,
           300,
-          zapReceiver.address,
-          DEADLINE_OFFSET
+          zapReceiver.address
         )
 
         //Change output token to input token
@@ -846,7 +795,6 @@ describe('SoulZap_UniV2 Full', function () {
             pairs,
           },
           ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
-          settings: { DEADLINE_OFFSET },
           accounts: { owner, feeTo, tokensOwner, zapReceiver, feeCollector, recipient, zapPauserRole },
           snapshotters: { takeERC20BalanceSnapshot, takeFeeSnapshot },
         } = await loadFixture(fixture)
@@ -864,13 +812,12 @@ describe('SoulZap_UniV2 Full', function () {
           currentInputAmount,
           currentToToken.address,
           300,
-          zapReceiver.address,
-          DEADLINE_OFFSET
+          zapReceiver.address
         )
 
-        await expect(soulZap.connect(tokensOwner).swap(swapData.swapParams, swapData.feeSwapPath)).to.be.revertedWith(
-          'Pausable: paused'
-        )
+        await expect(
+          soulZap.connect(tokensOwner).swap(swapData.swapParams, swapData.feeSwapPath)
+        ).to.be.revertedWithCustomError(soulZap, 'EnforcedPause')
       })
     })
   })
@@ -883,7 +830,6 @@ describe('SoulZap_UniV2 Full', function () {
           pairs,
         },
         ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
-        settings: { DEADLINE_OFFSET },
         accounts: { owner, feeTo, tokensOwner, zapReceiver, feeCollector, recipient },
         snapshotters: { takeERC20BalanceSnapshot, takeFeeSnapshot },
       } = await loadFixture(fixture)
@@ -899,8 +845,7 @@ describe('SoulZap_UniV2 Full', function () {
         currentInputAmount,
         currentToToken.address,
         100,
-        zapReceiver.address,
-        DEADLINE_OFFSET
+        zapReceiver.address
       )
     })
 
@@ -911,7 +856,6 @@ describe('SoulZap_UniV2 Full', function () {
           pairs,
         },
         ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
-        settings: { DEADLINE_OFFSET },
         accounts: { owner, feeTo, tokensOwner, zapReceiver, feeCollector, recipient },
         snapshotters: { takeERC20BalanceSnapshot, takeFeeSnapshot },
       } = await loadFixture(fixture)
@@ -929,9 +873,10 @@ describe('SoulZap_UniV2 Full', function () {
         currentInputAmount,
         currentToToken.address,
         100,
-        zapReceiver.address,
-        DEADLINE_OFFSET
+        zapReceiver.address
       )
+
+      console.log(zapData)
 
       await soulZap.connect(tokensOwner).zap(zapData.zapParams, zapData.feeSwapPath)
 
@@ -948,7 +893,6 @@ describe('SoulZap_UniV2 Full', function () {
           pairs,
         },
         ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
-        settings: { DEADLINE_OFFSET },
         accounts: { owner, feeTo, tokensOwner, zapReceiver, feeCollector, recipient },
         snapshotters: { takeERC20BalanceSnapshot, takeFeeSnapshot },
       } = await loadFixture(fixture)
@@ -966,8 +910,7 @@ describe('SoulZap_UniV2 Full', function () {
         currentInputAmount,
         currentToToken.address,
         100,
-        zapReceiver.address,
-        DEADLINE_OFFSET
+        zapReceiver.address
       )
 
       await soulZap.connect(tokensOwner).zap(zapData.zapParams, zapData.feeSwapPath)
@@ -986,7 +929,6 @@ describe('SoulZap_UniV2 Full', function () {
           pairs,
         },
         ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
-        settings: { DEADLINE_OFFSET },
         accounts: { owner, feeTo, tokensOwner, zapReceiver, feeCollector, recipient },
         snapshotters: { takeERC20BalanceSnapshot, takeNativeBalanceSnapshot, takeFeeSnapshot },
       } = await loadFixture(fixture)
@@ -1005,8 +947,7 @@ describe('SoulZap_UniV2 Full', function () {
         currentInputAmount,
         currentToToken.address,
         100,
-        zapReceiver.address,
-        DEADLINE_OFFSET
+        zapReceiver.address
       )
 
       await soulZap.connect(tokensOwner).zap(zapData.zapParams, zapData.feeSwapPath)
@@ -1027,7 +968,6 @@ describe('SoulZap_UniV2 Full', function () {
           pairs,
         },
         ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
-        settings: { DEADLINE_OFFSET },
         accounts: { owner, feeTo, tokensOwner, zapReceiver, feeCollector, recipient },
         snapshotters: { takeERC20BalanceSnapshot, takeFeeSnapshot },
       } = await loadFixture(fixture)
@@ -1044,8 +984,7 @@ describe('SoulZap_UniV2 Full', function () {
         currentInputAmount,
         currentToToken.address,
         100,
-        zapReceiver.address,
-        DEADLINE_OFFSET
+        zapReceiver.address
       )
 
       await soulZap.connect(tokensOwner).zap(zapData.zapParams, zapData.feeSwapPath, { value: currentInputAmount })
@@ -1063,7 +1002,6 @@ describe('SoulZap_UniV2 Full', function () {
           pairs,
         },
         ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
-        settings: { DEADLINE_OFFSET },
         accounts: { owner, feeTo, tokensOwner, zapReceiver, feeCollector, recipient },
         snapshotters: { takeERC20BalanceSnapshot, takeFeeSnapshot },
       } = await loadFixture(fixture)
@@ -1081,8 +1019,7 @@ describe('SoulZap_UniV2 Full', function () {
         currentInputAmount,
         currentToToken.address,
         100,
-        zapReceiver.address,
-        DEADLINE_OFFSET
+        zapReceiver.address
       )
 
       await soulZap.connect(tokensOwner).zap(zapData.zapParams, zapData.feeSwapPath)
@@ -1100,7 +1037,6 @@ describe('SoulZap_UniV2 Full', function () {
           pairs,
         },
         ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
-        settings: { DEADLINE_OFFSET },
         accounts: { owner, feeTo, tokensOwner, zapReceiver, feeCollector, recipient },
         snapshotters: { takeERC20BalanceSnapshot, takeFeeSnapshot },
       } = await loadFixture(fixture)
@@ -1118,8 +1054,7 @@ describe('SoulZap_UniV2 Full', function () {
         currentInputAmount,
         currentToToken.address,
         100,
-        recipient.address,
-        DEADLINE_OFFSET
+        recipient.address
       )
 
       await soulZap.connect(tokensOwner).zap(zapData.zapParams, zapData.feeSwapPath)
@@ -1137,7 +1072,6 @@ describe('SoulZap_UniV2 Full', function () {
             pairs,
           },
           ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
-          settings: { DEADLINE_OFFSET },
           accounts: { owner, feeTo, tokensOwner, zapReceiver, feeCollector, recipient },
           snapshotters: { takeERC20BalanceSnapshot, takeFeeSnapshot },
         } = await loadFixture(fixture)
@@ -1154,8 +1088,7 @@ describe('SoulZap_UniV2 Full', function () {
             currentInputAmount,
             currentToToken.address,
             300,
-            zapReceiver.address,
-            DEADLINE_OFFSET
+            zapReceiver.address
           )
         ).to.be.reverted
       })
@@ -1166,7 +1099,6 @@ describe('SoulZap_UniV2 Full', function () {
             pairs,
           },
           ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
-          settings: { DEADLINE_OFFSET },
           accounts: { owner, feeTo, tokensOwner, zapReceiver, feeCollector, recipient },
           snapshotters: { takeERC20BalanceSnapshot, takeFeeSnapshot },
         } = await loadFixture(fixture)
@@ -1182,8 +1114,7 @@ describe('SoulZap_UniV2 Full', function () {
           currentInputAmount,
           currentToToken.address,
           300,
-          zapReceiver.address,
-          DEADLINE_OFFSET
+          zapReceiver.address
         )
 
         //Change tokenIn to invalid token
@@ -1201,7 +1132,6 @@ describe('SoulZap_UniV2 Full', function () {
             pairs,
           },
           ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
-          settings: { DEADLINE_OFFSET },
           accounts: { owner, feeTo, tokensOwner, zapReceiver, feeCollector, recipient },
           snapshotters: { takeERC20BalanceSnapshot, takeFeeSnapshot },
         } = await loadFixture(fixture)
@@ -1218,8 +1148,7 @@ describe('SoulZap_UniV2 Full', function () {
             currentInputAmount,
             currentToToken.address,
             300,
-            zapReceiver.address,
-            DEADLINE_OFFSET
+            zapReceiver.address
           )
         ).to.be.revertedWith('SoulZap_UniV2_Lens: amountIn must be > 0')
       })
@@ -1230,7 +1159,6 @@ describe('SoulZap_UniV2 Full', function () {
             pairs,
           },
           ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
-          settings: { DEADLINE_OFFSET },
           accounts: { owner, feeTo, tokensOwner, zapReceiver, feeCollector, recipient },
           snapshotters: { takeERC20BalanceSnapshot, takeFeeSnapshot },
         } = await loadFixture(fixture)
@@ -1246,8 +1174,7 @@ describe('SoulZap_UniV2 Full', function () {
           currentInputAmount,
           currentToToken.address,
           300,
-          zapReceiver.address,
-          DEADLINE_OFFSET
+          zapReceiver.address
         )
 
         //Change tokenIn to invalid token
@@ -1258,39 +1185,6 @@ describe('SoulZap_UniV2 Full', function () {
           'SoulZap: amountIn must be > 0'
         )
       })
-
-      /*
-      // NOTE: This check is done in the Zap contract
-      it('Should fail when zap to null address Lens', async function () {
-        const {
-          dexAndHopTokens_deployment: {
-            baseTokens: { inputTokens, outputTokens },
-            pairs,
-          },
-          ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
-          settings: { DEADLINE_OFFSET },
-          accounts: { owner, feeTo, tokensOwner, zapReceiver, feeCollector, recipient },
-          snapshotters: { takeERC20BalanceSnapshot, takeFeeSnapshot },
-        } = await loadFixture(fixture)
-
-        // NOTE: 1 Ether hardcoded
-        const currentInputAmount = ether('1').div(100)
-        const currentInputToken = inputTokens[0]
-        await currentInputToken.connect(tokensOwner).approve(soulZap.address, currentInputAmount)
-        const currentToToken = pairs.outputLpPairs[1]
-
-        await expect(
-          soulZap_Lens.getZapData(
-            currentInputToken.address,
-            currentInputAmount,
-            currentToToken.address,
-            300,
-            ZERO_ADDRESS
-          )
-        ).to.be.revertedWith("SoulZap: Can't zap to null address")
-      })
-      */
-
       it('Should fail when zap to null address Zap', async function () {
         const {
           dexAndHopTokens_deployment: {
@@ -1298,7 +1192,6 @@ describe('SoulZap_UniV2 Full', function () {
             pairs,
           },
           ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
-          settings: { DEADLINE_OFFSET },
           accounts: { owner, feeTo, tokensOwner, zapReceiver, feeCollector, recipient },
           snapshotters: { takeERC20BalanceSnapshot, takeFeeSnapshot },
         } = await loadFixture(fixture)
@@ -1314,8 +1207,7 @@ describe('SoulZap_UniV2 Full', function () {
           currentInputAmount,
           currentToToken.address,
           300,
-          zapReceiver.address,
-          DEADLINE_OFFSET
+          zapReceiver.address
         )
 
         //Change recipient to zero address
@@ -1333,7 +1225,6 @@ describe('SoulZap_UniV2 Full', function () {
             pairs,
           },
           ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
-          settings: { DEADLINE_OFFSET },
           accounts: { owner, feeTo, tokensOwner, zapReceiver, feeCollector, recipient },
           snapshotters: { takeERC20BalanceSnapshot, takeFeeSnapshot },
         } = await loadFixture(fixture)
@@ -1349,8 +1240,7 @@ describe('SoulZap_UniV2 Full', function () {
             currentInputAmount,
             currentInputToken.address,
             300,
-            zapReceiver.address,
-            DEADLINE_OFFSET
+            zapReceiver.address
           )
         ).to.be.revertedWith('SoulZap_UniV2_Lens: Not an LP')
       })
@@ -1361,7 +1251,6 @@ describe('SoulZap_UniV2 Full', function () {
             pairs,
           },
           ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
-          settings: { DEADLINE_OFFSET },
           accounts: { owner, feeTo, tokensOwner, zapReceiver, feeCollector, recipient, zapPauserRole },
           snapshotters: { takeERC20BalanceSnapshot, takeFeeSnapshot },
         } = await loadFixture(fixture)
@@ -1379,15 +1268,14 @@ describe('SoulZap_UniV2 Full', function () {
           currentInputAmount,
           currentToToken.address,
           300,
-          zapReceiver.address,
-          DEADLINE_OFFSET
+          zapReceiver.address
         )
 
         console.log(zapData)
 
-        await expect(soulZap.connect(tokensOwner).zap(zapData.zapParams, zapData.feeSwapPath)).to.be.revertedWith(
-          'Pausable: paused'
-        )
+        await expect(
+          soulZap.connect(tokensOwner).zap(zapData.zapParams, zapData.feeSwapPath)
+        ).to.be.revertedWithCustomError(soulZap, 'EnforcedPause')
       })
     })
   })
@@ -1401,7 +1289,6 @@ describe('SoulZap_UniV2 Full', function () {
           pairs,
         },
         ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
-        settings: { DEADLINE_OFFSET },
         accounts: { owner, feeTo, tokensOwner, zapReceiver, feeCollector, recipient },
         snapshotters: { takeERC20BalanceSnapshot, takeFeeSnapshot },
       } = await loadFixture(fixture)
@@ -1419,8 +1306,7 @@ describe('SoulZap_UniV2 Full', function () {
         currentInputAmount,
         currentToToken.address,
         300,
-        zapReceiver.address,
-        DEADLINE_OFFSET
+        zapReceiver.address
       )
 
       await soulZap.connect(tokensOwner).swap(swapData.swapParams, swapData.feeSwapPath)
@@ -1438,7 +1324,6 @@ describe('SoulZap_UniV2 Full', function () {
           pairs,
         },
         ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
-        settings: { DEADLINE_OFFSET },
         accounts: { owner, feeTo, tokensOwner, zapReceiver, feeCollector, recipient },
         snapshotters: { takeERC20BalanceSnapshot, takeFeeSnapshot },
       } = await loadFixture(fixture)
@@ -1456,8 +1341,7 @@ describe('SoulZap_UniV2 Full', function () {
         currentInputAmount,
         currentToToken.address,
         300,
-        zapReceiver.address,
-        DEADLINE_OFFSET
+        zapReceiver.address
       )
 
       await soulZap.connect(tokensOwner).swap(swapData.swapParams, swapData.feeSwapPath)
@@ -1475,7 +1359,6 @@ describe('SoulZap_UniV2 Full', function () {
           pairs,
         },
         ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
-        settings: { DEADLINE_OFFSET },
         accounts: { owner, feeTo, tokensOwner, zapReceiver, feeCollector, recipient },
         snapshotters: { takeERC20BalanceSnapshot, takeFeeSnapshot },
       } = await loadFixture(fixture)
@@ -1491,8 +1374,7 @@ describe('SoulZap_UniV2 Full', function () {
         currentInputAmount,
         currentToToken.address,
         300,
-        zapReceiver.address,
-        DEADLINE_OFFSET
+        zapReceiver.address
       )
 
       await soulZap.connect(tokensOwner).swap(swapData.swapParams, swapData.feeSwapPath)
@@ -1509,7 +1391,6 @@ describe('SoulZap_UniV2 Full', function () {
           pairs,
         },
         ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
-        settings: { DEADLINE_OFFSET },
         accounts: { owner, feeTo, tokensOwner, zapReceiver, feeCollector, recipient },
         snapshotters: { takeERC20BalanceSnapshot, takeFeeSnapshot },
       } = await loadFixture(fixture)
@@ -1525,8 +1406,7 @@ describe('SoulZap_UniV2 Full', function () {
         currentInputAmount,
         currentToToken.address,
         300,
-        zapReceiver.address,
-        DEADLINE_OFFSET
+        zapReceiver.address
       )
 
       let feePercentage = await soulZap.getFeeInfo()

@@ -62,7 +62,7 @@ async function main() {
   const RoutingContract = await ethers.getContractFactory(SoulZap_UniV2)
   const routingContract = await deployManager.deployContractFromFactory(
     RoutingContract,
-    [soulAccessRegistryAddress!, wNative, soulFeeManagerAddress!, 0],
+    [soulAccessRegistryAddress!, wNative, soulFeeManagerAddress!, 0, { gasPrice: '190000000000' }],
     SoulZap_UniV2 // Pass in contract name to log contract
   )
   console.log('SoulZap_UniV2 contract deployed at:', routingContract.address)

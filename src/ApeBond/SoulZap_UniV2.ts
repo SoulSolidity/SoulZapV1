@@ -17,9 +17,9 @@ import {
 // TODO: can't get this /\ to work because in package it's not compiling the contracts
 // import SoulZap_UniV2_Extended_V1_ABI from '../../artifacts/contracts/full-versions/SoulZap_UniV2_Extended_V1.sol/SoulZap_UniV2_Extended_V1.json'
 // import SoulZap_UniV2_Extended_V1_Lens_ABI from '../../artifacts/contracts/full-versions/SoulZap_UniV2_Extended_V1_Lens.sol/SoulZap_UniV2_Extended_V1_Lens.json'
-import SoulZap_UniV2_Extended_V1_ABI from '../abi/SoulZap_UniV2_Extended_V1_ABI.json'
-import SoulZap_UniV2_Extended_V1_Lens_ABI from '../abi/SoulZap_UniV2_Extended_V1_Lens_ABI.json'
-import PriceGetterExtended_ABI from '../abi/PriceGetterExtended_ABI.json'
+import SoulZap_UniV2_Extended_V1_ABI from '../ABI/SoulZap_UniV2_Extended_V1_ABI.json'
+import SoulZap_UniV2_Extended_V1_Lens_ABI from '../ABI/SoulZap_UniV2_Extended_V1_Lens_ABI.json'
+import PriceGetterExtended_ABI from '../ABI/PriceGetterExtended_ABI.json'
 
 import {
   Failure,
@@ -42,7 +42,6 @@ import { Call, multicall } from '@defifofum/multicall'
 
 export class SoulZap_UniV2 {
   protected signerOrProvider: ethers.providers.Provider | Signer
-  protected rpcUrl: string
   protected lensContracts: Partial<Record<DEX, Contract>> = {}
   protected zapContract: Contract
   protected priceGetterContract: Contract
@@ -66,16 +65,6 @@ export class SoulZap_UniV2 {
     this.chainId = chainId
     this.signerOrProvider = signerOrProvider
 
-    if (ethers.Signer.isSigner(signerOrProvider)) {
-      // It's a Signer, get the provider's RPC URL
-      const signerProvider = signerOrProvider.provider as ethers.providers.JsonRpcProvider
-      this.rpcUrl = signerProvider.connection.url
-    } else {
-      // It's a Provider, get the RPC URL directly
-      const provider = signerOrProvider as ethers.providers.JsonRpcProvider
-      this.rpcUrl = provider.connection.url
-    }
-
     // Lens contracts
     const lensAddresses = ZAP_LENS_ADDRESS[this.project][this.chainId]
 
@@ -88,7 +77,6 @@ export class SoulZap_UniV2 {
       if (Object.prototype.hasOwnProperty.call(lensAddresses, dexType)) {
         const typedDexType: DEX = dexType as DEX
         const dexValue = lensAddresses[typedDexType]
-        console.log(`DEX Type: ${dexType}, Value: ${dexValue}`)
         if (!dexValue) {
           throw new Error(`Zap lens address not found for ${typedDexType}`)
         }
@@ -165,20 +153,9 @@ export class SoulZap_UniV2 {
         return priceImpactError
       }
 
-      //USD Prices
-      const callDataArray: Call[] = []
-      callDataArray.push(this.getTokenPriceMulticall(tokenIn, dex))
-      callDataArray.push(this.getTokenPriceMulticall(tokenOut, dex))
-      const returnedData = await multicall(this.rpcUrl, PriceGetterExtended_ABI, callDataArray, {
-        maxCallsPerTx: 1000,
-      })
-
-      const tokenInUsdPriceSingle = returnedData?.[0][0] ?? BigNumber.from(0)
-      const tokenOutUsdPriceSingle = returnedData?.[1][0] ?? BigNumber.from(0)
-
       const swapDataExtras: SwapDataExtras = {
-        tokenInUsdPrice: tokenInUsdPriceSingle.mul(amountIn).div('1000000000000000000'),
-        tokenOutUsdPrice: tokenOutUsdPriceSingle.mul(swapData.swapParams.path.amountOut).div('1000000000000000000'),
+        tokenInUsdPrice: BigNumber.from(0),
+        tokenOutUsdPrice: BigNumber.from(0),
       }
 
       return { success: true, ...swapData, ...swapDataExtras }
@@ -198,11 +175,14 @@ export class SoulZap_UniV2 {
   }
 
   //Execute Swap txs
-  async swap(swapParams: SwapParams, feeSwapPath: SwapPath): Promise<SuccessOrFailure<any>>
-  async swap(swapDataResult: SwapDataResult): Promise<SuccessOrFailure<any>>
-  async swap(encodedTx: string): Promise<SuccessOrFailure<any>>
+  async swap(swapParams: SwapParams, feeSwapPath: SwapPath): Promise<SuccessOrFailure<{ txHash: string }>>
+  async swap(swapDataResult: SwapDataResult): Promise<SuccessOrFailure<{ txHash: string }>>
+  async swap(encodedTx: string): Promise<SuccessOrFailure<{ txHash: string }>>
 
-  async swap(arg1: SwapParams | SwapDataResult | string, arg2?: SwapPath): Promise<SuccessOrFailure<any>> {
+  async swap(
+    arg1: SwapParams | SwapDataResult | string,
+    arg2?: SwapPath
+  ): Promise<SuccessOrFailure<{ txHash: string }>> {
     try {
       if (typeof arg1 === 'string') {
         // Handle the case when arg1 is an encodedTx
@@ -222,25 +202,25 @@ export class SoulZap_UniV2 {
         const value = arg1.swapParams.tokenIn == NATIVE_ADDRESS ? arg1.swapParams.amountIn : 0
         const tx = await this.zapContract.swap(arg1.swapParams, arg1.feeSwapPath, { value })
         //FIXME: tx type any. should be typed and passing useful data
-        return { success: true, tx }
+        return { success: true, txHash: tx.hash ?? '0x' }
       } else if (typeof arg1 === 'object' && 'tokenIn' in arg1 && 'amountIn' in arg1 && 'tokenOut' in arg1) {
         // Handle the case when arg1 is an SwapParams
         if (arg2) {
           const value = arg1.tokenIn == NATIVE_ADDRESS ? arg1.amountIn : 0
           const tx = await this.zapContract.swap(arg1, arg2, { value })
           //FIXME: tx type any. should be typed and passing useful data
-          return { success: true, tx }
+          return { success: true, txHash: tx.hash ?? '0x' }
         } else {
           // Handle the case where arg2 (feeSwapPath) is not provided
           // You might want to throw an error or handle it according to your logic
-          throw new Error('feeSwapPath not provided')
+          return { success: false, error: 'feeSwapPath not provided' }
         }
       } else {
         // Default case
-        throw new Error('Invalid input parameters')
+        return { success: false, error: 'Invalid input parameters' }
       }
     } catch (error: any) {
-      return { success: false, error: error.reason ?? 'Something went wrong' }
+      return { success: false, error: error.error.reason ?? error.reason ?? 'Something went wrong' }
     }
   }
 
@@ -276,22 +256,9 @@ export class SoulZap_UniV2 {
         return priceImpactError
       }
 
-      //USD Prices
-      const callDataArray: Call[] = []
-      callDataArray.push(this.getTokenPriceMulticall(tokenIn, dex))
-      callDataArray.push(this.getLPPriceMulticall(tokenOut, dex))
-      const returnedData = await multicall(this.rpcUrl, PriceGetterExtended_ABI, callDataArray, {
-        maxCallsPerTx: 1000,
-      })
-
-      const tokenInUsdPriceSingle = returnedData?.[0][0] ?? BigNumber.from(0)
-      const tokenOutUsdPriceSingle = returnedData?.[1][0] ?? BigNumber.from(0)
-
       const zapDataExtras: ZapDataExtras = {
-        tokenInUsdPrice: tokenInUsdPriceSingle.mul(amountIn).div('1000000000000000000'),
-        tokenOutUsdPrice: tokenOutUsdPriceSingle
-          .mul(zapData.zapParams.liquidityPath.lpAmount)
-          .div('1000000000000000000'),
+        tokenInUsdPrice: BigNumber.from(0),
+        tokenOutUsdPrice: BigNumber.from(0),
       }
 
       return { success: true, ...zapData, ...zapDataExtras }
@@ -310,11 +277,11 @@ export class SoulZap_UniV2 {
     return this.getZapData(dex, NATIVE_ADDRESS, amountIn, tokenOut, allowedPriceImpactPercentage, to)
   }
 
-  async zap(zapParams: ZapParams, feeSwapPath: SwapPath): Promise<SuccessOrFailure<any>>
-  async zap(zapDataResult: ZapDataResult): Promise<SuccessOrFailure<any>>
-  async zap(encodedTx: string): Promise<SuccessOrFailure<any>>
+  async zap(zapParams: ZapParams, feeSwapPath: SwapPath): Promise<SuccessOrFailure<{ txHash: string }>>
+  async zap(zapDataResult: ZapDataResult): Promise<SuccessOrFailure<{ txHash: string }>>
+  async zap(encodedTx: string): Promise<SuccessOrFailure<{ txHash: string }>>
 
-  async zap(arg1: ZapParams | ZapDataResult | string, arg2?: SwapPath): Promise<SuccessOrFailure<any>> {
+  async zap(arg1: ZapParams | ZapDataResult | string, arg2?: SwapPath): Promise<SuccessOrFailure<{ txHash: string }>> {
     try {
       if (typeof arg1 === 'string') {
         // Handle the case when arg1 is an encodedTx
@@ -333,7 +300,7 @@ export class SoulZap_UniV2 {
         }
         const value = arg1.zapParams.tokenIn == NATIVE_ADDRESS ? arg1.zapParams.amountIn : 0
         const tx = await this.zapContract.zap(arg1.zapParams, arg1.feeSwapPath, { value })
-        return { success: true, tx }
+        return { success: true, txHash: tx.hash ?? '0x' }
       } else if (
         typeof arg1 === 'object' &&
         'tokenIn' in arg1 &&
@@ -345,18 +312,18 @@ export class SoulZap_UniV2 {
         if (arg2) {
           const value = arg1.tokenIn == NATIVE_ADDRESS ? arg1.amountIn : 0
           const tx = await this.zapContract.zap(arg1, arg2, { value })
-          return { success: true, tx }
+          return { success: true, txHash: tx.hash ?? '0x' }
         } else {
           // Handle the case where arg2 (feeSwapPath) is not provided
           // You might want to throw an error or handle it according to your logic
-          throw new Error('feeSwapPath not provided')
+          return { success: false, error: 'feeSwapPath not provided' }
         }
       } else {
         // Default case
-        throw new Error('Invalid input parameters')
+        return { success: false, error: 'Invalid input parameters' }
       }
     } catch (error: any) {
-      return { success: false, error: error.reason ?? 'Something went wrong' }
+      return { success: false, error: error.error.reason ?? error.reason ?? 'Something went wrong' }
     }
   }
 

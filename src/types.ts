@@ -121,4 +121,9 @@ export type ZapDataBond = {
   zapParamsBonds: ZapParams_Ext_Bonds
 }
 
-export type ZapDataBondResult = Success<ZapDataBond> | Failure
+export type ZapDataBondExtras = {
+  tokenInUsdPrice: BigNumber
+  tokenOutUsdPrice: BigNumber
+}
+
+export type ZapDataBondResult = Success<ZapDataBond & ZapDataBondExtras> | Failure

@@ -7,16 +7,17 @@ import {
   PRICE_GETTER_ADDRESS,
   PriceGetterProtocol,
   Project,
+  ZERO_ADDRESS,
 } from '../constants'
 import { multicall, Call } from '@defifofum/multicall'
 
 //TODO: can't get this to work because in package it's not compiling the contracts
 // import SoulZap_UniV2_Extended_V1_ABI from '../../artifacts/contracts/full-versions/SoulZap_UniV2_Extended_V1.sol/SoulZap_UniV2_Extended_V1.json'
 // import SoulZap_UniV2_Extended_V1_Lens_ABI from '../../artifacts/contracts/full-versions/SoulZap_UniV2_Extended_V1_Lens.sol/SoulZap_UniV2_Extended_V1_Lens.json'
-import SoulZap_UniV2_Extended_V1_ABI from '../abi/SoulZap_UniV2_Extended_V1_ABI.json'
-import SoulZap_UniV2_Extended_V1_Lens_ABI from '../abi/SoulZap_UniV2_Extended_V1_Lens_ABI.json'
-import IUniswapV2Factory_ABI from '../abi/IUniswapV2Factory_ABI.json'
-import PriceGetterExtended_ABI from '../abi/PriceGetterExtended_ABI.json'
+import SoulZap_UniV2_Extended_V1_ABI from '../ABI/SoulZap_UniV2_Extended_V1_ABI.json'
+import SoulZap_UniV2_Extended_V1_Lens_ABI from '../ABI/SoulZap_UniV2_Extended_V1_Lens_ABI.json'
+import IUniswapV2Factory_ABI from '../ABI/IUniswapV2Factory_ABI.json'
+import PriceGetterExtended_ABI from '../ABI/PriceGetterExtended_ABI.json'
 
 import {
   Success,
@@ -73,37 +74,11 @@ export class SoulZap_UniV2_ApeBond extends SoulZap_UniV2 {
         return priceImpactError
       }
 
-      let zapDataExtras: ZapDataExtras = {
+      const zapDataExtras: ZapDataExtras = {
         tokenInUsdPrice: BigNumber.from(0),
         tokenOutUsdPrice: BigNumber.from(0),
       }
 
-      // FIXME: we don't have lp address so workaround for now to get it
-      // We should get the lp from contract somehow I think
-      const factoryAddress = FACTORIES[dex][this.chainId]?.[PriceGetterProtocol.V2]
-      if (factoryAddress) {
-        const factory = new ethers.Contract(factoryAddress, IUniswapV2Factory_ABI.abi, this.signerOrProvider)
-        const lpAddress = await factory.getPair(zapData.zapParams.token0, zapData.zapParams.token1)
-
-        // USD Prices
-        const callDataArray: Call[] = []
-        callDataArray.push(this.getTokenPriceMulticall(tokenIn, dex))
-        callDataArray.push(this.getLPPriceMulticall(lpAddress, dex))
-        const returnedData = await multicall(this.rpcUrl, PriceGetterExtended_ABI, callDataArray, {
-          maxCallsPerTx: 1000,
-        })
-        console.log(returnedData)
-
-        const tokenInUsdPriceSingle = returnedData?.[0][0] ?? BigNumber.from(0)
-        const tokenOutUsdPriceSingle = returnedData?.[1][0] ?? BigNumber.from(0)
-
-        zapDataExtras = {
-          tokenInUsdPrice: tokenInUsdPriceSingle.mul(amountIn).div('1000000000000000000'),
-          tokenOutUsdPrice: tokenOutUsdPriceSingle
-            .mul(zapData.zapParams.liquidityPath.lpAmount)
-            .div('1000000000000000000'),
-        }
-      }
       return { success: true, ...zapData, ...zapDataExtras }
     } catch (error: any) {
       return { success: false, error: error.reason ?? 'Something went wrong' }
@@ -115,7 +90,7 @@ export class SoulZap_UniV2_ApeBond extends SoulZap_UniV2 {
     amountIn: number | string,
     bill: string,
     allowedPriceImpactPercentage: number,
-    to: string
+    to: string = ZERO_ADDRESS
   ): Promise<ZapDataBondResult> {
     return this.getZapDataBond(dex, NATIVE_ADDRESS, amountIn, bill, allowedPriceImpactPercentage, to)
   }
@@ -124,15 +99,15 @@ export class SoulZap_UniV2_ApeBond extends SoulZap_UniV2 {
     zapParams: ZapParams,
     zapParamsBond: ZapParams_Ext_Bonds,
     feeSwapPath: SwapPath
-  ): Promise<SuccessOrFailure<any>>
-  async zapBond(ZapDataBondResult: ZapDataBondResult): Promise<SuccessOrFailure<any>>
-  async zapBond(encodedTx: string): Promise<SuccessOrFailure<any>>
+  ): Promise<SuccessOrFailure<{ txHash: string }>>
+  async zapBond(ZapDataBondResult: ZapDataBondResult): Promise<SuccessOrFailure<{ txHash: string }>>
+  async zapBond(encodedTx: string): Promise<SuccessOrFailure<{ txHash: string }>>
 
   async zapBond(
     arg1: ZapParams | ZapDataBondResult | string,
     arg2?: ZapParams_Ext_Bonds,
     arg3?: SwapPath
-  ): Promise<SuccessOrFailure<any>> {
+  ): Promise<SuccessOrFailure<{ txHash: string }>> {
     try {
       if (typeof arg1 === 'string') {
         // Handle the case when arg1 is an encodedTx
@@ -148,7 +123,7 @@ export class SoulZap_UniV2_ApeBond extends SoulZap_UniV2 {
         typeof arg1 === 'object' &&
         'success' in arg1 &&
         'zapParams' in arg1 &&
-        'zapParamsBond' in arg1 &&
+        'zapParamsBonds' in arg1 &&
         'feeSwapPath' in arg1
       ) {
         // Handle the case when arg1 is an ZapData
@@ -164,7 +139,7 @@ export class SoulZap_UniV2_ApeBond extends SoulZap_UniV2 {
           arg1.zapParamsBonds.maxPrice,
           { value }
         )
-        return { success: true, tx }
+        return { success: true, txHash: tx.hash ?? '0x' }
       } else if (
         typeof arg1 === 'object' &&
         'tokenIn' in arg1 &&
@@ -176,18 +151,17 @@ export class SoulZap_UniV2_ApeBond extends SoulZap_UniV2 {
         if (arg2) {
           const value = arg1.tokenIn == NATIVE_ADDRESS ? arg1.amountIn : 0
           const tx = await this.zapContract.zapBond(arg1, arg3, arg2.bond, arg2.maxPrice, { value })
-          return { success: true, tx }
+          return { success: true, txHash: tx.hash ?? '0x' }
         } else {
           // Handle the case where arg2 (feeSwapPath) is not provided
-          // You might want to throw an error or handle it according to your logic
-          throw new Error('feeSwapPath not provided')
+          return { success: false, error: 'feeSwapPath not provided' }
         }
       } else {
         // Default case
-        throw new Error('Invalid input parameters')
+        return { success: false, error: 'Invalid input parameters' }
       }
     } catch (error: any) {
-      return { success: false, error: error.reason ?? 'Something went wrong' }
+      return { success: false, error: error.error.reason ?? error.reason ?? 'Something went wrong' }
     }
   }
 }

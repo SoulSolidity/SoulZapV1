@@ -1,10 +1,11 @@
 // tests/calculator.spec.tx
 import { assert } from 'chai'
 import { providers, utils } from 'ethers'
-import { SoulZap_UniV2_ApeBond } from '../src/index'
-import { ChainId, DEX, Project } from '../src/constants'
+import { SoulZap_UniV2_ApeBond, ZapDataBondResult } from '../src/index'
+import { ChainId, DEX, Project, ZERO_ADDRESS } from '../src/constants'
 import { ethers } from 'hardhat'
 import { getEnv, Logger, logger, testRunner } from '../hardhat/utils'
+import { SuccessOrFailure } from '../src/types'
 
 // const WMATIC = "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270";
 // const DAI = "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063";
@@ -45,21 +46,23 @@ describe('SDK - lens contract', () => {
     //Create soulZap object
     const soulZap = new SoulZap_UniV2_ApeBond(ChainId.POLYGON, signer)
     soulZap.setSlippage(1)
-    const dex = DEX.APEBOND
-    const amount = '1000000000000000000'
-    const BOND_ADDRESS = '0x4F256deDd156fB1Aa6e485E92FeCeB7bc15EBFcA'
+    const dex = DEX.QUICKSWAP
+    const amount = '10000000000000000'
+    const BOND_ADDRESS = '0xefE300c0d5c4A6F3106B28668082689b4e18B8D1'
+    //0xefE300c0d5c4A6F3106B28668082689b4e18B8D1 - with funds and should succeed
+    //0x4f9763e745381472a75965E3431782741D607952 - no funds and should fail
+    //'0x4F256deDd156fB1Aa6e485E92FeCeB7bc15EBFcA'
     const LP_ADDRESS = '0x034293f21f1cce5908bc605ce5850df2b1059ac0'
     //APE LP '0x034293f21f1cce5908bc605ce5850df2b1059ac0'
     //QS LP '0x304e57c752E854E9A233Ae82fcC42F7568b81180'
     const recipient = '0x551DcB2Cf6155CBc4d1a8151576EEC43f3aE5559'
     const allowedPriceImpactPercentage = 3 //max 3% price impact or it returns an error (for low liquidity or large zaps)
 
-    const zapDataBond = await soulZap.getZapDataBondNative(
+    const zapDataBond: ZapDataBondResult = await soulZap.getZapDataBondNative(
       dex,
       amount,
       BOND_ADDRESS,
-      allowedPriceImpactPercentage,
-      recipient
+      allowedPriceImpactPercentage
     )
     console.log(zapDataBond)
 
@@ -71,12 +74,20 @@ describe('SDK - lens contract', () => {
     }
 
     // Data to possibly show on UI
+    zapDataBond.tokenInUsdPrice
+    zapDataBond.tokenOutUsdPrice
     zapDataBond.zapParams.path0.amountOut
     zapDataBond.zapParams.path1.amountOut
     zapDataBond.zapParams.liquidityPath.lpAmount
 
     //Actual zap tx different options
-    // await soulZap.zap(zapDataBond)
+    // const zapTx = await soulZap.zapBond(zapDataBond)
+    // if (!zapTx.success) {
+    //   // Log or handle the error appropriately
+    //   console.error('errors with', zapTx.error)
+    //   return
+    // }
+    //Do something fun with the txHash
     // await soulZap.zapBond(zapDataBond.encodedTx)
     // await soulZap.zapBond(zapDataBond.zapParams, zapDataBond.zapParamsBonds, zapDataBond.feeSwapPath)
 

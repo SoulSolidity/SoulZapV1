@@ -1,6 +1,6 @@
 {
   "name": "@doublo/soulzap-v1",
-  "version": "0.0.9",
+  "version": "0.0.13",
   "description": "Zap contract for transforming a single input token into liquidity pool tokens, or other possible extensions.",
   "main": "./dist/index.js",
   "files": [
@@ -10,7 +10,6 @@
     "dist/typechain-types/**/*"
   ],
   "scripts": {
-    "postinstall": "npx hardhat compile",
     "prebuild": "yarn compile && yarn clean ./dist",
     "build": "tsc",
     "precommit": "yarn lint:fix && yarn lint:ci",
@@ -100,7 +99,6 @@
     "@uniswap/v2-periphery": "^1.1.0-beta.0",
     "@uniswap/v3-core": "^1.0.1",
     "@uniswap/v3-periphery": "^1.4.4",
-    "discord.js": "^14.14.1",
     "i": "^0.3.7",
     "npm": "^10.2.1"
   }
