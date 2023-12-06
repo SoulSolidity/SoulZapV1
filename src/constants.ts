@@ -37,8 +37,8 @@ export const ZAP_LENS_ADDRESS: Record<Project, Partial<Record<ChainId, Partial<R
       [DEX.QUICKSWAP]: '0x',
     },
     [ChainId.POLYGON]: {
-      [DEX.APEBOND]: '0x156B47B9d3B7E9F342CE28e6A0099Bc44c8C23D8',
-      [DEX.QUICKSWAP]: '0xA7B792B3D33d7F310886B77f782fB926448501af',
+      [DEX.APEBOND]: '0x52B95673D84A30fe8375dC7A088d2F612d13F7A5',
+      [DEX.QUICKSWAP]: '0xb20889d91a4E1f409B08412B55eF079186Aa2b96',
     },
   },
 }
@@ -46,7 +46,7 @@ export const ZAP_LENS_ADDRESS: Record<Project, Partial<Record<ChainId, Partial<R
 export const ZAP_ADDRESS: Record<Project, Partial<Record<ChainId, string>>> = {
   [Project.APEBOND]: {
     [ChainId.BNB]: '0x', //"0x253D007aa92d069eBc85c5b23868A2971C7Ac063",
-    [ChainId.POLYGON]: '0x3A461fa64A327c05a294C9CAA5bb8e2914a8970A',
+    [ChainId.POLYGON]: '0x133141571DC83783d7c05138af8aA9cc2189c1A7',
   },
 }
 

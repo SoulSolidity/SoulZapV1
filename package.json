@@ -1,5 +1,5 @@
 {
-  "name": "@doublo/soulzap-v1",
+  "name": "@soulsolidity/soulzap-v1",
   "version": "0.0.13",
   "description": "Zap contract for transforming a single input token into liquidity pool tokens, or other possible extensions.",
   "main": "./dist/index.js",

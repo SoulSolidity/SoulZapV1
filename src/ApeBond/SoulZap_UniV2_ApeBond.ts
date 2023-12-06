@@ -32,6 +32,7 @@ import {
 } from '../types'
 import { SoulZap_UniV2 } from './SoulZap_UniV2'
 import { JsonRpcSigner } from '@ethersproject/providers'
+import { SoulZap_Ext_ApeBond_Lens } from '../../typechain-types'
 
 export class SoulZap_UniV2_ApeBond extends SoulZap_UniV2 {
   constructor(chainId: ChainId, signerOrProvider: ethers.providers.Provider | Signer) {
@@ -53,9 +54,12 @@ export class SoulZap_UniV2_ApeBond extends SoulZap_UniV2 {
     amountIn: number | string,
     bond: string,
     allowedPriceImpactPercentage: number,
-    to: string
+    to: string,
+    options?: {
+      deadlineOffset?: number
+    }
   ): Promise<ZapDataBondResult> {
-    const lensContract = this.getLensContract(dex)
+    const lensContract = this.getLensContract(dex) as SoulZap_Ext_ApeBond_Lens
 
     try {
       const zapData: ZapDataBond = await lensContract.getZapDataBond(
@@ -64,7 +68,7 @@ export class SoulZap_UniV2_ApeBond extends SoulZap_UniV2 {
         bond,
         (this.slippage * this.DENOMINATOR) / 100,
         to,
-        this.deadlineOffset
+        options?.deadlineOffset || this.deadlineOffset
       )
       const priceImpactError = await this.checkPriceImpact(
         zapData.priceImpactPercentages[0],
