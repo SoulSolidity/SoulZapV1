@@ -51,6 +51,7 @@ export class SoulZap_UniV2 {
   // Slippage percentage after expected return amountIn. Only in case price changes between read and write function.
   // NOT PRICE IMPACT SLIPPAGE
   slippage = 0.5
+  deadlineOffset = 5 * 60; //5 minutes
   protected DENOMINATOR = 10_000
 
   //FIXME/TODO: default values for ABIs make no sense? they are defaults for ApeBond for now because we don't have generic version yet
@@ -119,6 +120,10 @@ export class SoulZap_UniV2 {
     this.slippage = slippage
   }
 
+  setDeadlineOffset(deadlineOffset: number) {
+    this.deadlineOffset = deadlineOffset
+  }
+
   /// -----------------------------------------------------------------------
   /// Swap Functions
   /// -----------------------------------------------------------------------
@@ -139,7 +144,8 @@ export class SoulZap_UniV2 {
         amountIn,
         tokenOut,
         (this.slippage * this.DENOMINATOR) / 100,
-        to
+        to,
+        this.deadlineOffset
       )
 
       //Check price impact
@@ -244,7 +250,8 @@ export class SoulZap_UniV2 {
         amountIn,
         tokenOut,
         (this.slippage * this.DENOMINATOR) / 100,
-        to
+        to,
+        this.deadlineOffset
       )
       const priceImpactError = await this.checkPriceImpact(
         zapData.priceImpactPercentages[0],

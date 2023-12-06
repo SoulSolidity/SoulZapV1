@@ -63,7 +63,8 @@ export class SoulZap_UniV2_ApeBond extends SoulZap_UniV2 {
         amountIn,
         bond,
         (this.slippage * this.DENOMINATOR) / 100,
-        to
+        to,
+        this.deadlineOffset
       )
       const priceImpactError = await this.checkPriceImpact(
         zapData.priceImpactPercentages[0],
