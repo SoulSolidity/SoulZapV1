@@ -1,6 +1,6 @@
 {
   "name": "@soulsolidity/soulzap-v1",
-  "version": "0.1.0-alpha.0",
+  "version": "0.1.0",
   "description": "Zap contract for transforming a single input token into liquidity pool tokens, or other possible extensions.",
   "main": "./dist/index.js",
   "files": [
