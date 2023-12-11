@@ -25,6 +25,7 @@ export enum Project {
 export enum DEX {
   APEBOND = 'ApeBond',
   QUICKSWAP = 'QuickSwap',
+  PANCAKESWAP = 'PancakeSwap',
 }
 
 /// -----------------------------------------------------------------------
@@ -33,8 +34,8 @@ export enum DEX {
 export const ZAP_LENS_ADDRESS: Record<Project, Partial<Record<ChainId, Partial<Record<DEX, string>>>>> = {
   [Project.APEBOND]: {
     [ChainId.BNB]: {
-      [DEX.APEBOND]: '0x',
-      [DEX.QUICKSWAP]: '0x',
+      [DEX.APEBOND]: '0xFeeb321973D3b5F6C475A90D86c5C2d197A27881',
+      [DEX.PANCAKESWAP]: '0x61B428C02CB1058F9AAf2bFeACCB00333c50E0A1',
     },
     [ChainId.POLYGON]: {
       [DEX.APEBOND]: '0x52B95673D84A30fe8375dC7A088d2F612d13F7A5',
@@ -45,7 +46,7 @@ export const ZAP_LENS_ADDRESS: Record<Project, Partial<Record<ChainId, Partial<R
 
 export const ZAP_ADDRESS: Record<Project, Partial<Record<ChainId, string>>> = {
   [Project.APEBOND]: {
-    [ChainId.BNB]: '0x', //"0x253D007aa92d069eBc85c5b23868A2971C7Ac063",
+    [ChainId.BNB]: '0xA400A9a00bd1b7ca90BbC5F8DB0d3d723da8D72c',
     [ChainId.POLYGON]: '0x133141571DC83783d7c05138af8aA9cc2189c1A7',
   },
 }
@@ -92,4 +93,9 @@ export const FACTORIES: Record<DEX, Partial<Record<ChainId, Partial<Record<Price
       [PriceGetterProtocol.V2]: '0x5757371414417b8C6CAad45bAeF941aBc7d3Ab32',
     },
   },
+  [DEX.PANCAKESWAP]: {
+    [ChainId.BNB]: {
+      [PriceGetterProtocol.V2]: '0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73',
+    },
+  }
 }
