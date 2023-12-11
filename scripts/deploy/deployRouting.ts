@@ -20,7 +20,7 @@ async function main() {
     throw new Error('No SoulFee contract address found. deploy it first and/or add to config')
   }
 
-  const currentDexInfo = dexInfo.ApeBond
+  const currentDexInfo = dexInfo.PancakeSwap
   if (!currentDexInfo) {
     throw new Error('No Dex Info found. Please add to config')
   }
@@ -29,7 +29,7 @@ async function main() {
   const RoutingContract = await ethers.getContractFactory(SoulZap_UniV2_Extended_V1_Lens)
   const routingContract = await deployManager.deployContractFromFactory(
     RoutingContract,
-    [SoulZap_UniV2, currentDexInfo.router, currentDexInfo.hopTokens, { gasPrice: '100000000000' }],
+    [SoulZap_UniV2, currentDexInfo.router, currentDexInfo.hopTokens],
     SoulZap_UniV2_Extended_V1_Lens // Pass in contract name to log contract
   )
   console.log('SoulZap_UniV2_Lens contract deployed at:', routingContract.address)

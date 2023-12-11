@@ -36,13 +36,12 @@ interface DeploymentVariables {
   admin: string
   wNative: string
   dexInfo: Partial<Record<Dex, { factory: string; router: string; hopTokens: string[] }>>
+  feeTokens: string[],
   feeCollector: string
-  protocolFee: number
-  maxFee: number
   soulFeeManager?: string
   soulAccessRegistry?: string
   SoulZap_UniV2?: string
-  volumesAndFees: { volumes: number[]; fees: number[] }
+  volumesAndFees: { volumes: string[]; fees: (number | number)[] }
 }
 
 export const enum Dex {
@@ -64,11 +63,12 @@ const deployableNetworkConfig: Record<DeployableNetworks, (signers?: SignerWithA
           factory: '0x0841BD0B734E4F5853f0dD8d7Ea041c241fb0Da6',
           router: '0xcF0feBd3f17CEf5b47b0cD257aCf6025c5BFf3b7',
           hopTokens: [
-            '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d', //USDC
             '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c', //WBNB
+            '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d', //USDC
+            '0x55d398326f99059fF775485246999027B3197955', //USDT
+            '0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c', //BTC
             '0x2170Ed0880ac9A755fd29B2688956BD959F933F8', //ETH
             '0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56', //BUSD
-            '0x55d398326f99059fF775485246999027B3197955', //USDT
             '0x1AF3F329e8BE154074D8769D1FFa4eE058B1DBc3', //DAI
           ],
         },
@@ -76,22 +76,27 @@ const deployableNetworkConfig: Record<DeployableNetworks, (signers?: SignerWithA
           factory: '0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73',
           router: '0x10ED43C718714eb63d5aA57B78B54704E256024E',
           hopTokens: [
-            '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d', //USDC
             '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c', //WBNB
+            '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d', //USDC
+            '0x55d398326f99059fF775485246999027B3197955', //USDT
+            '0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c', //BTC
             '0x2170Ed0880ac9A755fd29B2688956BD959F933F8', //ETH
             '0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56', //BUSD
-            '0x55d398326f99059fF775485246999027B3197955', //USDT
             '0x1AF3F329e8BE154074D8769D1FFa4eE058B1DBc3', //DAI
           ],
         },
       },
-      feeCollector: '0x5c7C7246bD8a18DF5f6Ee422f9F8CCDF716A6aD2',
-      protocolFee: 300,
-      maxFee: 1000,
-      soulFeeManager: '0x',
-      soulAccessRegistry: '0x',
-      SoulZap_UniV2: '0x',
-      volumesAndFees: { volumes: [0], fees: [100] },
+      feeTokens: [
+        '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d', //USDC
+        '0x55d398326f99059fF775485246999027B3197955', //USDT
+        '0x1AF3F329e8BE154074D8769D1FFa4eE058B1DBc3', //DAI
+        '0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56', //BUSD
+      ],
+      feeCollector: '0x3cA81D787a58100C85465F798086BF632d3f1534',
+      soulFeeManager: '0x835B3A6186A34e9e4bFC913d6532F4F67074eA99',
+      soulAccessRegistry: '0x2433594aC4736DE4898e6cd1DF74e1d301132b1C',
+      SoulZap_UniV2: '0xA400A9a00bd1b7ca90BbC5F8DB0d3d723da8D72c',
+      volumesAndFees: { volumes: ["0", "100000000000000000000000", "200000000000000000000000"], fees: [100, 50, 20] },
     }
   },
   polygon: (signers?: SignerWithAddress[]) => {
@@ -127,14 +132,16 @@ const deployableNetworkConfig: Record<DeployableNetworks, (signers?: SignerWithA
           ],
         },
       },
-      feeCollector: '0x5c7C7246bD8a18DF5f6Ee422f9F8CCDF716A6aD2',
-      protocolFee: 300,
-      maxFee: 1000,
-      soulFeeManager: '0x5A79F4446ff39e9519F379A99184cFb43C641674', //'0x832FAa0244eE3972473b5d7DA708972d50fF3476',
-      soulAccessRegistry: '0x61B428C02CB1058F9AAf2bFeACCB00333c50E0A1', //'0xDe8b10E44A099d28A8991F5b678D3F991CD4566d',
-      SoulZap_UniV2: '0x29928639E92D483dF883783fa7D495935413c282', //'0xDD20343AeB210f5b7Ec9Db7B3727F8D0a8070c42', //0xf95A84d25Af7575110489566d85827e28108c80a',
-      volumesAndFees: { volumes: [0], fees: [100] },
-      //lens: 0xA400A9a00bd1b7ca90BbC5F8DB0d3d723da8D72c
+      feeTokens: [
+        '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174', //USDC
+        '0xc2132D05D31c914a87C6611C10748AEb04B58e8F', //USDT
+        '0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063', //DAI
+      ],
+      feeCollector: '0x3cA81D787a58100C85465F798086BF632d3f1534',
+      soulFeeManager: '0x835B3A6186A34e9e4bFC913d6532F4F67074eA99',
+      soulAccessRegistry: '0x2433594aC4736DE4898e6cd1DF74e1d301132b1C',
+      SoulZap_UniV2: '0xA400A9a00bd1b7ca90BbC5F8DB0d3d723da8D72c',
+      volumesAndFees: { volumes: ["0", "100000000000000000000000", "200000000000000000000000"], fees: [100, 50, 20] },
     }
   },
   bscTestnet: (signers?: SignerWithAddress[]) => {
@@ -150,13 +157,12 @@ const deployableNetworkConfig: Record<DeployableNetworks, (signers?: SignerWithA
           hopTokens: [],
         },
       },
+      feeTokens: [""],
       feeCollector: '0x5c7C7246bD8a18DF5f6Ee422f9F8CCDF716A6aD2',
-      protocolFee: 300,
-      maxFee: 1000,
       soulFeeManager: '0x',
       soulAccessRegistry: '0x',
       SoulZap_UniV2: '0x',
-      volumesAndFees: { volumes: [0], fees: [100] },
+      volumesAndFees: { volumes: ["0"], fees: [100] },
     }
   },
 }

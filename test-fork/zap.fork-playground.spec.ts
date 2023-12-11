@@ -46,7 +46,7 @@ describe('Fork: SoulZap', function () {
     const USDC = await ethers.getContractAt('IERC20', '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174')
 
     const chain: DeployableNetworks = 'polygon'
-    const { wNative, admin, dexInfo, feeCollector, protocolFee, proxyAdminAddress, maxFee } = getDeployConfig(chain)
+    const { wNative, admin, dexInfo, feeCollector, proxyAdminAddress } = getDeployConfig(chain)
     const { soulAccessRegistry, soulFeeManager, soulZap} = await deployZapFixture(ethers, chain)
     const routingDeploymentApeBond = await deployRoutingFixture(
       ethers,

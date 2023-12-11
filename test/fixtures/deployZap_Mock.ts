@@ -12,7 +12,7 @@ import {
 
 export async function deployZapFixture_Fork(_ethers: typeof ethers, chain: DeployableNetworks, feeTokens: string[]) {
   // Contracts are deployed using the first signer/account by default
-  const { wNative, admin, dexInfo, feeCollector, protocolFee, proxyAdminAddress, maxFee } = getDeployConfig(chain)
+  const { wNative, admin, dexInfo, feeCollector, proxyAdminAddress } = getDeployConfig(chain)
   const [owner, otherAccount] = await _ethers.getSigners()
 
   const { soulAccessRegistry, soulFeeManager } = await deployZapSetup_Mock(_ethers, admin, feeCollector, feeTokens)

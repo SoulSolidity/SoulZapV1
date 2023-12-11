@@ -37,7 +37,7 @@ describe('SoulZap', function () {
    */
   async function fixture() {
     const chain: DeployableNetworks = 'polygon'
-    const { wNative, admin, dexInfo, feeCollector, protocolFee, proxyAdminAddress, maxFee } = getDeployConfig(chain)
+    const { wNative, admin, dexInfo, feeCollector, proxyAdminAddress } = getDeployConfig(chain)
     // TODO: Pulling from ApeBond hop tokens
     const hopTokens = dexInfo.ApeBond?.hopTokens || []
     const zapDeploymentApeBond = await deployZapFixture(ethers, chain)

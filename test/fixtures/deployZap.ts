@@ -5,7 +5,7 @@ import { ChainId } from '../../src/constants'
 import { SoulAccessRegistry__factory } from '../../typechain-types'
 export async function deployZapFixture(_ethers: typeof ethers, chain: DeployableNetworks) {
   // Contracts are deployed using the first signer/account by default
-  const { wNative, admin, dexInfo, feeCollector, protocolFee, proxyAdminAddress, maxFee } = getDeployConfig(chain)
+  const { wNative, admin, dexInfo, feeCollector, proxyAdminAddress } = getDeployConfig(chain)
   const [owner, otherAccount] = await _ethers.getSigners()
 
   const SoulAccessRegistry = (await _ethers.getContractFactory('SoulAccessRegistry')) as SoulAccessRegistry__factory

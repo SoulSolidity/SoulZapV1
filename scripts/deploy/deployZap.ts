@@ -15,11 +15,10 @@ async function main() {
     wNative,
     admin,
     dexInfo,
+    feeTokens,
     feeCollector,
     soulFeeManager,
     soulAccessRegistry,
-    protocolFee,
-    maxFee,
     volumesAndFees,
   } = getDeployConfig(currentNetwork, accounts)
   // Optionally pass in signer to deploy contracts
@@ -47,7 +46,7 @@ async function main() {
       SoulFeeManagerContract,
       [
         soulAccessRegistryAddress!,
-        [dexInfo.ApeBond?.hopTokens[0]!],
+        feeTokens,
         feeCollector,
         volumesAndFees.volumes,
         volumesAndFees.fees,
@@ -62,13 +61,13 @@ async function main() {
   const RoutingContract = await ethers.getContractFactory(SoulZap_UniV2)
   const routingContract = await deployManager.deployContractFromFactory(
     RoutingContract,
-    [soulAccessRegistryAddress!, wNative, soulFeeManagerAddress!, 0, { gasPrice: '190000000000' }],
+    [soulAccessRegistryAddress!, wNative, soulFeeManagerAddress!, 0],
     SoulZap_UniV2 // Pass in contract name to log contract
   )
   console.log('SoulZap_UniV2 contract deployed at:', routingContract.address)
 
   await delay(20000)
-  // await deployManager.addDeployedContract('20231122-polygon-deployment.json')
+  // await deployManager.addDeployedContract('20231211-bsc-deployment.json')
   await deployManager.verifyContracts()
 }
 
