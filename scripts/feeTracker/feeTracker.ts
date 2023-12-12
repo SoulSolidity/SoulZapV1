@@ -1,10 +1,12 @@
-import { ethers } from 'hardhat'
+import { ethers, network } from 'hardhat'
 import axios from 'axios'
 import { ZAP_ADDRESS, Project } from '../../src/constants'
 
 import SoulZap_UniV2_Extended_V1_ABI from "../../src/ABI/SoulZap_UniV2_Extended_V1_ABI.json"
 import { BigNumber } from 'ethers'
 import { getEnv } from '../../hardhat/utils'
+import { DeployableNetworks } from '../deploy/deploy.config'
+import { ChainId } from '@defifofum/multicall/dist/config'
 
 /**
  * // NOTE: This is an example of the default hardhat deployment approach.
@@ -12,15 +14,24 @@ import { getEnv } from '../../hardhat/utils'
  * its own task in ../tasks/ organized by date.
  */
 async function main() {
-  // const currentNetwork = network.name as DeployableNetworks
+  const currentNetwork = network.name as DeployableNetworks
   // Optionally pass in accounts to be able to use them in the deployConfig
   const accounts = await ethers.getSigners()
-  const provider = new ethers.providers.JsonRpcProvider(getEnv("POLYGON_RPC_URL"));
+  const provider = new ethers.providers.JsonRpcProvider(getEnv(currentNetwork.toUpperCase() + "_RPC_URL"));
   // Create an instance of the ethers.js contract interface
   console.log("START")
 
   //FIXME: use currentNetwork
-  const zapAddress = ZAP_ADDRESS[Project.APEBOND][137]
+  let chainId: ChainId = 137
+  if (currentNetwork == 'polygon') {
+    chainId = 137
+  } else if (currentNetwork == 'bsc') {
+    chainId = 56
+  }
+  const zapAddress = ZAP_ADDRESS[Project.APEBOND][chainId]
+  if (!zapAddress) {
+    throw new Error("No zap address found for chain: " + chainId)
+  }
 
   const apiKey = process.env.POLYGONSCAN_API_KEY
 
@@ -33,7 +44,7 @@ async function main() {
 
   const events = await axios.get(url)
 
-  const tokens: { [key: string]: { amount: BigNumber, amountNormalized: string, tokenName: string } } = {}
+  const tokens: { [key: string]: { amount: BigNumber, amountNormalized: string, tokenName: string, usdPrice: number } } = {}
 
   const paramTypes = [
     '(address,uint256,address,address,(address,uint8,address[],uint256,uint256),(address,uint8,address[],uint256,uint256),(address,uint8,uint256,uint256,uint256),address,uint256)',
@@ -53,9 +64,25 @@ async function main() {
       tokens[tokenAddress].amount = tokens[tokenAddress].amount.add(tokenQuantity);
     } else {
       // Token doesn't exist, initialize it with the quantity
-      tokens[tokenAddress] = { amount: tokenQuantity, amountNormalized: "0", tokenName: "" };
+      tokens[tokenAddress] = { amount: tokenQuantity, amountNormalized: "0", tokenName: "", usdPrice: 0 };
     }
   }
+
+  const tokenAddressToIdMapping: { [key: string]: string } = {
+    "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270": "matic-network",
+    "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619": "ethereum",
+    "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063": "usd-coin",
+    "0xc2132D05D31c914a87C6611C10748AEb04B58e8F": "tether",
+    "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174": "dai",
+  }
+
+  let coingeckoUrl = "https://api.coingecko.com/api/v3/simple/price?&vs_currencies=usd&ids=";
+  const values = Object.values(tokenAddressToIdMapping);
+  const concatenatedString = values.join(',');
+  coingeckoUrl += concatenatedString
+  const apiData = await axios.get(coingeckoUrl)
+
+  let totalUsdAmount = 0;
 
   for (const key of Object.keys(tokens)) {
     const amount = tokens[key].amount;
@@ -74,12 +101,20 @@ async function main() {
       console.error('Error fetching token decimals:', error);
     }
 
-    // console.log(key, amount, 'Decimals:', decimals);
+    const usdValue = apiData.data[tokenAddressToIdMapping[key]];
+    if (usdValue) {
+      tokens[key].usdPrice = usdValue.usd;
+      totalUsdAmount += usdValue.usd * parseInt(ethers.utils.formatUnits(amount, decimals));
+    } else {
+      console.log("CoinGecko id not added yet")
+    }
     tokens[key].tokenName = name;
     tokens[key].amountNormalized = ethers.utils.formatUnits(amount, decimals);
   }
 
   console.log(tokens)
+  console.log("Total USD as of now: ", totalUsdAmount)
+
 }
 
 // We recommend this pattern to be able to use async/await everywhere
