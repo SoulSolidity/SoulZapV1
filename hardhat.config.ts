@@ -103,7 +103,7 @@ const networkConfig: ExtendedHardhatNetworkConfig = {
     },
   },
   polygon: {
-    url: getEnv('POLYGON_RPC_URL') || 'https://matic-mainnet.chainstacklabs.com',
+    url: getEnv('POLYGON_RPC_URL') || 'https://polygon.llamarpc.com',
     getExplorerUrl: (address: string) => `https://polygonscan.com/address/${address}`,
     chainId: 137,
     accounts: {

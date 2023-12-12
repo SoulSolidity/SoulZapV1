@@ -1,11 +1,12 @@
-// tests/calculator.spec.tx
+import hardhatConfig from '../hardhat.config'
 import { assert } from 'chai'
 import { providers, utils } from 'ethers'
-import { SoulZap_UniV2_ApeBond, ZapDataBondResult } from '../src/index'
+import { SoulZap_UniV2_ApeBond_SDK, ZapDataBondResult } from '../src/index'
 import { ChainId, DEX, Project, ZERO_ADDRESS } from '../src/constants'
 import { ethers } from 'hardhat'
 import { getEnv, Logger, logger, testRunner } from '../hardhat/utils'
 import { SuccessOrFailure } from '../src/types'
+import { HttpNetworkUserConfig } from 'hardhat/types'
 
 // const WMATIC = "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270";
 // const DAI = "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063";
@@ -32,8 +33,8 @@ export const ether = (value: string) => utils.parseUnits(value, 'ether').toStrin
 
 describe('SDK - lens contract', () => {
   it('Should return data', async () => {
-    const rpc = getEnv('POLYGON_RPC_URL')
-    const provider = new ethers.providers.JsonRpcProvider(rpc)
+    let rpcUrl = (hardhatConfig.networks?.['polygon'] as HttpNetworkUserConfig)?.url
+    const provider = new ethers.providers.JsonRpcProvider(rpcUrl)
     // NOTE: Skipping if no menmonic is set for CI/CD purposes
     const mnemonic = getEnv('TESTNET_MNEMONIC')
     if (!mnemonic) {
@@ -44,7 +45,7 @@ describe('SDK - lens contract', () => {
     const signer = wallet.connect(provider)
 
     //Create soulZap object
-    const soulZap = new SoulZap_UniV2_ApeBond(ChainId.POLYGON, signer)
+    const soulZap = new SoulZap_UniV2_ApeBond_SDK(ChainId.POLYGON, signer)
     soulZap.setSlippage(1)
     const dex = DEX.QUICKSWAP
     const amount = '10000000000000000'
@@ -58,20 +59,16 @@ describe('SDK - lens contract', () => {
     const recipient = '0x551DcB2Cf6155CBc4d1a8151576EEC43f3aE5559'
     const allowedPriceImpactPercentage = 3 //max 3% price impact or it returns an error (for low liquidity or large zaps)
 
-    const zapDataBond: ZapDataBondResult = await soulZap.getZapDataBondNative(
+    console.log(dex)
+    const zapDataBondReturn = await soulZap.getZapDataBondNative(
       dex,
       amount,
       BOND_ADDRESS,
       allowedPriceImpactPercentage
     )
-    console.log(zapDataBond)
+    assert(zapDataBondReturn.success, 'zapDataBondReturn.success should be true')
 
-    //Error handling
-    if (!zapDataBond.success) {
-      // Log or handle the error appropriately
-      console.error(zapDataBond.error)
-      return
-    }
+    const zapDataBond = zapDataBondReturn.data
 
     // Data to possibly show on UI
     zapDataBond.tokenInUsdPrice
