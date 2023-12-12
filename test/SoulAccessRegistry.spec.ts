@@ -6,7 +6,8 @@ import '@nomicfoundation/hardhat-chai-matchers'
 
 import { dynamicFixture } from './fixtures'
 import { SoulAccessRegistry } from '../typechain-types'
-import { getContractGetterSnapshot } from './utils'
+import { ADDRESS_DEAD, getContractGetterSnapshot } from './utils'
+import { TransparentUpgradeableProxy__factory } from '../typechain-types/factories/artifacts/@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol'
 
 /**
  * Configurable fixture to use for each test file.
@@ -20,10 +21,18 @@ import { getContractGetterSnapshot } from './utils'
  */
 async function fixture() {
   // Contracts are deployed using the first signer/account by default
-  const [admin, manager, notAdmin] = await ethers.getSigners()
+  const [admin, manager, notAdmin, proxyAdmin] = await ethers.getSigners()
 
-  const soulAccessRegistry = await (await ethers.getContractFactory('SoulAccessRegistry')).deploy(true)
+  const soulAccessRegistryImplementation = await (await ethers.getContractFactory('SoulAccessRegistry')).deploy()
+  const TransparentUpgradeableProxy = (await ethers.getContractFactory(
+    'TransparentUpgradeableProxy'
+  )) as TransparentUpgradeableProxy__factory
+  const proxy = await TransparentUpgradeableProxy.deploy(soulAccessRegistryImplementation.address, ADDRESS_DEAD, '0x')
+
+  // Cast the proxy to the interface of the implementation to call initialize
+  const soulAccessRegistry = (await ethers.getContractAt('SoulAccessRegistry', proxy.address)) as SoulAccessRegistry
   await soulAccessRegistry.initialize(admin.address)
+
   const soulAccessRegistrySnapshot = async () =>
     await getContractGetterSnapshot(soulAccessRegistry, [
       {
