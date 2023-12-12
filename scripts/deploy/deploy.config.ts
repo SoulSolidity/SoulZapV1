@@ -36,7 +36,7 @@ interface DeploymentVariables {
   admin: string
   wNative: string
   dexInfo: Partial<Record<Dex, { factory: string; router: string; hopTokens: string[] }>>
-  feeTokens: string[],
+  feeTokens: string[]
   feeCollector: string
   soulFeeManager?: string
   soulAccessRegistry?: string
@@ -96,7 +96,7 @@ const deployableNetworkConfig: Record<DeployableNetworks, (signers?: SignerWithA
       soulFeeManager: '0x835B3A6186A34e9e4bFC913d6532F4F67074eA99',
       soulAccessRegistry: '0x2433594aC4736DE4898e6cd1DF74e1d301132b1C',
       SoulZap_UniV2: '0xA400A9a00bd1b7ca90BbC5F8DB0d3d723da8D72c',
-      volumesAndFees: { volumes: ["0", "100000000000000000000000", "200000000000000000000000"], fees: [100, 50, 20] },
+      volumesAndFees: { volumes: ['0', '100000000000000000000000', '200000000000000000000000'], fees: [100, 50, 20] },
     }
   },
   polygon: (signers?: SignerWithAddress[]) => {
@@ -141,7 +141,7 @@ const deployableNetworkConfig: Record<DeployableNetworks, (signers?: SignerWithA
       soulFeeManager: '0x835B3A6186A34e9e4bFC913d6532F4F67074eA99',
       soulAccessRegistry: '0x2433594aC4736DE4898e6cd1DF74e1d301132b1C',
       SoulZap_UniV2: '0xA400A9a00bd1b7ca90BbC5F8DB0d3d723da8D72c',
-      volumesAndFees: { volumes: ["0", "100000000000000000000000", "200000000000000000000000"], fees: [100, 50, 20] },
+      volumesAndFees: { volumes: ['0', '100000000000000000000000', '200000000000000000000000'], fees: [100, 50, 20] },
     }
   },
   bscTestnet: (signers?: SignerWithAddress[]) => {
@@ -157,12 +157,12 @@ const deployableNetworkConfig: Record<DeployableNetworks, (signers?: SignerWithA
           hopTokens: [],
         },
       },
-      feeTokens: [""],
+      feeTokens: [''],
       feeCollector: '0x5c7C7246bD8a18DF5f6Ee422f9F8CCDF716A6aD2',
       soulFeeManager: '0x',
       soulAccessRegistry: '0x',
       SoulZap_UniV2: '0x',
-      volumesAndFees: { volumes: ["0"], fees: [100] },
+      volumesAndFees: { volumes: ['0'], fees: [100] },
     }
   },
 }
