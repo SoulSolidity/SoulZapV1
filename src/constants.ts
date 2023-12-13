@@ -68,14 +68,14 @@ export enum PriceGetterProtocol {
   V2 = 2,
   V3 = 3,
   Algebra = 4,
-  Gamma = 5
+  Gamma = 5,
 }
 
 export const PRICE_GETTER_ADDRESS: Record<ChainId, string> = {
-  [ChainId.ETHEREUM]: "0x",
-  [ChainId.ARBITRUM_ONE]: "0x",
-  [ChainId.BNB]: "0x945b9E730f35046c5bf24117478D651999377831",
-  [ChainId.POLYGON]: "0x241ebA867Bee0Dd50a8Ca54732A6C05815C50Cc5",
+  [ChainId.ETHEREUM]: '0x',
+  [ChainId.ARBITRUM_ONE]: '0x',
+  [ChainId.BNB]: '0x945b9E730f35046c5bf24117478D651999377831',
+  [ChainId.POLYGON]: '0x241ebA867Bee0Dd50a8Ca54732A6C05815C50Cc5',
 }
 
 export const FACTORIES: Record<DEX, Partial<Record<ChainId, Partial<Record<PriceGetterProtocol, string>>>>> = {

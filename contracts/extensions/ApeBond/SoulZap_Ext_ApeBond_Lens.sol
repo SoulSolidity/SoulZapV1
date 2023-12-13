@@ -29,8 +29,6 @@ abstract contract SoulZap_Ext_ApeBond_Lens is SoulZap_UniV2_Lens {
         uint256 maxPrice;
     }
 
-    bytes4 private constant _ZAP_BOND_SELECTOR = SoulZap_Ext_ApeBond.zapBond.selector;
-
     /**
      * @dev Get the Zap data for a bond transaction with a specified token.
      * @param tokenIn The source token for the zap.
@@ -38,6 +36,7 @@ abstract contract SoulZap_Ext_ApeBond_Lens is SoulZap_UniV2_Lens {
      * @param bond The custom bond refillable contract.
      * @param slippage The slippage tolerance (1 = 0.01%, 100 = 1%).
      * @param to The address to receive the zapped tokens.
+     * @param deadlineOffset The number of seconds into the future for which the data will be valid.
      * @return zapParams zapParams structure containing relevant data.
      * @return encodedTx Encoded transaction with the given parameters.
      * @return feeSwapPath swap path for protocol fee.
@@ -49,7 +48,8 @@ abstract contract SoulZap_Ext_ApeBond_Lens is SoulZap_UniV2_Lens {
         uint256 amountIn,
         ICustomBillRefillable bond,
         uint256 slippage,
-        address to
+        address to,
+        uint256 deadlineOffset
     )
         public
         view
@@ -66,9 +66,13 @@ abstract contract SoulZap_Ext_ApeBond_Lens is SoulZap_UniV2_Lens {
             amountIn,
             bond,
             slippage,
-            to
+            to,
+            deadlineOffset
         );
-        encodedTx = abi.encodeWithSelector(_ZAP_BOND_SELECTOR, zapParams, feeSwapPath, bond, zapParamsBonds.maxPrice);
+        encodedTx = abi.encodeCall(
+            SoulZap_Ext_ApeBond.zapBond,
+            (zapParams, feeSwapPath, bond, zapParamsBonds.maxPrice)
+        );
     }
 
     /**
@@ -77,6 +81,7 @@ abstract contract SoulZap_Ext_ApeBond_Lens is SoulZap_UniV2_Lens {
      * @param bond The custom bond refillable contract.
      * @param slippage The slippage tolerance (1 = 0.01%, 100 = 1%).
      * @param to The address to receive the zapped tokens.
+     * @param deadlineOffset The number of seconds into the future for which the data will be valid.
      * @return zapParams zapParams structure containing relevant data.
      * @return encodedTx Encoded transaction with the given parameters.
      * @return feeSwapPath swap path for protocol fee.
@@ -87,7 +92,8 @@ abstract contract SoulZap_Ext_ApeBond_Lens is SoulZap_UniV2_Lens {
         uint256 amountIn,
         ICustomBillRefillable bond,
         uint256 slippage,
-        address to
+        address to,
+        uint256 deadlineOffset
     )
         public
         view
@@ -99,7 +105,7 @@ abstract contract SoulZap_Ext_ApeBond_Lens is SoulZap_UniV2_Lens {
             ZapParams_Ext_Bonds memory zapParamsBonds
         )
     {
-        return getZapDataBond(Constants.NATIVE_ADDRESS, amountIn, bond, slippage, to);
+        return getZapDataBond(Constants.NATIVE_ADDRESS, amountIn, bond, slippage, to, deadlineOffset);
     }
 
     /**
@@ -109,6 +115,7 @@ abstract contract SoulZap_Ext_ApeBond_Lens is SoulZap_UniV2_Lens {
      * @param bond The custom bond refillable contract.
      * @param slippage The slippage tolerance percentage. See Constants.DENOMINATOR for percentage denominator.
      * @param to The address to receive the zapped tokens.
+     * @param deadlineOffset The number of seconds into the future for which the data will be valid.
      * @return zapParams zapParams structure containing relevant data.
      * @return feeSwapPath swap path for protocol fee.
      * @return priceImpactPercentages The price impact percentages.
@@ -119,7 +126,8 @@ abstract contract SoulZap_Ext_ApeBond_Lens is SoulZap_UniV2_Lens {
         uint256 amountIn,
         ICustomBillRefillable bond,
         uint256 slippage,
-        address to
+        address to,
+        uint256 deadlineOffset
     )
         internal
         view
@@ -152,7 +160,8 @@ abstract contract SoulZap_Ext_ApeBond_Lens is SoulZap_UniV2_Lens {
                 amountIn,
                 address(bondPrincipalToken),
                 slippage,
-                to
+                to,
+                deadlineOffset
             );
 
             ISoulZap_UniV2.SwapPath memory emptySwapPath;
@@ -175,7 +184,8 @@ abstract contract SoulZap_Ext_ApeBond_Lens is SoulZap_UniV2_Lens {
                 amountIn,
                 bondPrincipalToken,
                 slippage,
-                to
+                to,
+                deadlineOffset
             );
         }
 

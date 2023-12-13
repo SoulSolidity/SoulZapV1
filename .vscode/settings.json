@@ -12,6 +12,7 @@
     "ARBITRUM",
     "Arrakis",
     "bignumber",
+    "deployers",
     "dont",
     "IWETH",
     "mixedcase",
@@ -30,7 +31,9 @@
     "soulzap",
     "telos",
     "TELOSSCAN",
+    "TWAP",
     "WBNB",
+    "WMATIC",
     "WNATIVE"
   ]
 }

@@ -54,18 +54,22 @@ describe('SoulZap', function () {
       dexInfo.QuickSwap?.router!
     )
 
+    // Add the router to the whitelist
+    await zapDeploymentApeBond.soulZap.setRouterWhitelist(await routingDeploymentApeBond.soulZap_Lens.router(), true)
+
     return {
       soulZap: zapDeploymentApeBond.soulZap,
       soulAccessRegistry: zapDeploymentApeBond.soulAccessRegistry,
       soulFeeManager: zapDeploymentApeBond.soulFeeManager,
       soulZap_ApeBond_Lens: routingDeploymentApeBond.soulZap_Lens,
       soulZap_Quick_Lens: routingDeploymentQuickSwap.soulZap_Lens,
+      settings: { DEFAULT_OFFSET: 60 * 20 }
     }
   }
 
   describe('LPs', function () {
     it('ApeBond Native -> APE USDT-MATIC LP', async function () {
-      const { soulAccessRegistry, soulFeeManager, soulZap, soulZap_ApeBond_Lens, soulZap_Quick_Lens } =
+      const { soulAccessRegistry, soulFeeManager, soulZap, soulZap_ApeBond_Lens, soulZap_Quick_Lens, settings } =
         await loadFixture(fixture)
       const signer = ethers.provider.getSigner()
       const amount = '1000000000000000000'
@@ -74,18 +78,19 @@ describe('SoulZap', function () {
         amount,
         '0x65D43B64E3B31965Cd5EA367D4c2b94c03084797',
         0,
-        '0x5c7C7246bD8a18DF5f6Ee422f9F8CCDF716A6aD2'
+        '0x5c7C7246bD8a18DF5f6Ee422f9F8CCDF716A6aD2',
+        settings.DEFAULT_OFFSET
       )
       console.log(JSON.stringify(bestRoute))
       const zapTx = await signer.sendTransaction({
         to: soulZap.address, // Address of the contract
         data: bestRoute.encodedTx,
-        value: amount,
+        value: amount
       })
     })
 
     it('ApeBond USDC -> APE USDT-MATIC LP', async function () {
-      const { soulAccessRegistry, soulFeeManager, soulZap, soulZap_ApeBond_Lens, soulZap_Quick_Lens } =
+      const { soulAccessRegistry, soulFeeManager, soulZap, soulZap_ApeBond_Lens, soulZap_Quick_Lens, settings } =
         await loadFixture(fixture)
       const signer = ethers.provider.getSigner()
       const amount = '1000000'
@@ -108,7 +113,8 @@ describe('SoulZap', function () {
         amount,
         '0x65D43B64E3B31965Cd5EA367D4c2b94c03084797',
         0,
-        '0x5c7C7246bD8a18DF5f6Ee422f9F8CCDF716A6aD2'
+        '0x5c7C7246bD8a18DF5f6Ee422f9F8CCDF716A6aD2',
+        settings.DEFAULT_OFFSET
       )
       console.log(JSON.stringify(bestRoute))
       await usdc.approve(soulZap.address, amount)
@@ -119,7 +125,7 @@ describe('SoulZap', function () {
     })
 
     it('QS Native -> APE USDT-MATIC LP', async function () {
-      const { soulAccessRegistry, soulFeeManager, soulZap, soulZap_ApeBond_Lens, soulZap_Quick_Lens } =
+      const { soulAccessRegistry, soulFeeManager, soulZap, soulZap_ApeBond_Lens, soulZap_Quick_Lens, settings } =
         await loadFixture(fixture)
       const signer = ethers.provider.getSigner()
       const amount = '1000000000000000000'
@@ -128,7 +134,8 @@ describe('SoulZap', function () {
         amount,
         '0x604229c960e5CACF2aaEAc8Be68Ac07BA9dF81c3',
         0,
-        '0x5c7C7246bD8a18DF5f6Ee422f9F8CCDF716A6aD2'
+        '0x5c7C7246bD8a18DF5f6Ee422f9F8CCDF716A6aD2',
+        settings.DEFAULT_OFFSET
       )
       console.log(JSON.stringify(bestRoute))
       const zapTx = await signer.sendTransaction({
@@ -139,7 +146,7 @@ describe('SoulZap', function () {
     })
 
     it('QS USDC -> APE USDT-MATIC LP', async function () {
-      const { soulAccessRegistry, soulFeeManager, soulZap, soulZap_ApeBond_Lens, soulZap_Quick_Lens } =
+      const { soulAccessRegistry, soulFeeManager, soulZap, soulZap_ApeBond_Lens, soulZap_Quick_Lens, settings } =
         await loadFixture(fixture)
       const signer = ethers.provider.getSigner()
       const amount = '1000000'
@@ -162,7 +169,8 @@ describe('SoulZap', function () {
         amount,
         '0x604229c960e5CACF2aaEAc8Be68Ac07BA9dF81c3',
         0,
-        '0x5c7C7246bD8a18DF5f6Ee422f9F8CCDF716A6aD2'
+        '0x5c7C7246bD8a18DF5f6Ee422f9F8CCDF716A6aD2',
+        settings.DEFAULT_OFFSET
       )
       console.log(JSON.stringify(bestRoute))
       await usdc.approve(soulZap.address, amount)

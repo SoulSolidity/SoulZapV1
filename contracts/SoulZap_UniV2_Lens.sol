@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.23;
+pragma solidity 0.8.19;
 
 /*
  ██████╗ █████╗ ██╗   ██╗██╗        ██████╗ █████╗ ██╗     ██╗██████╗ ██╗████████╗██╗   ██╗
@@ -27,6 +27,7 @@ import {IUniswapV2Router02} from "@uniswap/v2-periphery/contracts/interfaces/IUn
 /// Internal Imports
 /// -----------------------------------------------------------------------
 import {Constants} from "./utils/Constants.sol";
+import {TokenHelper} from "./utils/TokenHelper.sol";
 import {SoulAccessManaged} from "./access/SoulAccessManaged.sol";
 import {ISoulZap_UniV2} from "./ISoulZap_UniV2.sol";
 import {IWETH} from "./lib/IWETH.sol";
@@ -53,14 +54,11 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
     ISoulZap_UniV2 public soulZap;
 
     uint256 public constant MAX_HOP_TOKENS = 20;
-    uint256 public constant DEADLINE = 20 minutes;
 
     /// -----------------------------------------------------------------------
     /// Storage variables internal/private
     /// -----------------------------------------------------------------------
 
-    bytes4 private constant _ZAP_SELECTOR = ISoulZap_UniV2.zap.selector;
-    bytes4 private constant _SWAP_SELECTOR = ISoulZap_UniV2.swap.selector;
     uint256 private constant _ACCEPTED_FEE_PRICE_IMPACT = (3 * Constants.DENOMINATOR) / 100; // 3%
 
     EnumerableSet.AddressSet private _hopTokens;
@@ -125,6 +123,7 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
      * @param tokenOut The output token of swap.
      * @param slippage The slippage tolerance (1 = 0.01%, 100 = 1%).
      * @param to The address to receive the swapped tokens.
+     * @param deadlineOffset The number of seconds into the future for which the data will be valid.
      * @return swapParams SwapParams structure containing relevant data.
      * @return encodedTx Encoded transaction with the given parameters.
      * @return feeSwapPath SwapPath for protocol fees
@@ -135,7 +134,8 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
         uint256 amountIn,
         address tokenOut,
         uint256 slippage,
-        address to
+        address to,
+        uint256 deadlineOffset
     )
         public
         view
@@ -146,8 +146,15 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
             uint256 priceImpactPercentage
         )
     {
-        (swapParams, feeSwapPath, priceImpactPercentage) = _getSwapData(tokenIn, amountIn, tokenOut, slippage, to);
-        encodedTx = abi.encodeWithSelector(_SWAP_SELECTOR, swapParams, feeSwapPath);
+        (swapParams, feeSwapPath, priceImpactPercentage) = _getSwapData(
+            tokenIn,
+            amountIn,
+            tokenOut,
+            slippage,
+            to,
+            deadlineOffset
+        );
+        encodedTx = abi.encodeCall(ISoulZap_UniV2.swap, (swapParams, feeSwapPath));
     }
 
     /**
@@ -156,6 +163,7 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
      * @param tokenOut The output token of swap.
      * @param slippage The slippage tolerance percentage. See Constants.DENOMINATOR for percentage denominator.
      * @param to The address to receive the zapped tokens.
+     * @param deadlineOffset The number of seconds into the future for which the data will be valid.
      * @return swapParams SwapParams structure containing relevant data.
      * @return encodedTx Encoded transaction with the given parameters.
      * @return feeSwapPath SwapPath for protocol fees
@@ -165,7 +173,8 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
         uint256 amountIn,
         address tokenOut,
         uint256 slippage,
-        address to
+        address to,
+        uint256 deadlineOffset
     )
         public
         view
@@ -176,7 +185,7 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
             uint256 priceImpactPercentage
         )
     {
-        return getSwapData(Constants.NATIVE_ADDRESS, amountIn, tokenOut, slippage, to);
+        return getSwapData(Constants.NATIVE_ADDRESS, amountIn, tokenOut, slippage, to, deadlineOffset);
     }
 
     /**
@@ -195,7 +204,8 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
         uint256 amountIn,
         address tokenOut,
         uint256 slippage,
-        address to
+        address to,
+        uint256 deadlineOffset
     )
         internal
         view
@@ -228,7 +238,7 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
             amountIn: amountIn, // Use full input amount here
             tokenOut: tokenOut,
             to: to,
-            deadline: block.timestamp + DEADLINE,
+            deadline: block.timestamp + deadlineOffset,
             path: swapPath
         });
     }
@@ -244,6 +254,7 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
      * @param lp The Uniswap V2 pair contract.
      * @param slippage The slippage tolerance (1 = 0.01%, 100 = 1%).
      * @param to The address to receive the zapped tokens.
+     * @param deadlineOffset The number of seconds into the future for which the data will be valid.
      * @return zapParams ZapParams structure containing relevant data.
      * @return encodedTx Encoded transaction with the given parameters.
      * @return feeSwapPath SwapPath for protocol fees
@@ -254,7 +265,8 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
         uint256 amountIn,
         IUniswapV2Pair lp,
         uint256 slippage,
-        address to
+        address to,
+        uint256 deadlineOffset
     )
         public
         view
@@ -265,8 +277,15 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
             uint256[] memory priceImpactPercentages
         )
     {
-        (zapParams, feeSwapPath, priceImpactPercentages) = _getZapData(tokenIn, amountIn, lp, slippage, to);
-        encodedTx = abi.encodeWithSelector(_ZAP_SELECTOR, zapParams, feeSwapPath);
+        (zapParams, feeSwapPath, priceImpactPercentages) = _getZapData(
+            tokenIn,
+            amountIn,
+            lp,
+            slippage,
+            to,
+            deadlineOffset
+        );
+        encodedTx = abi.encodeCall(ISoulZap_UniV2.zap, (zapParams, feeSwapPath));
     }
 
     /**
@@ -275,6 +294,7 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
      * @param lp The Uniswap V2 pair contract.
      * @param slippage The slippage tolerance percentage. See Constants.DENOMINATOR for percentage denominator.
      * @param to The address to receive the zapped tokens.
+     * @param deadlineOffset The number of seconds into the future for which the data will be valid.
      * @return zapParams ZapParams structure containing relevant data.
      * @return encodedTx Encoded transaction with the given parameters.
      * @return feeSwapPath SwapPath for protocol fees
@@ -284,7 +304,8 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
         uint256 amountIn,
         IUniswapV2Pair lp,
         uint256 slippage,
-        address to
+        address to,
+        uint256 deadlineOffset
     )
         public
         view
@@ -295,7 +316,7 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
             uint256[] memory priceImpactPercentages
         )
     {
-        return getZapData(Constants.NATIVE_ADDRESS, amountIn, lp, slippage, to);
+        return getZapData(Constants.NATIVE_ADDRESS, amountIn, lp, slippage, to, deadlineOffset);
     }
 
     /**
@@ -314,7 +335,8 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
         uint256 amountIn,
         IUniswapV2Pair lp,
         uint256 slippage,
-        address to
+        address to,
+        uint256 deadlineOffset
     )
         internal
         view
@@ -338,7 +360,7 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
             tokenIn = address(WNATIVE);
         }
 
-        zapParams.deadline = block.timestamp + DEADLINE;
+        zapParams.deadline = block.timestamp + deadlineOffset;
         zapParams.amountIn = amountIn; // Use full input amount here
         // Set input token to NATIVE_ADDRESS if nativeZap
         zapParams.tokenIn = nativeZap ? IERC20(Constants.NATIVE_ADDRESS) : IERC20(tokenIn);
@@ -485,9 +507,17 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
         // -----------------------------------------------------------------------
         // Iterate through all possible pairs to find the best path
         for (uint i = 0; i < fromTokenHopTokens.length; i++) {
+            /// @dev In this case, _toToken will be used twice in the path
+            if (fromTokenHopTokens[i] == _toToken) {
+                continue;
+            }
             for (uint j = 0; j < toTokenHopTokens.length; j++) {
-                // Skip if they equal each other as this is handled in the sharedHopTokens section
-                if (fromTokenHopTokens[i] == toTokenHopTokens[j]) {
+                if (
+                    /// @dev In this case, _fromToken will be used twice in the path
+                    _fromToken == toTokenHopTokens[j] ||
+                    // Skip if they equal each other as this is handled in the sharedHopTokens section
+                    fromTokenHopTokens[i] == toTokenHopTokens[j]
+                ) {
                     continue;
                 }
 
@@ -595,6 +625,7 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
      * @return The hop token at the specified index.
      */
     function getHopTokenAtIndex(uint256 _index) public view returns (address) {
+        require(_index < getHopTokensLength(), "SoulZap_UniV2_Lens: index out of bounds");
         return _hopTokens.at(_index);
     }
 
@@ -693,7 +724,8 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
 
         feeVars.feePercentage = currentFeePercentage;
         feeVars.feeAmount = (_amountIn * currentFeePercentage) / feeDenominator;
-
+        // Keep track of the output normalized to 18 decimals
+        uint256 normalizedBestAmountOut = 0;
         for (uint256 i = 0; i < feeTokens.length; i++) {
             feeVars.feeToken = feeTokens[i];
             (ISoulZap_UniV2.SwapPath memory bestPath, uint256 priceImpactPercentage) = _getBestSwapPathWithImpact(
@@ -702,7 +734,10 @@ contract SoulZap_UniV2_Lens is SoulAccessManaged {
                 feeVars.feeAmount,
                 _slippage
             );
-            if (bestPath.amountOutMin > feeSwapPath.amountOutMin) {
+            // Normalize the amount out to 18 decimals
+            uint256 normalizedAmountOut = TokenHelper.normalizeTokenAmount(feeVars.feeToken, bestPath.amountOutMin);
+            if (normalizedAmountOut > normalizedBestAmountOut) {
+                normalizedBestAmountOut = normalizedAmountOut;
                 feeSwapPath = bestPath;
                 // To save gas usage we break if we get any accepted fee price impact
                 // If no path has an accepted fee price impact we just take the best one

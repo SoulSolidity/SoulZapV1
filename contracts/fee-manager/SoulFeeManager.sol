@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.23;
+pragma solidity 0.8.19;
 
 /*
  ██████╗ █████╗ ██╗   ██╗██╗        ██████╗ █████╗ ██╗     ██╗██████╗ ██╗████████╗██╗   ██╗
@@ -23,7 +23,8 @@ import {ISoulFeeManager} from "./ISoulFeeManager.sol";
 
 /**
  * @title SoulFeeManager_Interface
- * @dev This contract is an interface for the SoulFeeManager. It includes a function for getting the fee based on epoch volume.
+ * @notice This SoulFeeManager includes a function for getting the fee based on epoch volume.
+ * @dev Fee tokens are intended to be stable coins. Volume is intended to be normalized with 18 decimals.
  * @author Soul Solidity - Contact for mainnet licensing until 730 days after first deployment transaction with matching bytecode.
  * Otherwise feel free to experiment locally or on testnets.
  */
@@ -153,12 +154,14 @@ contract SoulFeeManager is ISoulFeeManager, SoulAccessManaged {
      * @return fee The fee percentage corresponding to the given volume.
      */
     function getFee(uint256 epochFeeVolume) public view returns (uint256 fee) {
-        for (uint256 i = volumeFeeThresholds.length - 1; i >= 0; i--) {
-            if (epochFeeVolume >= volumeFeeThresholds[i].volume) {
-                return volumeFeeThresholds[i].fee;
+        /// @dev i > 0 to prevent revert
+        for (uint256 i = volumeFeeThresholds.length; i > 0; i--) {
+            if (epochFeeVolume >= volumeFeeThresholds[i - 1].volume) {
+                return volumeFeeThresholds[i - 1].fee;
             }
         }
-        return 0;
+        // Apply the fee for the lowest index in case the volume is lower than the least configured volume threshold.
+        return volumeFeeThresholds[0].fee;
     }
 
     /// -----------------------------------------------------------------------

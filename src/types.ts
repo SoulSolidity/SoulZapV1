@@ -20,7 +20,7 @@ export type Failure = {
   error: string // You can customize the error type based on your needs
 }
 
-export type SuccessOrFailure<T> = Success<T> | Failure;
+export type SuccessOrFailure<T> = Success<T> | Failure
 
 /// -----------------------------------------------------------------------
 /// Swap Path
@@ -121,6 +121,4 @@ export type ZapDataBond = {
   zapParamsBonds: ZapParams_Ext_Bonds
 }
 
-export type ZapDataBondResult =
-  | Success<ZapDataBond>
-  | Failure 
+export type ZapDataBondResult = Success<ZapDataBond> | Failure

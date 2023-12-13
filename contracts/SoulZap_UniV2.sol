@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.23;
+pragma solidity 0.8.19;
 
 /*
  ██████╗ █████╗ ██╗   ██╗██╗        ██████╗ █████╗ ██╗     ██╗██████╗ ██╗████████╗██╗   ██╗
@@ -23,8 +23,8 @@ import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Ini
 import {IUniswapV2Factory} from "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 import {IUniswapV2Pair} from "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import {IUniswapV2Router02} from "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
-import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /// -----------------------------------------------------------------------
@@ -36,8 +36,11 @@ import {EpochVolumeTracker} from "./utils/EpochVolumeTracker.sol";
 import {ISoulFeeManager} from "./fee-manager/ISoulFeeManager.sol";
 import {ISoulZap_UniV2} from "./ISoulZap_UniV2.sol";
 import {SoulAccessManaged} from "./access/SoulAccessManaged.sol";
+import {SoulZap_UniV2_Whitelist} from "./SoulZap_UniV2_Whitelist.sol";
 import {TransferHelper} from "./utils/TransferHelper.sol";
+import {TokenHelper} from "./utils/TokenHelper.sol";
 import {LocalVarsLib} from "./utils/LocalVarsLib.sol";
+import {Sweeper} from "./utils/Sweeper.sol";
 
 /*
 /// @dev The receive method is used as a fallback function in a contract
@@ -55,11 +58,13 @@ import {LocalVarsLib} from "./utils/LocalVarsLib.sol";
 contract SoulZap_UniV2 is
     ISoulZap_UniV2,
     SoulAccessManaged,
+    SoulZap_UniV2_Whitelist,
     EpochVolumeTracker,
     Initializable,
     Pausable,
     ReentrancyGuard,
-    TransferHelper
+    TransferHelper,
+    Sweeper
 {
     using SafeERC20 for IERC20;
 
@@ -69,8 +74,8 @@ contract SoulZap_UniV2 is
 
     ISoulFeeManager public soulFeeManager;
 
-    bytes32 public SOUL_ZAP_PAUSER_ROLE = _getRoleHash("SOUL_ZAP_PAUSER_ROLE");
     bytes32 public SOUL_ZAP_ADMIN_ROLE = _getRoleHash("SOUL_ZAP_ADMIN_ROLE");
+    bytes32 public SOUL_ZAP_PAUSER_ROLE = _getRoleHash("SOUL_ZAP_PAUSER_ROLE");
 
     /// -----------------------------------------------------------------------
     /// Events
@@ -89,7 +94,12 @@ contract SoulZap_UniV2 is
         ISoulFeeManager _soulFeeManager,
         /// @dev Set to zero to start epoch tracking immediately
         uint256 _epochStartTime
-    ) SoulAccessManaged(_accessRegistry) EpochVolumeTracker(0, _epochStartTime) TransferHelper(_wnative) {
+    )
+        SoulAccessManaged(_accessRegistry)
+        EpochVolumeTracker(_epochStartTime, 0)
+        TransferHelper(_wnative)
+        Sweeper(new address[](0), true, SOUL_ZAP_ADMIN_ROLE)
+    {
         require(_soulFeeManager.isSoulFeeManager(), "SoulZap: soulFeeManager is not ISoulFeeManager");
         soulFeeManager = _soulFeeManager;
     }
@@ -109,13 +119,11 @@ contract SoulZap_UniV2 is
      * @param _inputAmount The amount of the token that the user wants to use for the transaction.
      */
     modifier verifyMsgValueAndWrap(IERC20 _inputToken, uint256 _inputAmount) {
-        if (msg.value > 0) {
-            require(
-                address(_inputToken) == address(Constants.NATIVE_ADDRESS),
-                "SoulZap: tokenIn MUST be NATIVE_ADDRESS with msg.value"
-            );
+        if (address(_inputToken) == address(Constants.NATIVE_ADDRESS)) {
             (, uint256 wrappedAmount) = _wrapNative();
             require(_inputAmount == wrappedAmount, "SoulZap: amountIn not equal to wrappedAmount");
+        } else {
+            require(msg.value == 0, "SoulZap: msg.value should be 0");
         }
         _;
     }
@@ -124,10 +132,13 @@ contract SoulZap_UniV2 is
     /// Pausing
     /// -----------------------------------------------------------------------
 
+    /// @notice Pauses the contract functionality.
     function pause() external onlyAccessRegistryRole(SOUL_ZAP_PAUSER_ROLE) {
         _pause();
     }
 
+    /// @notice Unpauses the contract functionality.
+    /// @dev This operation should only be performed by an admin role as it can be a critical operation.
     function unpause() external onlyAccessRegistryRole(SOUL_ZAP_ADMIN_ROLE) {
         _unpause();
     }
@@ -163,10 +174,9 @@ contract SoulZap_UniV2 is
 
     /// @notice Ultimate ZAP function
     /// @dev Assumes tokens are already transferred to this contract.
-    /// - whenNotPaused: Only works when not paused which also pauses all other extensions which extend this
     /// @param swapParams all parameters for swap
     /// @param feeSwapPath swap path for protocol fee
-    function _swap(SwapParams memory swapParams, SwapPath memory feeSwapPath, bool takeFee) internal whenNotPaused {
+    function _swap(SwapParams memory swapParams, SwapPath memory feeSwapPath, bool takeFee) internal {
         // Verify inputs
         require(swapParams.amountIn > 0, "SoulZap: amountIn must be > 0");
         require(swapParams.to != address(0), "SoulZap: Can't swap to null address");
@@ -194,7 +204,7 @@ contract SoulZap_UniV2 is
             swapParams.path.path[swapParams.path.path.length - 1] == swapParams.tokenOut,
             "SoulZap: wrong path path[-1]"
         );
-        swapParams.tokenIn.approve(swapParams.path.swapRouter, swapParams.amountIn);
+        swapParams.tokenIn.forceApprove(swapParams.path.swapRouter, swapParams.amountIn);
         _routerSwapFromPath(swapParams.path, swapParams.amountIn, swapParams.to, swapParams.deadline);
 
         emit Swap(swapParams);
@@ -230,11 +240,10 @@ contract SoulZap_UniV2 is
 
     /// @notice Ultimate ZAP function
     /// @dev Assumes tokens are already transferred to this contract.
-    /// - whenNotPaused: Only works when not paused which also pauses all other extensions which extend this
     /// - Native input zap MUST be done with Constants.NATIVE_ADDRESS
     /// @param zapParams see ISoulZap_UniV2.ZapParams struct
     /// @param feeSwapPath see ISoulZap_UniV2.SwapPath struct
-    function _zap(ZapParams memory zapParams, SwapPath memory feeSwapPath, bool takeFee) internal whenNotPaused {
+    function _zap(ZapParams memory zapParams, SwapPath memory feeSwapPath, bool takeFee) internal {
         // Verify inputs
         require(zapParams.amountIn > 0, "SoulZap: amountIn must be > 0");
         require(zapParams.to != address(0), "SoulZap: Can't zap to null address");
@@ -247,11 +256,6 @@ contract SoulZap_UniV2 is
 
         // Setup struct to prevent stack overflow
         LocalVarsLib.LocalVars memory vars;
-        // Ensure token addresses and paths are in ascending numerical order
-        if (zapParams.token1 < zapParams.token0) {
-            (zapParams.token0, zapParams.token1) = (zapParams.token1, zapParams.token0);
-            (zapParams.path0, zapParams.path1) = (zapParams.path1, zapParams.path0);
-        }
 
         if (takeFee) {
             zapParams.amountIn -= _handleFee(zapParams.tokenIn, zapParams.amountIn, feeSwapPath, zapParams.deadline);
@@ -285,7 +289,7 @@ contract SoulZap_UniV2 is
                 zapParams.path0.path[zapParams.path0.path.length - 1] == zapParams.token0,
                 "SoulZap: wrong path path0[-1]"
             );
-            zapParams.tokenIn.approve(zapParams.path0.swapRouter, vars.amount0In);
+            zapParams.tokenIn.forceApprove(zapParams.path0.swapRouter, vars.amount0In);
             vars.amount0Out = _routerSwapFromPath(zapParams.path0, vars.amount0In, address(this), zapParams.deadline);
         } else {
             vars.amount0Out = zapParams.amountIn - vars.amount1In;
@@ -300,7 +304,7 @@ contract SoulZap_UniV2 is
                 zapParams.path1.path[zapParams.path1.path.length - 1] == zapParams.token1,
                 "SoulZap: wrong path path1[-1]"
             );
-            zapParams.tokenIn.approve(zapParams.path1.swapRouter, vars.amount1In);
+            zapParams.tokenIn.forceApprove(zapParams.path1.swapRouter, vars.amount1In);
             vars.amount1Out = _routerSwapFromPath(zapParams.path1, vars.amount1In, address(this), zapParams.deadline);
         } else {
             vars.amount1Out = zapParams.amountIn - vars.amount0In;
@@ -309,8 +313,8 @@ contract SoulZap_UniV2 is
         /**
          * Handle Liquidity Add
          */
-        IERC20(zapParams.token0).approve(address(zapParams.liquidityPath.lpRouter), vars.amount0Out);
-        IERC20(zapParams.token1).approve(address(zapParams.liquidityPath.lpRouter), vars.amount1Out);
+        IERC20(zapParams.token0).forceApprove(address(zapParams.liquidityPath.lpRouter), vars.amount0Out);
+        IERC20(zapParams.token1).forceApprove(address(zapParams.liquidityPath.lpRouter), vars.amount1Out);
 
         if (zapParams.liquidityPath.lpType == LPType.V2) {
             // Add liquidity to UniswapV2 Pool
@@ -340,6 +344,12 @@ contract SoulZap_UniV2 is
             _transferOut(IERC20(zapParams.token1), vars.amount1Out - vars.amount1Lp, msg.sender, native);
         }
 
+        /**
+         * Remove approval
+         */
+        IERC20(zapParams.token0).forceApprove(address(zapParams.liquidityPath.lpRouter), 0);
+        IERC20(zapParams.token1).forceApprove(address(zapParams.liquidityPath.lpRouter), 0);
+
         emit Zap(zapParams);
     }
 
@@ -349,35 +359,25 @@ contract SoulZap_UniV2 is
         address _to,
         uint256 _deadline
     ) private returns (uint256 amountOut) {
+        require(isRouterWhitelisted(_uniSwapPath.swapRouter), "SoulZap: router not whitelisted");
         require(_uniSwapPath.path.length >= 2, "SoulZap: need path0 of >=2");
+
         address outputToken = _uniSwapPath.path[_uniSwapPath.path.length - 1];
         uint256 balanceBefore = _getBalance(IERC20(outputToken), _to);
-        _routerSwap(
-            _uniSwapPath.swapRouter,
-            _uniSwapPath.swapType,
-            _amountIn,
-            _uniSwapPath.amountOutMin,
-            _uniSwapPath.path,
-            _to,
-            _deadline
-        );
-        amountOut = _getBalance(IERC20(outputToken), _to) - balanceBefore;
-    }
-
-    function _routerSwap(
-        address router,
-        SwapType swapType,
-        uint256 amountIn,
-        uint256 amountOutMin,
-        address[] memory path,
-        address _to,
-        uint256 deadline
-    ) private {
-        if (swapType == SwapType.V2) {
-            IUniswapV2Router02(router).swapExactTokensForTokens(amountIn, amountOutMin, path, _to, deadline);
+        // Swap based on swap type
+        if (_uniSwapPath.swapType == SwapType.V2) {
+            IUniswapV2Router02(_uniSwapPath.swapRouter).swapExactTokensForTokensSupportingFeeOnTransferTokens(
+                _amountIn,
+                _uniSwapPath.amountOutMin,
+                _uniSwapPath.path,
+                _to,
+                _deadline
+            );
         } else {
             revert("SoulZap: SwapType not supported");
         }
+        // Return the balance increase of the output token sent to _to
+        amountOut = _getBalance(IERC20(outputToken), _to) - balanceBefore;
     }
 
     /// -----------------------------------------------------------------------
@@ -439,19 +439,22 @@ contract SoulZap_UniV2 is
         inputFeeAmount = (_inputAmount * feePercentage) / feeDenominator;
 
         if (_feeSwapPath.path.length >= 2) {
+            require(address(_inputToken) == _feeSwapPath.path[0], "SoulZap: Invalid input token in feeSwapPath");
             address outputToken = _feeSwapPath.path[_feeSwapPath.path.length - 1];
             require(soulFeeManager.isFeeToken(outputToken), "SoulZap: Invalid output token in feeSwapPath");
 
-            _inputToken.approve(_feeSwapPath.swapRouter, inputFeeAmount);
+            _inputToken.forceApprove(_feeSwapPath.swapRouter, inputFeeAmount);
             uint256 amountOut = _routerSwapFromPath(_feeSwapPath, inputFeeAmount, feeCollector, _deadline);
-            _accumulateFeeVolume(amountOut);
+            // Accumulate normalized fee volume
+            _accumulateFeeVolume(TokenHelper.normalizeTokenAmount(outputToken, amountOut));
         } else {
             /// @dev Input token is considered fee token or a token with no output route
             /// In order to not create a denial of service, we take any input token in this case.
             _transferOut(_inputToken, inputFeeAmount, feeCollector, false);
             // Only increase fee volume if input token is a fee token
             if (soulFeeManager.isFeeToken(address(_inputToken))) {
-                _accumulateFeeVolume(inputFeeAmount);
+                // Accumulate normalized fee volume
+                _accumulateFeeVolume(TokenHelper.normalizeTokenAmount(address(_inputToken), inputFeeAmount));
             }
         }
     }

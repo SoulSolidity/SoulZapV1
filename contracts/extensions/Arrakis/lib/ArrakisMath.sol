@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
-pragma solidity 0.8.23;
+pragma solidity 0.8.19;
 
 import "./IArrakisPool.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "./IArrakisFactoryV1.sol";
+import "../../../utils/TokenHelper.sol";
 
 library ArrakisMath {
     struct SwapRatioParams {
@@ -56,8 +57,8 @@ library ArrakisMath {
 
         vars.token0decimals = ERC20(address(swapRatioParams.token0)).decimals();
         vars.token1decimals = ERC20(address(swapRatioParams.token1)).decimals();
-        vars.underlying0 = _normalizeTokenDecimals(vars.underlying0, vars.token0decimals);
-        vars.underlying1 = _normalizeTokenDecimals(vars.underlying1, vars.token1decimals);
+        vars.underlying0 = TokenHelper.normalizeAmountByDecimals(vars.underlying0, uint8(vars.token0decimals));
+        vars.underlying1 = TokenHelper.normalizeAmountByDecimals(vars.underlying1, uint8(vars.token1decimals));
 
         vars.weightedPrice0 = swapRatioParams.inputToken == swapRatioParams.token0
             ? 1e18
@@ -76,26 +77,24 @@ library ArrakisMath {
                 swapRatioParams.uniV3Factory
             );
 
-        vars.percentage0 =
-            (((vars.underlying0 * 1e18) / (vars.underlying0 + vars.underlying1)) * vars.weightedPrice0) /
-            (vars.weightedPrice0 + vars.weightedPrice1);
+        // Calculate the total weighted value
+        uint256 totalWeightedValue = vars.underlying0 * vars.weightedPrice0 + vars.underlying1 * vars.weightedPrice1;
+        // Ensure totalWeightedValue is not zero to prevent division by zero
+        if (totalWeightedValue == 0) {
+            return (0, 0);
+        }
 
-        vars.percentage1 =
-            (((vars.underlying1 * 1e18) / (vars.underlying0 + vars.underlying1)) * vars.weightedPrice1) /
-            (vars.weightedPrice0 + vars.weightedPrice1);
-
-        amount0 =
-            (((vars.percentage0 * 1e18) / (vars.percentage0 + vars.percentage1)) * swapRatioParams.inputAmount) /
-            1e18;
-
+        // Calculate percentages
+        uint256 percentage0 = (vars.underlying0 * vars.weightedPrice0 * 1e18) / totalWeightedValue;
+        uint256 percentage1 = (vars.underlying1 * vars.weightedPrice1 * 1e18) / totalWeightedValue;
+        uint256 totalPercentage = percentage0 + percentage1;
+        // Ensure totalPercentage is not zero to prevent division by zero
+        if (totalPercentage == 0) {
+            return (0, 0);
+        }
+        // Calculate amounts
+        amount0 = (percentage0 * swapRatioParams.inputAmount) / totalPercentage;
         amount1 = swapRatioParams.inputAmount - amount0;
-    }
-
-    /// @notice Normalize token decimals to 18
-    /// @param amount Amount of tokens
-    /// @param decimals Decimals of given token amount to scale. MUST be <=18
-    function _normalizeTokenDecimals(uint256 amount, uint256 decimals) internal pure returns (uint256) {
-        return amount * 10 ** (18 - decimals);
     }
 
     /// @notice Returns value based on other token
@@ -114,7 +113,10 @@ library ArrakisMath {
             uint256 tokenDecimals = getTokenDecimals(path[path.length - 1]);
 
             uint256[] memory amountsOut0 = IUniswapV2Router02(uniV2Router).getAmountsOut(1e18, path);
-            weightedPrice = _normalizeTokenDecimals(amountsOut0[amountsOut0.length - 1], tokenDecimals);
+            weightedPrice = TokenHelper.normalizeAmountByDecimals(
+                amountsOut0[amountsOut0.length - 1],
+                uint8(tokenDecimals)
+            );
         } else {
             for (uint256 index = 0; index < path.length - 1; index++) {
                 weightedPrice =
@@ -126,8 +128,9 @@ library ArrakisMath {
     }
 
     /// @notice Returns value based on other token
+    /// @dev MUST only be used for off-chain processing. If price is needed on-chain, it should come from a TWAP.
     /// @param token0 initial token
-    /// @param token1 end token that needs vaue based of token0
+    /// @param token1 end token that needs value based of token0
     /// @param fee uniV3 pool fee
     /// @param uniV3Factory uniV3 factory
     /// @return price value of token1 based of token0
@@ -147,7 +150,7 @@ library ArrakisMath {
         require(size != 0, "ArrakisMath: UniV3 pair not found");
 
         uint256 sqrtPriceX96;
-
+        /// @dev MUST only be used for off-chain processing. If price is needed on-chain, it should come from a TWAP.
         (sqrtPriceX96, , , , , , ) = IUniswapV3Pool(tokenPegPair).slot0();
 
         uint256 token0Decimals = getTokenDecimals(token0);

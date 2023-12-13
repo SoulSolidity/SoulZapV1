@@ -15,61 +15,64 @@ pragma solidity ^0.8.0;
  */
 
 /// -----------------------------------------------------------------------
-/// Package Imports (alphabetical)
+/// Package Imports
 /// -----------------------------------------------------------------------
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 /// -----------------------------------------------------------------------
-/// Local Imports (alphabetical)
+/// Local Imports
 /// -----------------------------------------------------------------------
-import {ICustomBillRefillable} from "./lib/ICustomBillRefillable.sol";
-import {SoulAccessManaged} from "../../access/SoulAccessManaged.sol";
+import {SoulAccessManaged} from "./access/SoulAccessManaged.sol";
 
-/// @title SoulZap_Ext_BondNftWhitelist
+/// @title SoulZap_UniV2_Whitelist
 /// @notice This contract extension requires specific role setup to manage the whitelist of Bond NFTs.
 /// The roles are managed through the SoulAccessManaged contract and are critical for the
 /// security and proper administration of the whitelist functionality.
-abstract contract SoulZap_Ext_BondNftWhitelist is SoulAccessManaged {
+abstract contract SoulZap_UniV2_Whitelist is SoulAccessManaged {
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    EnumerableSet.AddressSet private _whitelistedBondNfts;
+    EnumerableSet.AddressSet private _whitelistedRouters;
 
-    event BondNftWhitelisted(address indexed bondNft, bool whitelisted);
+    event RouterWhitelisted(address indexed router, bool whitelisted);
 
-    /// @notice Add or remove a bondNft from the whitelist
-    /// @param _bondNft The address of the bondNft to be added or removed
-    /// @param _isWhitelisted True to add the bondNft to the whitelist, false to remove it
-    function setBondNftWhitelist(
-        address _bondNft,
+    /// @notice Add or remove a router from the whitelist
+    /// @dev This function allows adding or removing a router from the whitelist.
+    /// @param _router The address of the router to be added or removed
+    /// @param _isWhitelisted True to add the router to the whitelist, false to remove it
+    function setRouterWhitelist(
+        address _router,
         bool _isWhitelisted
     ) external onlyAccessRegistryRoleName("SOUL_ZAP_ADMIN_ROLE") {
         if (_isWhitelisted) {
-            require(_whitelistedBondNfts.add(_bondNft), "BondNft already whitelisted");
-            emit BondNftWhitelisted(_bondNft, true);
+            require(_whitelistedRouters.add(_router), "Router already whitelisted");
+            emit RouterWhitelisted(_router, true);
         } else {
-            require(_whitelistedBondNfts.remove(_bondNft), "BondNft not whitelisted");
-            emit BondNftWhitelisted(_bondNft, false);
+            require(_whitelistedRouters.remove(_router), "Router not whitelisted");
+            emit RouterWhitelisted(_router, false);
         }
     }
 
-    /// @notice Check if a bondNft is whitelisted
-    /// @param _bond The bondNft to check
-    /// @return True if the bondNft is whitelisted, false otherwise
-    function isBondNftWhitelisted(ICustomBillRefillable _bond) public view returns (bool) {
-        return _whitelistedBondNfts.contains(_bond.billNft());
+    /// @notice Check if a router is whitelisted
+    /// @dev This function checks if a router is whitelisted.
+    /// @param _router The address of the router to check
+    /// @return true if the router is whitelisted, false otherwise
+    function isRouterWhitelisted(address _router) public view returns (bool) {
+        return _whitelistedRouters.contains(_router);
     }
 
-    /// @notice Get the count of whitelisted bondNfts
-    /// @return The number of whitelisted bondNfts
-    function getWhitelistedBondNftCount() public view returns (uint256) {
-        return _whitelistedBondNfts.length();
+    /// @notice Get the count of whitelisted routers
+    /// @dev This function returns the count of whitelisted routers.
+    /// @return the count of whitelisted routers
+    function getWhitelistedRouterCount() public view returns (uint256) {
+        return _whitelistedRouters.length();
     }
 
-    /// @notice Get a whitelisted bondNft by index
-    /// @param _index The index of the whitelisted bondNft
-    /// @return The address of the whitelisted bondNft at the given index
-    function getWhitelistedBondNftAtIndex(uint256 _index) public view returns (address) {
-        require(_index < _whitelistedBondNfts.length(), "Index out of bounds");
-        return _whitelistedBondNfts.at(_index);
+    /// @notice Get the whitelisted router at a specific index
+    /// @dev This function returns the whitelisted router at the specified index.
+    /// @param _index The index of the whitelisted router to retrieve
+    /// @return the address of the whitelisted router at the specified index
+    function getWhitelistedRouterAtIndex(uint256 _index) public view returns (address) {
+        require(_index < _whitelistedRouters.length(), "Index out of bounds");
+        return _whitelistedRouters.at(_index);
     }
 }

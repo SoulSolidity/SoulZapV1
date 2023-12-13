@@ -54,6 +54,7 @@ export async function fixture() {
   /**
    * Setup Zap Contracts
    */
+  const DEADLINE_OFFSET = 60 * 20 // 20 mins
   // TODO: Use stable
   const feeTokens = [hopTokens[2]]
   const ZapUniV2_Extended_V1_deployment = await deployZap_UniV2_Extended_V1(
@@ -74,6 +75,10 @@ export async function fixture() {
 
   await soulAccessRegistry.connect(owner).setRoleAdminByName('FEE_MANAGER_ROLE', 'ADMIN_ROLE')
   await soulAccessRegistry.connect(owner).grantRoleName('FEE_MANAGER_ROLE', feeManagerRole.address)
+
+  // WHitelist the router
+  await soulZap.connect(zapAdminRole).setRouterWhitelist(dexRouter.address, true)
+
   /**
    * Setup Snapshotters
    */
@@ -99,6 +104,9 @@ export async function fixture() {
     mockWBNB,
     dexAndHopTokens_deployment,
     ZapUniV2_Extended_V1_deployment,
+    settings: {
+      DEADLINE_OFFSET,
+    },
     accounts: {
       owner,
       feeTo,
@@ -137,6 +145,7 @@ describe('SoulZap_UniV2.sol Tests', function () {
           pairs,
         },
         ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
+        settings: { DEADLINE_OFFSET },
         accounts: { zapReceiver },
         snapshotters: { takeERC20BalanceSnapshot, takeFeeSnapshot },
       } = await loadFixture(fixture)
@@ -146,7 +155,14 @@ describe('SoulZap_UniV2.sol Tests', function () {
       const tokenIn = ADDRESS_NATIVE
       const lpToken = pairs.hopLpPairs[5]
 
-      const zapData = await soulZap_Lens.getZapData(tokenIn, amountIn, lpToken.address, slippage, zapReceiver.address)
+      const zapData = await soulZap_Lens.getZapData(
+        tokenIn,
+        amountIn,
+        lpToken.address,
+        slippage,
+        zapReceiver.address,
+        DEADLINE_OFFSET
+      )
 
       const lastSnapshot = await takeERC20BalanceSnapshot()
 
@@ -161,6 +177,7 @@ describe('SoulZap_UniV2.sol Tests', function () {
             pairs,
           },
           ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
+          settings: { DEADLINE_OFFSET },
           accounts: { tokensOwner, zapReceiver },
         } = await loadFixture(fixture)
 
@@ -174,7 +191,8 @@ describe('SoulZap_UniV2.sol Tests', function () {
           amountIn,
           lpToken.address,
           slippage,
-          zapReceiver.address
+          zapReceiver.address,
+          DEADLINE_OFFSET
         )
 
         // Check zapReceiver balance before
@@ -204,6 +222,7 @@ describe('SoulZap_UniV2.sol Tests', function () {
             pairs,
           },
           ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
+          settings: { DEADLINE_OFFSET },
           accounts: { owner, feeTo, tokensOwner, zapReceiver },
         } = await loadFixture(fixture)
 
@@ -212,7 +231,14 @@ describe('SoulZap_UniV2.sol Tests', function () {
         const tokenIn = ADDRESS_NATIVE
         const lpToken = pairs.hopLpPairs[5]
 
-        const zapData = await soulZap_Lens.getZapData(tokenIn, amountIn, lpToken.address, slippage, zapReceiver.address)
+        const zapData = await soulZap_Lens.getZapData(
+          tokenIn,
+          amountIn,
+          lpToken.address,
+          slippage,
+          zapReceiver.address,
+          DEADLINE_OFFSET
+        )
 
         // Check zapReceiver balance before
         const beforeBalance = await lpToken.balanceOf(zapReceiver.address)
@@ -247,6 +273,7 @@ describe('SoulZap_UniV2.sol Tests', function () {
             pairs,
           },
           ZapUniV2_Extended_V1_deployment: { soulZap, soulZap_Lens },
+          settings: { DEADLINE_OFFSET },
           accounts: { owner, feeTo, tokensOwner, zapReceiver },
         } = await loadFixture(fixture)
 
@@ -260,7 +287,8 @@ describe('SoulZap_UniV2.sol Tests', function () {
           amountIn,
           outputToken.address,
           slippage,
-          zapReceiver.address
+          zapReceiver.address,
+          DEADLINE_OFFSET
         )
 
         // Check zapReceiver balance before

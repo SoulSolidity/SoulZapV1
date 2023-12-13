@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.23;
+pragma solidity 0.8.19;
 
 /*
  ██████╗ █████╗ ██╗   ██╗██╗        ██████╗ █████╗ ██╗     ██╗██████╗ ██╗████████╗██╗   ██╗
@@ -87,16 +87,13 @@ contract EpochVolumeTracker is IEpochVolumeTracker {
             uint256 epochDuration
         )
     {
-        epochVolume = getEpochVolume();
-        timeLeftInEpoch = getTimeLeftInEpoch();
-        epochDuration = _EPOCH_DURATION;
         return (
-            epochVolume,
-            lifetimeCumulativeVolume,
-            epochStartCumulativeVolume,
-            lastEpochStartTime,
-            timeLeftInEpoch,
-            epochDuration
+            getEpochVolume(),
+            _lifetimeCumulativeVolume,
+            _epochStartCumulativeVolume,
+            _lastEpochStartTime,
+            getTimeLeftInEpoch(),
+            _EPOCH_DURATION
         );
     }
 
@@ -139,7 +136,7 @@ contract EpochVolumeTracker is IEpochVolumeTracker {
     /// -----------------------------------------------------------------------
 
     /// @dev Accumulates volume and updates epoch start time if current epoch is over.
-    /// @param _volume The volume to be accumulated.
+    /// @param _volume The volume to be accumulated. Intended to be normalized to 18 decimals
     function _accumulateFeeVolume(uint256 _volume) internal {
         // Epoch start time in future, do not accumulate volume until epoch starts.
         // Allows for setting epoch start time to a future time for configuration flexibility.

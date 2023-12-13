@@ -47,8 +47,6 @@ abstract contract SoulZap_Ext_ApeBond is SoulZap_Ext_BondNftWhitelist, SoulZap_U
 
     event ZapBond(ZapParams zapParams, ICustomBillRefillable bond, uint256 maxPrice);
 
-    constructor() {}
-
     /// -----------------------------------------------------------------------
     /// External Functions
     /// -----------------------------------------------------------------------
@@ -112,7 +110,7 @@ abstract contract SoulZap_Ext_ApeBond is SoulZap_Ext_BondNftWhitelist, SoulZap_U
             require(swapParams.tokenOut == address(bondPrincipalToken), "ApeBond: Wrong token for Bond");
             to = swapParams.to;
             swapParams.to = address(this);
-            _swap(swapParams, feeSwapPath, skipFee);
+            _swap(swapParams, feeSwapPath, !skipFee);
         } else {
             require(
                 (zapParams.token0 == bondPrincipalToken.token0() && zapParams.token1 == bondPrincipalToken.token1()) ||
@@ -122,13 +120,13 @@ abstract contract SoulZap_Ext_ApeBond is SoulZap_Ext_BondNftWhitelist, SoulZap_U
             );
             to = zapParams.to;
             zapParams.to = address(this);
-            _zap(zapParams, feeSwapPath, skipFee);
+            _zap(zapParams, feeSwapPath, !skipFee);
         }
 
         uint256 balance = bondPrincipalToken.balanceOf(address(this));
-        bondPrincipalToken.approve(address(bond), balance);
+        IERC20(address(bondPrincipalToken)).forceApprove(address(bond), balance);
         bond.deposit(balance, maxPrice, to);
-        bondPrincipalToken.approve(address(bond), 0);
+        IERC20(address(bondPrincipalToken)).forceApprove(address(bond), 0);
 
         emit ZapBond(zapParams, bond, maxPrice);
     }
