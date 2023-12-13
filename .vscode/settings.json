@@ -1,8 +1,39 @@
 {
-    "workbench.colorCustomizations": {
-        "activityBar.background": "#000",
-        "activityBar.foreground": "#FCFCFD",
-        "titleBar.activeBackground": "#268575",
-        "titleBar.activeForeground": "#FCFCFD"
-    }
+  "workbench.colorCustomizations": {
+    "activityBar.background": "#000",
+    "activityBar.foreground": "#FCFCFD",
+    "titleBar.activeBackground": "#268575",
+    "titleBar.activeForeground": "#FCFCFD"
+  },
+  "editor.formatOnSave": true,
+  "cSpell.words": [
+    "apebond",
+    "ARBISCAN",
+    "ARBITRUM",
+    "Arrakis",
+    "bignumber",
+    "deployers",
+    "dont",
+    "IWETH",
+    "mixedcase",
+    "mstore",
+    "Multicall",
+    "nomicfoundation",
+    "nomiclabs",
+    "Numberish",
+    "Pausable",
+    "POLYGONSCAN",
+    "precommit",
+    "QUICKSWAP",
+    "Snapshotter",
+    "snapshotters",
+    "soulsolidity",
+    "soulzap",
+    "telos",
+    "TELOSSCAN",
+    "TWAP",
+    "WBNB",
+    "WMATIC",
+    "WNATIVE"
+  ]
 }
