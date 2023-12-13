@@ -4,7 +4,6 @@
   "description": "Zap contract for transforming a single input token into liquidity pool tokens, or other possible extensions.",
   "main": "./dist/index.js",
   "files": [
-    "artifacts/**/*",
     "dist/index.js",
     "dist/index.d.ts",
     "dist/src/**/*",

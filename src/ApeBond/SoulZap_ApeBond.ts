@@ -1,8 +1,8 @@
 import { BigNumber, ContractTransaction, Signer, ethers } from 'ethers'
 import { ChainId, DEX, NATIVE_ADDRESS, Project, ZERO_ADDRESS } from '../constants'
 
-import SoulZap_UniV2_Extended_V1_Artifact from '../../artifacts/contracts/full-versions/SoulZap_UniV2_Extended_V1.sol/SoulZap_UniV2_Extended_V1.json'
-import SoulZap_UniV2_Extended_V1_Lens_Artifact from '../../artifacts/contracts/full-versions/SoulZap_UniV2_Extended_V1_Lens.sol/SoulZap_UniV2_Extended_V1_Lens.json'
+import SoulZap_UniV2_Extended_V1_Artifact from '../abi/SoulZap_UniV2_Extended/SoulZap_UniV2_Extended_V1.json'
+import SoulZap_UniV2_Extended_V1_Lens_Artifact from '../abi/SoulZap_UniV2_Extended/SoulZap_UniV2_Extended_V1_Lens.json'
 
 import {
   SuccessOrFailure,
