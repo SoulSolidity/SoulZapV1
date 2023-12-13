@@ -97,5 +97,5 @@ export const FACTORIES: Record<DEX, Partial<Record<ChainId, Partial<Record<Price
     [ChainId.BNB]: {
       [PriceGetterProtocol.V2]: '0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73',
     },
-  }
+  },
 }

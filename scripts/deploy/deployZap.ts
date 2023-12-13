@@ -11,16 +11,8 @@ async function main() {
   const currentNetwork = network.name as DeployableNetworks
   // Optionally pass in accounts to be able to use them in the deployConfig
   const accounts = await ethers.getSigners()
-  const {
-    wNative,
-    admin,
-    dexInfo,
-    feeTokens,
-    feeCollector,
-    soulFeeManager,
-    soulAccessRegistry,
-    volumesAndFees,
-  } = getDeployConfig(currentNetwork, accounts)
+  const { wNative, admin, dexInfo, feeTokens, feeCollector, soulFeeManager, soulAccessRegistry, volumesAndFees } =
+    getDeployConfig(currentNetwork, accounts)
   // Optionally pass in signer to deploy contracts
   const deployManager = await DeployManager.create(accounts[0])
 
@@ -44,13 +36,7 @@ async function main() {
     const SoulFeeManagerContract = await ethers.getContractFactory(SoulFeeManager)
     const soulFeeManagerContract = await deployManager.deployContractFromFactory(
       SoulFeeManagerContract,
-      [
-        soulAccessRegistryAddress!,
-        feeTokens,
-        feeCollector,
-        volumesAndFees.volumes,
-        volumesAndFees.fees,
-      ],
+      [soulAccessRegistryAddress!, feeTokens, feeCollector, volumesAndFees.volumes, volumesAndFees.fees],
       SoulFeeManager
     )
     soulFeeManagerAddress = soulFeeManagerContract.address
