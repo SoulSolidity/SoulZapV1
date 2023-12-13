@@ -10,7 +10,7 @@ export {
   SwapParams,
 } from './types'
 export * from './ApeBond/SoulZap_UniV2'
-export * from './ApeBond/SoulZap_UniV2_ApeBond'
+export * from './ApeBond/SoulZap_ApeBond'
 
 // Logger
 import { logger } from '../hardhat/utils'

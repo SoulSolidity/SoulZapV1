@@ -1,7 +1,7 @@
 import hardhatConfig from '../hardhat.config'
 import { assert } from 'chai'
 import { providers, utils } from 'ethers'
-import { SoulZap_UniV2_ApeBond_SDK, ZapDataBondResult } from '../src/index'
+import { SoulZap_ApeBond, ZapDataBondResult } from '../src/index'
 import { ChainId, DEX, Project, ZERO_ADDRESS } from '../src/constants'
 import { ethers } from 'hardhat'
 import { getEnv, Logger, logger, testRunner } from '../hardhat/utils'
@@ -45,7 +45,7 @@ describe('SDK - lens contract', () => {
     const signer = wallet.connect(provider)
 
     //Create soulZap object
-    const soulZap = new SoulZap_UniV2_ApeBond_SDK(ChainId.POLYGON, signer)
+    const soulZap = new SoulZap_ApeBond(ChainId.POLYGON, signer)
     soulZap.setSlippage(1)
     const dex = DEX.QUICKSWAP
     const amount = '10000000000000000'

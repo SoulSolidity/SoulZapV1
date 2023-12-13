@@ -17,7 +17,11 @@ import { SoulZap_UniV2_SDK } from './SoulZap_UniV2'
 import { SoulZap_UniV2_Extended_V1, SoulZap_UniV2_Extended_V1_Lens } from '../../typechain-types'
 import { logger } from '../../hardhat/utils'
 
-export class SoulZap_UniV2_ApeBond_SDK extends SoulZap_UniV2_SDK {
+/**
+ * @title SoulZap_ApeBond SDK
+ * @notice This version supports Zapping into UniswapV2 like AMMs and Bonds.
+ */
+export class SoulZap_ApeBond extends SoulZap_UniV2_SDK {
   // NOTE: Letting super set these for now and then typecasting here.
   // protected zapContract: SoulZap_Ext_ApeBond | undefined
   // protected lensContracts: Partial<Record<DEX, SoulZap_UniV2_Extended_V1_Lens>> = {}
