@@ -36,7 +36,7 @@ export const ether = (value: string) => utils.parseUnits(value, 'ether')
  * @param _ethers - The HardhatEthersHelpers instance
  * @returns An object containing the contract factories for UniswapV2Factory, UniswapV2Router, UniswapV2Pair, ERC20Mock, and WNative
  */
-async function getUniswapV2ContractFactories(_ethers: HardhatEthersHelpers) {
+export async function getUniswapV2ContractFactories(_ethers: HardhatEthersHelpers) {
   const UniswapV2Factory = (await _ethers.getContractFactory(
     UniswapV2Factory_Artifact.abi,
     UniswapV2Factory_Artifact.bytecode
