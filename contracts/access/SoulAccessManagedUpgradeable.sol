@@ -16,16 +16,26 @@ pragma solidity 0.8.19;
 
 import {IAccessControl} from "@openzeppelin/contracts/access/IAccessControl.sol";
 import {ISoulAccessManaged} from "./ISoulAccessManaged.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 /// @title SoulAccessManaged
 /// @notice Use this contract in place of Ownable if you want to use the SoulAccessRegistry to manage access permissions.
 /// @custom:version 1.0.1
-contract SoulAccessManaged is ISoulAccessManaged {
+contract SoulAccessManagedUpgradeable is ISoulAccessManaged, Initializable {
     address public soulAccessRegistry;
 
     error SoulAccessUnauthorized();
 
-    constructor(address _accessRegistryAddress) {
+    /// -----------------------------------------------------------------------
+    /// Constructor
+    /// -----------------------------------------------------------------------
+
+    constructor() {
+        /// @dev Prevent the implementation from being initialized.
+        _disableInitializers();
+    }
+
+    function __SoulAccessManaged_init(address _accessRegistryAddress) public onlyInitializing {
         soulAccessRegistry = _accessRegistryAddress;
     }
 

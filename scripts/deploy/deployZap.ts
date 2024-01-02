@@ -3,6 +3,7 @@ import { getDeployConfig, DeployableNetworks } from './deploy.config'
 import { DeployManager } from './DeployManager'
 import { writeObjectToTsFile } from '../utils/files'
 import { convertAddressesToExplorerLinksByNetwork, logger } from '../../hardhat/utils'
+import { delay } from '../utils'
 
 /**
  * // NOTE: This is an example of the default hardhat deployment approach.
@@ -78,10 +79,6 @@ async function main() {
   await delay(20000)
   // await deployManager.addDeployedContract('20231122-polygon-deployment.json')
   await deployManager.verifyContracts()
-}
-
-export function delay(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 // We recommend this pattern to be able to use async/await everywhere
