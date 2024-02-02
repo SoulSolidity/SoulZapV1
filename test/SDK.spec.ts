@@ -49,7 +49,7 @@ describe('SDK - lens contract', () => {
     soulZap.setSlippage(1)
     // const dex = DEX.APEBOND
     const dex = DEX.QUICKSWAP
-    const amount = parseEther('300')
+    const amount = parseEther('500')
     const BOND_ADDRESS = '0xa772329656bcEDa4e312735bbac24d1EF944e793' // FIXME: This one is broken
     // const BOND_ADDRESS = '0x6Df8830c1dA2a5bB0e4A98DD84f079E83eE9e9a5'
     const LP_ADDRESS = '0x89470e8D8bB8655a94678d801e0089c4646f5E84'
@@ -83,35 +83,26 @@ describe('SDK - lens contract', () => {
     zapDataBond.data.zapParams.liquidityPath.lpAmount
     console.log(`Encoded tx: ${zapDataBond.data.encodedTx}`)
 
-    const tx: TransactionRequest = {
-      to: SoulZap_UniV2,
-      data: zapDataBond.data.encodedTx,
-      value: zapDataBond.data.zapParams.amountIn,
+    // Actual zap tx different options
+    const zapTx = await soulZap.zapBond(
+      { zapParams: zapDataBond.data.zapParams, feeSwapPath: zapDataBond.data.feeSwapPath },
+      zapDataBond.data.zapParamsBonds
+    )
+    if (!zapTx.success) {
+      // Log or handle the error appropriately
+      console.error('errors with', zapTx.error)
+      return
+    } else {
+      console.dir({ zapTx }, { depth: null })
     }
-    const estimatedGas = await unlockedSigner.estimateGas(tx)
-    console.log('Estimated gas:', estimatedGas.toString())
-    const zappedTx = await unlockedSigner.sendTransaction(tx)
-    const zappedTxReceipt = await zappedTx.wait()
-
-    console.dir({ zappedTxReceipt })
-
-    //Actual zap tx different options
-    // const zapTx = await soulZap.zapBond(zapDataBond)
-    // if (!zapTx.success) {
-    //   // Log or handle the error appropriately
-    //   console.error('errors with', zapTx.error)
-    //   return
-    // }
-    //Do something fun with the txHash
-    // await soulZap.zapBond(zapDataBond.encodedTx)
-    // await soulZap.zapBond(zapDataBond.zapParams, zapDataBond.zapParamsBonds, zapDataBond.feeSwapPath)
 
     //Or own variation
     // const soulZapContract = soulZap.getZapContract()
-    // await signer.sendTransaction({
-    //   to: soulZapContract.address, // Address of the contract
-    //   data: zapDataBond.encodedTx,
-    //   value: zapDataBond.zapParams.amountIn,
-    // })
+    // const tx: TransactionRequest = {
+    //   to: soulZapContract,
+    //   data: zapDataBond.data.encodedTx,
+    //   value: zapDataBond.data.zapParams.amountIn,
+    // }
+    // await signer.sendTransaction(tx)
   })
 })
