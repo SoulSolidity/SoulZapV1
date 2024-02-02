@@ -49,14 +49,14 @@ describe('SDK - lens contract', () => {
     soulZap.setSlippage(1)
     // const dex = DEX.APEBOND
     const dex = DEX.QUICKSWAP
-    const amount = parseEther('1000')
+    const amount = parseEther('300')
     const BOND_ADDRESS = '0xa772329656bcEDa4e312735bbac24d1EF944e793' // FIXME: This one is broken
     // const BOND_ADDRESS = '0x6Df8830c1dA2a5bB0e4A98DD84f079E83eE9e9a5'
     const LP_ADDRESS = '0x89470e8D8bB8655a94678d801e0089c4646f5E84'
     //APE LP '0x034293f21f1cce5908bc605ce5850df2b1059ac0'
     //QS LP '0x304e57c752E854E9A233Ae82fcC42F7568b81180'
     const recipient = '0x551DcB2Cf6155CBc4d1a8151576EEC43f3aE5559'
-    const allowedPriceImpactPercentage = 20 //max 3% price impact or it returns an error (for low liquidity or large zaps)
+    const allowedPriceImpactPercentage = 3 //max 3% price impact or it returns an error (for low liquidity or large zaps)
 
     console.log(dex)
     const zapDataBond = await soulZap.getZapDataBondNative(
