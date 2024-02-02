@@ -17,20 +17,20 @@ async function main() {
   // Optionally pass in signer to deploy contracts
   const deployManager = await DeployManager.create(accounts[0])
 
-  const SoulAccessRegistry = await ethers.getContractFactory('SoulAccessRegistry')
+  const SoulFeeDistributor = await ethers.getContractFactory('SoulFeeDistributor')
   // NOTE: Initializer for this contract is disabled
-  const soulAccessRegistry = await deployManager.deployContractFromFactory(SoulAccessRegistry, [])
+  const soulFeeDistributor = await deployManager.deployContractFromFactory(SoulFeeDistributor, [], 'SoulFeeDistributor')
 
   const output = convertAddressesToExplorerLinksByNetwork(
     {
-      soulAccessRegistry: soulAccessRegistry.address,
+      SoulFeeDistributor: soulFeeDistributor.address,
     },
     currentNetwork
   )
 
   console.dir(output, { depth: 5 })
 
-  await delay(20000)
+  delay(20000)
 
   await deployManager.verifyContracts()
 }
