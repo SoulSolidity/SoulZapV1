@@ -1,16 +1,22 @@
 import { ethers } from 'hardhat'
 import { getDeployConfig, DeployableNetworks } from '../../scripts/deploy/deploy.config'
-import { ZERO_ADDRESS } from '../../src'
-import { ChainId } from '../../src/constants'
-import { SoulAccessRegistry__factory } from '../../typechain-types'
+import { SoulAccessRegistry } from '../../typechain-types'
+import { TransparentUpgradeableProxy__factory } from '../../typechain-types/factories/artifacts/@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol'
+import { ADDRESS_DEAD } from '../utils'
 export async function deployZapFixture(_ethers: typeof ethers, chain: DeployableNetworks) {
   // Contracts are deployed using the first signer/account by default
-  const { wNative, admin, dexInfo, feeCollector, proxyAdminAddress } = getDeployConfig(chain)
+  const { wNative, adminAddress, dexInfo, feeCollector } = getDeployConfig(chain)
   const [owner, otherAccount] = await _ethers.getSigners()
 
-  const SoulAccessRegistry = (await _ethers.getContractFactory('SoulAccessRegistry')) as SoulAccessRegistry__factory
-  const soulAccessRegistry = await SoulAccessRegistry.deploy(true)
-  await soulAccessRegistry.initialize(admin)
+  const soulAccessRegistryImplementation = await (await ethers.getContractFactory('SoulAccessRegistry')).deploy()
+  const TransparentUpgradeableProxy = (await ethers.getContractFactory(
+    'TransparentUpgradeableProxy'
+  )) as TransparentUpgradeableProxy__factory
+  const proxy = await TransparentUpgradeableProxy.deploy(soulAccessRegistryImplementation.address, ADDRESS_DEAD, '0x')
+
+  // Cast the proxy to the interface of the implementation to call initialize
+  const soulAccessRegistry = (await ethers.getContractAt('SoulAccessRegistry', proxy.address)) as SoulAccessRegistry
+  await soulAccessRegistry.initialize(adminAddress)
 
   const SoulFeeManager = await _ethers.getContractFactory('SoulFeeManager')
   // NOTE: Fixed fee volume using wNative as fee token

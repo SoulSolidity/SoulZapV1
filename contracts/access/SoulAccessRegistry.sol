@@ -48,12 +48,9 @@ contract SoulAccessRegistry is AccessControlEnumerableUpgradeable {
 
     /**
      * @dev Constructor for SoulAccessRegistry contract.
-     * @param _enableInitializers Defaults to disable initializers.
      */
-    constructor(bool _enableInitializers) {
-        if (!_enableInitializers) {
-            _disableInitializers();
-        }
+    constructor() {
+        _disableInitializers();
     }
 
     /**

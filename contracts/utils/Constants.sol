@@ -16,7 +16,6 @@ pragma solidity 0.8.19;
 
 library Constants {
     address public constant NATIVE_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-    // TODO: Consider upping to 1e18;
     uint256 internal constant DENOMINATOR = 10_000;
     uint256 internal constant PRECISION = 1e18;
 }
