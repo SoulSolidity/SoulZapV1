@@ -5,8 +5,13 @@ import { SoulZap_ApeBond, ZapDataBondResult } from '../src/index'
 import { ChainId, DEX, Project, ZERO_ADDRESS } from '../src/constants'
 import { ethers } from 'hardhat'
 import { getEnv, Logger, logger, testRunner } from '../hardhat/utils'
-import { SuccessOrFailure } from '../src/types'
+import { parseEther } from 'ethers/lib/utils'
 import { HttpNetworkUserConfig } from 'hardhat/types'
+import { TransactionRequest } from '@ethersproject/providers'
+import { unlockSigner } from '../test-fork/utils/accountHelper'
+import { setupFork } from './utils'
+import { Networks } from '../hardhat'
+import { getDeployConfig } from '../scripts/deploy/deploy.config'
 
 // const WMATIC = "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270";
 // const DAI = "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063";
@@ -33,49 +38,62 @@ export const ether = (value: string) => utils.parseUnits(value, 'ether').toStrin
 
 describe('SDK - lens contract', () => {
   it('Should return data', async () => {
-    let rpcUrl = (hardhatConfig.networks?.['polygon'] as HttpNetworkUserConfig)?.url
-    const provider = new ethers.providers.JsonRpcProvider(rpcUrl)
-    // NOTE: Skipping if no menmonic is set for CI/CD purposes
-    const mnemonic = getEnv('TESTNET_MNEMONIC')
-    if (!mnemonic) {
-      logger.warn('No mnemonic set, skipping SDK test')
-      return
-    }
-    const wallet = ethers.Wallet.fromMnemonic(mnemonic)
-    const signer = wallet.connect(provider)
+    const currentNetwork: Networks = 'polygon'
+    await setupFork(currentNetwork)
+    const { SoulZap_UniV2 } = getDeployConfig(currentNetwork)
+    const polygonWhale = '0x7a8ed27f4c30512326878652d20fc85727401854'
+    const unlockedSigner = await unlockSigner(polygonWhale, '10000')
 
     //Create soulZap object
-    const soulZap = new SoulZap_ApeBond(ChainId.POLYGON, signer)
+    const soulZap = new SoulZap_ApeBond(ChainId.POLYGON, unlockedSigner)
     soulZap.setSlippage(1)
+    // const dex = DEX.APEBOND
     const dex = DEX.QUICKSWAP
-    const amount = '10000000000000000'
-    const BOND_ADDRESS = '0xefE300c0d5c4A6F3106B28668082689b4e18B8D1'
-    //0xefE300c0d5c4A6F3106B28668082689b4e18B8D1 - with funds and should succeed
-    //0x4f9763e745381472a75965E3431782741D607952 - no funds and should fail
-    //'0x4F256deDd156fB1Aa6e485E92FeCeB7bc15EBFcA'
-    const LP_ADDRESS = '0x034293f21f1cce5908bc605ce5850df2b1059ac0'
+    const amount = parseEther('1000')
+    const BOND_ADDRESS = '0xa772329656bcEDa4e312735bbac24d1EF944e793' // FIXME: This one is broken
+    // const BOND_ADDRESS = '0x6Df8830c1dA2a5bB0e4A98DD84f079E83eE9e9a5'
+    const LP_ADDRESS = '0x89470e8D8bB8655a94678d801e0089c4646f5E84'
     //APE LP '0x034293f21f1cce5908bc605ce5850df2b1059ac0'
     //QS LP '0x304e57c752E854E9A233Ae82fcC42F7568b81180'
     const recipient = '0x551DcB2Cf6155CBc4d1a8151576EEC43f3aE5559'
-    const allowedPriceImpactPercentage = 3 //max 3% price impact or it returns an error (for low liquidity or large zaps)
+    const allowedPriceImpactPercentage = 20 //max 3% price impact or it returns an error (for low liquidity or large zaps)
 
     console.log(dex)
-    const zapDataBondReturn = await soulZap.getZapDataBondNative(
+    const zapDataBond = await soulZap.getZapDataBondNative(
       dex,
-      amount,
+      amount.toString(),
       BOND_ADDRESS,
-      allowedPriceImpactPercentage
+      allowedPriceImpactPercentage,
+      recipient
     )
-    assert(zapDataBondReturn.success, 'zapDataBondReturn.success should be true')
 
-    const zapDataBond = zapDataBondReturn.data
+    //Error handling
+    if (!zapDataBond.success) {
+      // Log or handle the error appropriately
+      console.error(zapDataBond.error)
+      throw new Error('Error getting zap data')
+    }
 
     // Data to possibly show on UI
-    zapDataBond.tokenInUsdPrice
-    zapDataBond.tokenOutUsdPrice
-    zapDataBond.zapParams.path0.amountOut
-    zapDataBond.zapParams.path1.amountOut
-    zapDataBond.zapParams.liquidityPath.lpAmount
+    console.dir(zapDataBond.data.zapParams, { depth: null })
+    zapDataBond.data.tokenInUsdPrice
+    zapDataBond.data.tokenOutUsdPrice
+    zapDataBond.data.zapParams.path0.amountOut
+    zapDataBond.data.zapParams.path1.amountOut
+    zapDataBond.data.zapParams.liquidityPath.lpAmount
+    console.log(`Encoded tx: ${zapDataBond.data.encodedTx}`)
+
+    const tx: TransactionRequest = {
+      to: SoulZap_UniV2,
+      data: zapDataBond.data.encodedTx,
+      value: zapDataBond.data.zapParams.amountIn,
+    }
+    const estimatedGas = await unlockedSigner.estimateGas(tx)
+    console.log('Estimated gas:', estimatedGas.toString())
+    const zappedTx = await unlockedSigner.sendTransaction(tx)
+    const zappedTxReceipt = await zappedTx.wait()
+
+    console.dir({ zappedTxReceipt })
 
     //Actual zap tx different options
     // const zapTx = await soulZap.zapBond(zapDataBond)

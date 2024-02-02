@@ -1,5 +1,5 @@
 import { BigNumber, ContractTransaction, Signer, ethers } from 'ethers'
-import { ChainId, DEX, NATIVE_ADDRESS, Project, ZERO_ADDRESS } from '../constants'
+import { ChainId, DEX, NATIVE_ADDRESS, Project } from '../constants'
 
 import SoulZap_UniV2_Extended_V1_Artifact from '../abi/SoulZap_UniV2_Extended/SoulZap_UniV2_Extended_V1.json'
 import SoulZap_UniV2_Extended_V1_Lens_Artifact from '../abi/SoulZap_UniV2_Extended/SoulZap_UniV2_Extended_V1_Lens.json'
@@ -84,7 +84,7 @@ export class SoulZap_ApeBond extends SoulZap_UniV2_SDK {
     amountIn: number | string,
     bill: string,
     allowedPriceImpactPercentage: number,
-    to: string = ZERO_ADDRESS
+    to: string
   ): Promise<SuccessOrFailure<ZapDataBondResult>> {
     return this.getZapDataBond(dex, NATIVE_ADDRESS, amountIn, bill, allowedPriceImpactPercentage, to)
   }

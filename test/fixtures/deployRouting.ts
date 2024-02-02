@@ -8,7 +8,7 @@ export async function deployRoutingFixture(
   router: string
 ) {
   // Contracts are deployed using the first signer/account by default
-  const { wNative, admin, dexInfo, feeCollector, proxyAdminAddress } = getDeployConfig(chain)
+  const { wNative, adminAddress, dexInfo, feeCollector } = getDeployConfig(chain)
   const [owner, otherAccount] = await _ethers.getSigners()
   const hopTokens = dexInfo.ApeBond?.hopTokens || []
 

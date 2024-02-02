@@ -37,7 +37,7 @@ describe('SoulZap', function () {
    */
   async function fixture() {
     const chain: DeployableNetworks = 'polygon'
-    const { wNative, admin, dexInfo, feeCollector, proxyAdminAddress } = getDeployConfig(chain)
+    const { wNative, adminAddress, dexInfo, feeCollector } = getDeployConfig(chain)
     // TODO: Pulling from ApeBond hop tokens
     const hopTokens = dexInfo.ApeBond?.hopTokens || []
     const zapDeploymentApeBond = await deployZapFixture(ethers, chain)
@@ -63,7 +63,7 @@ describe('SoulZap', function () {
       soulFeeManager: zapDeploymentApeBond.soulFeeManager,
       soulZap_ApeBond_Lens: routingDeploymentApeBond.soulZap_Lens,
       soulZap_Quick_Lens: routingDeploymentQuickSwap.soulZap_Lens,
-      settings: { DEFAULT_OFFSET: 60 * 20 }
+      settings: { DEFAULT_OFFSET: 60 * 20 },
     }
   }
 
@@ -85,7 +85,7 @@ describe('SoulZap', function () {
       const zapTx = await signer.sendTransaction({
         to: soulZap.address, // Address of the contract
         data: bestRoute.encodedTx,
-        value: amount
+        value: amount,
       })
     })
 
