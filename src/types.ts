@@ -5,16 +5,14 @@ import { ISoulZap_UniV2, SoulZap_Ext_ApeBond_Lens, SoulZap_UniV2_Lens } from '..
 /// -----------------------------------------------------------------------
 /// Generic types
 /// -----------------------------------------------------------------------
-// Define a type for the successful result
 export type Success<T> = {
   success: true
   data: T
 }
 
-// Define a type for the error
 export type Failure = {
   success: false
-  error: string // You can customize the error type based on your needs
+  error: string
 }
 
 export type SuccessOrFailure<T> = Success<T> | Failure

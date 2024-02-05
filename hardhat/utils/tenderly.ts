@@ -1,5 +1,12 @@
 import axios from 'axios'
 
+/**
+ * Defines the configuration for a simulation in Tenderly.
+ * - `save`: Whether to save the simulation results.
+ * - `save_if_fails`: Whether to save the simulation if it fails.
+ * - `simulation_type`: The type of simulation, either 'quick' or 'full'.
+ * - `network_id`: The ID of the network for the simulation.
+ */
 export interface SimulationConfig {
   save?: boolean
   save_if_fails?: boolean
@@ -7,6 +14,15 @@ export interface SimulationConfig {
   network_id: string | number
 }
 
+/**
+ * Represents an EVM transaction for use in Tenderly simulations.
+ * - `from`: The sender's address.
+ * - `to`: The recipient's address.
+ * - `input`: The input data for the transaction.
+ * - `gas`: The gas limit for the transaction (optional).
+ * - `gas_price`: The gas price for the transaction.
+ * - `value`: The value of the transaction (optional).
+ */
 export interface TenderlyEVMTransaction {
   from: string
   to: string

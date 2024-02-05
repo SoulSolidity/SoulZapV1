@@ -1,5 +1,6 @@
 import hardhatConfig from '../hardhat.config'
 import { assert } from 'chai'
+import { Suite } from 'mocha'
 import { providers, utils } from 'ethers'
 import { SoulZap_ApeBond, ZapDataBondResult } from '../src/index'
 import { ChainId, DEX, Project, ZERO_ADDRESS } from '../src/constants'
@@ -12,6 +13,7 @@ import { unlockSigner } from '../test-fork/utils/accountHelper'
 import { setupFork } from './utils'
 import { Networks } from '../hardhat'
 import { getDeployConfig } from '../scripts/deploy/deploy.config'
+import { runTenderlySimulation } from '../hardhat/utils/tenderly'
 
 // const WMATIC = "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270";
 // const DAI = "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063";
@@ -36,7 +38,9 @@ const TO_ADDRESS = '0x5c7C7246bD8a18DF5f6Ee422f9F8CCDF716A6aD2'
 
 export const ether = (value: string) => utils.parseUnits(value, 'ether').toString()
 
-describe('SDK - lens contract', () => {
+describe('SDK - lens contract', function (this: Suite) {
+  this.timeout(60000)
+
   it('Should return data', async () => {
     const currentNetwork: Networks = 'polygon'
     await setupFork(currentNetwork)
@@ -49,8 +53,8 @@ describe('SDK - lens contract', () => {
     soulZap.setSlippage(1)
     // const dex = DEX.APEBOND
     const dex = DEX.QUICKSWAP
-    const amount = parseEther('500')
-    const BOND_ADDRESS = '0xa772329656bcEDa4e312735bbac24d1EF944e793' // FIXME: This one is broken
+    const amount = parseEther('300')
+    const BOND_ADDRESS = '0xa772329656bcEDa4e312735bbac24d1EF944e793' // TODO: This one is failing over $450
     // const BOND_ADDRESS = '0x6Df8830c1dA2a5bB0e4A98DD84f079E83eE9e9a5'
     const LP_ADDRESS = '0x89470e8D8bB8655a94678d801e0089c4646f5E84'
     //APE LP '0x034293f21f1cce5908bc605ce5850df2b1059ac0'
@@ -91,7 +95,7 @@ describe('SDK - lens contract', () => {
     if (!zapTx.success) {
       // Log or handle the error appropriately
       console.error('errors with', zapTx.error)
-      return
+      throw new Error('Error zapping')
     } else {
       console.dir({ zapTx }, { depth: null })
     }
