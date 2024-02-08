@@ -22,6 +22,13 @@ export type PricingInOut = {
   tokenOutUsdPrice: BigNumber
 }
 
+export function throwOnFailure<T>(successOrFailure: SuccessOrFailure<T>): T {
+  if (!successOrFailure.success) {
+    throw new Error(`throwOnFailure:: successOrFailure.error`)
+  }
+  return successOrFailure.data
+}
+
 /// -----------------------------------------------------------------------
 /// Swap Path
 /// -----------------------------------------------------------------------

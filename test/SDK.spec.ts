@@ -1,5 +1,5 @@
 import hardhatConfig from '../hardhat.config'
-import { assert } from 'chai'
+import { assert, expect } from 'chai'
 import { Suite } from 'mocha'
 import { providers, utils } from 'ethers'
 import { SoulZap_ApeBond, ZapDataBondResult } from '../src/index'
@@ -14,6 +14,9 @@ import { setupFork } from './utils'
 import { Networks } from '../hardhat'
 import { getDeployConfig } from '../scripts/deploy/deploy.config'
 import { runTenderlySimulation } from '../hardhat/utils/tenderly'
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
+import { SuccessOrFailure, throwOnFailure } from '../src/types'
+import { getErrorMessage } from '../src/utils/getErrorMessage'
 
 // const WMATIC = "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270";
 // const DAI = "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063";
@@ -40,8 +43,9 @@ export const ether = (value: string) => utils.parseUnits(value, 'ether').toStrin
 
 describe('SDK - lens contract', function (this: Suite) {
   this.timeout(60000)
+  const allowedPriceImpactPercentage = 3 //max 3% price impact or it returns an error (for low liquidity or large zaps)
 
-  it('Should return data', async () => {
+  it('Should return LP data from Polygon', async () => {
     const currentNetwork: Networks = 'polygon'
     await setupFork(currentNetwork)
     const { SoulZap_UniV2 } = getDeployConfig(currentNetwork)
@@ -108,5 +112,61 @@ describe('SDK - lens contract', function (this: Suite) {
     //   value: zapDataBond.data.zapParams.amountIn,
     // }
     // await signer.sendTransaction(tx)
+  })
+
+  it('Should return swap data from BNB Chain', async () => {
+    const currentNetwork: Networks = 'bsc'
+    await setupFork(currentNetwork)
+    const { SoulZap_UniV2 } = getDeployConfig(currentNetwork)
+    const bnbWhale = '0x86523c87c8ec98c7539e2c58Cd813eE9D1A08D96'
+    const unlockedSigner = await unlockSigner(bnbWhale, '10000')
+
+    const soulZapClientBnb = new SoulZap_ApeBond(ChainId.BNB, unlockedSigner)
+
+    const swapDataNativeInput = {
+      amountIn: '32980815530760266',
+      tokenOut: '0x55d398326f99059ff775485246999027b3197955',
+      allowedPriceImpactPercentage,
+      toAddress: unlockedSigner.address,
+      deadline: '9999999999999999',
+    }
+
+    let getSwapDataNative
+    try {
+      // Pull out the lens and zap contracts from the SDK and call them directly
+      const soulZap = throwOnFailure(soulZapClientBnb.getZapContract())
+      const soulZapLens = throwOnFailure(soulZapClientBnb.getLensContract(DEX.APEBOND))
+
+      getSwapDataNative = await soulZapLens.getSwapDataNative(
+        swapDataNativeInput.amountIn,
+        swapDataNativeInput.tokenOut,
+        swapDataNativeInput.allowedPriceImpactPercentage,
+        swapDataNativeInput.toAddress,
+        swapDataNativeInput.deadline
+      )
+    } catch (error: any) {
+      if (error.code === ethers.errors.CALL_EXCEPTION) {
+        const reason = error.reason ?? 'Transaction failed without a revert reason'
+        console.error(reason)
+      } else {
+        console.error('An unexpected error occurred:', error)
+      }
+      console.dir({ errorMsg: getErrorMessage(error), errorArgs: error.errorArgs }, { depth: null })
+    }
+
+    console.dir({ swapData: getSwapDataNative }, { depth: null })
+    expect(getSwapDataNative).to.not.be.undefined
+
+    // Call the SDK method
+    const getSwapDataNativeSDK = await soulZapClientBnb.getSwapDataNative(
+      DEX.APEBOND,
+      swapDataNativeInput.amountIn,
+      swapDataNativeInput.tokenOut,
+      swapDataNativeInput.allowedPriceImpactPercentage,
+      swapDataNativeInput.toAddress
+    )
+
+    console.dir({ getSwapDataNativeSDK }, { depth: null })
+    expect(getSwapDataNativeSDK.success).to.be.true
   })
 })
