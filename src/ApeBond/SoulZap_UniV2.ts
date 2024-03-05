@@ -18,6 +18,7 @@ import {
 import { logger } from '../'
 import { SoulZap_UniV2, SoulZap_UniV2_Lens } from '../../typechain-types'
 import { TransactionResponse } from '@ethersproject/providers'
+import { getErrorMessage } from '../utils/getErrorMessage'
 
 // type ValidDex<T extends Project, U extends ChainId> = Extract<DEX, keyof (typeof ZAP_LENS_ADDRESS[T][U])>;
 
@@ -189,7 +190,7 @@ export class SoulZap_UniV2_SDK {
       const tx = await this.zapContract.swap(swapParams, feeSwapPath, { value })
       return { success: true, data: { tx } }
     } catch (error: any) {
-      return { success: false, error: error.error?.reason ?? error.reason ?? 'Something went wrong' }
+      return { success: false, error: error.error?.reason ?? error.reason ?? getErrorMessage(error) }
     }
   }
 
