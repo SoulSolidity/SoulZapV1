@@ -9,6 +9,7 @@ type BalanceSnapshot = {
 }
 
 type Snapshot = {
+  latestBalance: BigNumber
   balanceDiff: BigNumber
   blockDiff: number
   timeDiff: number
@@ -76,6 +77,7 @@ export const createNativeBalanceSnapshotter = (
           snapshots[address].push(newSnapshot)
 
           currentSnapshot[address] = {
+            latestBalance: balance,
             balanceDiff,
             blockDiff,
             timeDiff,
@@ -84,6 +86,7 @@ export const createNativeBalanceSnapshotter = (
         } else {
           snapshots[address].push(newSnapshot)
           currentSnapshot[address] = {
+            latestBalance: balance,
             balanceDiff: BigNumber.from(0),
             blockDiff: 0,
             timeDiff: 0,
@@ -186,6 +189,7 @@ export const createERC20BalanceSnapshotter = (
               snapshots[accountAddress][tokenAddress].push(newSnapshot)
 
               currentSnapshot[accountAddress][tokenAddress] = {
+                latestBalance: balance,
                 balanceDiff,
                 blockDiff,
                 timeDiff,
@@ -194,6 +198,7 @@ export const createERC20BalanceSnapshotter = (
             } else {
               snapshots[accountAddress][tokenAddress].push(newSnapshot)
               currentSnapshot[accountAddress][tokenAddress] = {
+                latestBalance: balance,
                 balanceDiff: _ethers.BigNumber.from(0),
                 blockDiff: 0,
                 timeDiff: 0,

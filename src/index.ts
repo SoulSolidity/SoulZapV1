@@ -10,4 +10,15 @@ export {
   SwapParams,
 } from './types'
 export * from './ApeBond/SoulZap_UniV2'
-export * from './ApeBond/SoulZap_UniV2_ApeBond'
+export * from './ApeBond/SoulZap_ApeBond'
+
+// Logger
+import { logger } from '../hardhat/utils'
+if (process.env.DEVELOPMENT !== 'true') {
+  // If not in development, silence the logger
+  logger.setSilent(true)
+}
+export { logger }
+
+// TODO: Unused?
+// import { loadConfig }

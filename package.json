@@ -1,6 +1,6 @@
 {
   "name": "@soulsolidity/soulzap-v1",
-  "version": "0.1.1",
+  "version": "1.0.1-alpha.1",
   "description": "Zap contract for transforming a single input token into liquidity pool tokens, or other possible extensions.",
   "main": "./dist/index.js",
   "files": [
@@ -17,7 +17,9 @@
     "compile:quick": "hardhat compile",
     "compile": "hardhat compile",
     "gen:docs": "hardhat docgen",
-    "deploy": "hardhat run ./scripts/deploy/deployLock.ts --network",
+    "deploy:zap": "hardhat run ./scripts/deploy/deployZap.ts --network",
+    "deploy:routing": "hardhat run ./scripts/deploy/deployRouting.ts --network",
+    "deploy:registry": "hardhat run ./scripts/deploy/deploySoulAccessRegistry.ts --network",
     "verify": "hardhat verify-contract",
     "test": "hardhat test",
     "test:gas": "env REPORT_GAS=true yarn test",
