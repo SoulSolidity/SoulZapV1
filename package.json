@@ -10,7 +10,6 @@
     "dist/typechain-types/**/*"
   ],
   "scripts": {
-    "postinstall": "npx hardhat compile",
     "prebuild": "yarn compile && yarn clean ./dist",
     "build": "tsc",
     "precommit": "yarn lint:fix && yarn lint:ci",
@@ -22,6 +21,7 @@
     "deploy:routing": "hardhat run ./scripts/deploy/deployRouting.ts --network",
     "deploy:registry": "hardhat run ./scripts/deploy/deploySoulAccessRegistry.ts --network",
     "verify": "hardhat verify-contract",
+    "script:calc-zap-bond-vol": "hardhat run ./scripts/zap-volume/calculateZapVolume.ts --network",
     "test": "hardhat test",
     "test:gas": "env REPORT_GAS=true yarn test",
     "test:coverage": "hardhat coverage",
@@ -95,6 +95,7 @@
   },
   "dependencies": {
     "@defifofum/multicall": "^1.1.2",
+    "@moralisweb3/common-evm-utils": "^2.24.2",
     "@openzeppelin/contracts": "4.9.3",
     "@openzeppelin/contracts-upgradeable": "4.9.3",
     "@openzeppelin/hardhat-upgrades": "^1.22.1",
@@ -104,6 +105,7 @@
     "@uniswap/v3-periphery": "^1.4.4",
     "discord.js": "^14.14.1",
     "i": "^0.3.7",
+    "moralis": "^2.24.2",
     "npm": "^10.2.1"
   }
 }
