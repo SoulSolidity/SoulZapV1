@@ -3242,6 +3242,10 @@ dotenv@^16.0.1:
   resolved "https://registry.yarnpkg.com/dotenv/-/dotenv-16.0.3.tgz#115aec42bac5053db3c456db30cc243a5a836a07"
   integrity sha512-7GO6HghkA5fYG9TYnNxi14/7K9f5occMlp3zXAuSxn7CKCxt9xbNWG7yF8hTCSUchlfWSe3uLmlPfigevRItzQ==
 
+"ds-test@github:dapphub/ds-test":
+  version "1.0.0"
+  resolved "https://codeload.github.com/dapphub/ds-test/tar.gz/e282159d5170298eb2455a6c05280ab5a73a4ef0"
+
 eastasianwidth@^0.2.0:
   version "0.2.0"
   resolved "https://registry.yarnpkg.com/eastasianwidth/-/eastasianwidth-0.2.0.tgz#696ce2ec0aa0e6ea93a397ffcf24aa7840c827cb"
@@ -3800,6 +3804,11 @@ forever-agent@~0.6.1:
   version "0.6.1"
   resolved "https://registry.yarnpkg.com/forever-agent/-/forever-agent-0.6.1.tgz#fbc71f0c41adeb37f96c577ad1ed42d8fdacca91"
   integrity sha512-j0KLYPhm6zeac4lz3oJ3o65qvgQCcPubiyotZrXqEaG4hNagNYO8qdlUrX5vwqv9ohqeT/Z3j6+yW067yWWdUw==
+
+forge-std@^1.1.2:
+  version "1.1.2"
+  resolved "https://registry.yarnpkg.com/forge-std/-/forge-std-1.1.2.tgz#f4a0eda103538d56f9c563f3cd1fa2fd01bd9378"
+  integrity sha512-Wfb0iAS9PcfjMKtGpWQw9mXzJxrWD62kJCUqqLcyuI0+VRtJ3j20XembjF3kS20qELYdXft1vD/SPFVWVKMFOw==
 
 form-data@^2.2.0:
   version "2.5.1"
@@ -7322,6 +7331,14 @@ solidity-ast@^0.4.15:
   version "0.4.49"
   resolved "https://registry.yarnpkg.com/solidity-ast/-/solidity-ast-0.4.49.tgz#ecba89d10c0067845b7848c3a3e8cc61a4fc5b82"
   integrity sha512-Pr5sCAj1SFqzwFZw1HPKSq0PehlQNdM8GwKyAVYh2DOn7/cCK8LUKD1HeHnKtTgBW7hi9h4nnnan7hpAg5RhWQ==
+
+solidity-bytes-utils@^0.8.2:
+  version "0.8.2"
+  resolved "https://registry.yarnpkg.com/solidity-bytes-utils/-/solidity-bytes-utils-0.8.2.tgz#763d6a02fd093e93b3a97b742e97d540e66c29bd"
+  integrity sha512-cqXPYAV2auhpdKSTPuqji0CwpSceZDu95CzqSM/9tDJ2MoMaMsdHTpOIWtVw31BIqqGPNmIChCswzbw0tHaMTw==
+  dependencies:
+    ds-test "github:dapphub/ds-test"
+    forge-std "^1.1.2"
 
 solidity-comments-extractor@^0.0.7:
   version "0.0.7"
