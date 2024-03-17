@@ -62,7 +62,6 @@ interface ISoulZapRouter {
         address target;
         uint256 value;
         bytes data;
-        StepToken[] tokens;
     }
 
     /**

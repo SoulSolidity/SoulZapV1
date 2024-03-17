@@ -83,7 +83,10 @@ contract SoulZapRouter is ISoulZapRouter, Ownable, Pausable, ReentrancyGuard {
      * @param _order Order containing how many tokens to pull and the slippage amounts on outputs
      * @param _route Route containing the steps to reach the output
      */
-    function executeOrder(Order calldata _order, Step[] calldata _route) external payable nonReentrant whenNotPaused {
+    function executeOrder(
+        Order calldata _order,
+        Step[] calldata _route
+    ) external payable onlyOwner nonReentrant whenNotPaused {
         if (msg.sender != _order.user) revert ZapErrors.InvalidCaller(_order.user, msg.sender);
 
         ISoulTokenManager(tokenManager).pullTokens(_order.user, _order.inputs);
@@ -128,8 +131,8 @@ contract SoulZapRouter is ISoulZapRouter, Ownable, Pausable, ReentrancyGuard {
      */
     function _executeOrder(Order calldata _order, Step[] calldata _route) private {
         _executeSteps(_route);
-        _returnAssets(_order.outputs, _order.recipient, _order.relay.value);
-        _executeRelay(_order.relay);
+        //_returnAssets(_order.outputs, _order.recipient, _order.relay.value);
+        //_executeRelay(_order.relay);
 
         emit FulfilledOrder(_order, msg.sender, _order.recipient);
     }
@@ -143,44 +146,10 @@ contract SoulZapRouter is ISoulZapRouter, Ownable, Pausable, ReentrancyGuard {
         uint256 routeLength = _route.length;
         for (uint256 i; i < routeLength; ) {
             Step calldata step = _route[i];
-            (address stepTarget, uint256 value, bytes memory callData, StepToken[] calldata stepTokens) = (
-                step.target,
-                step.value,
-                step.data,
-                step.tokens
-            );
+            (address stepTarget, uint256 value, bytes memory callData) = (step.target, step.value, step.data);
 
             if (stepTarget == permit2 || stepTarget == tokenManager)
                 revert ZapErrors.TargetingInvalidContract(stepTarget);
-
-            uint256 balance;
-            uint256 callDataLength = callData.length;
-            uint256 stepTokensLength = stepTokens.length;
-
-            for (uint256 j; j < stepTokensLength; ) {
-                StepToken calldata stepToken = stepTokens[j];
-                (address stepTokenAddress, int32 stepTokenIndex) = (stepToken.token, stepToken.index);
-
-                if (stepTokenAddress == address(0)) {
-                    value = address(this).balance;
-                } else {
-                    balance = IERC20(stepTokenAddress).balanceOf(address(this));
-                    _approveToken(stepTokenAddress, stepTarget, balance);
-
-                    if (stepTokenIndex >= 0) {
-                        uint256 idx = uint256(int256(stepTokenIndex));
-                        callData = bytes.concat(
-                            callData.slice(0, idx),
-                            abi.encode(balance),
-                            callData.slice(idx + 32, callDataLength - (idx + 32))
-                        );
-                    }
-                }
-
-                unchecked {
-                    ++j;
-                }
-            }
 
             (bool success, bytes memory result) = stepTarget.call{value: value}(callData);
             if (!success) _propagateError(stepTarget, value, callData, result);
