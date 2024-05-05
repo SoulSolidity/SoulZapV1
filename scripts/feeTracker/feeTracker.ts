@@ -35,14 +35,54 @@ async function main() {
 
   const apiKey = process.env.POLYGONSCAN_API_KEY
 
+  //50825993 -> 52655772 -> 54758057
+  //volume: 21154.660774428256 + 
   const url = "https://api.polygonscan.com/api?module=logs&action=getLogs" +
-    "&fromBlock=50825993" +
-    "&toBlock=51006514" +
+    "&fromBlock=52655773" +
+    "&toBlock=54758057" +
     `&address=${zapAddress}` +
     "&topic0=0x1368402a506ccc1c7ac016a83cb662991aec2765beef4d5442d8a98cad234455" +
     `&apikey=${apiKey}`
 
+  console.log('start')
   const events = await axios.get(url)
+  console.log(events.data.result.length)
+
+  const blocksWithZap = events.data.result.map((x: any) => { return parseInt(x.blockNumber) })
+  console.log(blocksWithZap)
+
+  const blockTimestamps: string[] = []
+  for (let i = 0; i < blocksWithZap.length; i++) {
+    if (i % 100 == 0) {
+      console.log('get timestamp for ', i)
+    }
+    const block = blocksWithZap[i];
+    const blockUrl = `https://api.polygonscan.com/api?module=block&action=getblockreward&blockno=${block}&apikey=${apiKey}`;
+    const blockTimestamp = await axios.get(blockUrl);
+    blockTimestamps.push(blockTimestamp.data.result.timeStamp)
+  }
+
+  console.log(blockTimestamps.toString())
+
+  const ApeBondData = await axios.get('https://bond-dashboard-api.azurewebsites.net/collector/salesInfo');
+
+  const allSales: any[] = []
+  const ApeBondFigures = ApeBondData.data.figures
+  for (let i = 8; i < ApeBondFigures.length; i++) {
+    const sales = ApeBondFigures[i].Sales.filter((obj: any) => blockTimestamps.includes(obj.createdAt.toString()));
+    allSales.push(...sales)
+  }
+
+  let totalUsd: number = 0;
+  for (let i = 0; i < allSales.length; i++) {
+    console.log('add $', allSales[i].dollarValue, parseFloat(allSales[i].dollarValue))
+    totalUsd = totalUsd + parseFloat(allSales[i].dollarValue);
+  }
+
+  console.log('totalUsd:', totalUsd)
+
+  return;
+
 
   const tokens: { [key: string]: { amount: BigNumber, amountNormalized: string, tokenName: string, usdPrice: number } } = {}
 
