@@ -109,7 +109,7 @@ export interface TokenLpInfo {
   token1Amount: BigNumberish
 }
 
-export async function createTokenLpInfo(
+export async function createTokenLpInfo_Decimal(
   token0: ERC20Mock,
   token1: ERC20Mock,
   decimalAmountPerToken: BigNumber
