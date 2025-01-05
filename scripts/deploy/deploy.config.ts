@@ -23,7 +23,7 @@ export const getDeployConfig = (network: DeployableNetworks, signers?: SignerWit
  *
  * NOTE: Add networks as needed
  */
-export type DeployableNetworks = Extract<Networks, 'bsc' | 'polygon' | 'bscTestnet'>
+export type DeployableNetworks = Extract<Networks, 'bsc' | 'polygon' | 'bscTestnet' | 'linea'>
 
 /**
  * Deployment Variables for each network
@@ -49,6 +49,7 @@ export const enum Dex {
   ApeBond = 'ApeBond',
   PancakeSwap = 'PancakeSwap',
   QuickSwap = 'QuickSwap',
+  Lynex = 'Lynex'
 }
 
 const deployableNetworkConfig: Record<DeployableNetworks, (signers?: SignerWithAddress[]) => DeploymentVariables> = {
@@ -156,6 +157,36 @@ const deployableNetworkConfig: Record<DeployableNetworks, (signers?: SignerWithA
       soulFeeManager: '0x',
       soulAccessRegistry: '0x',
       SoulZap_UniV2: '0x',
+      volumesAndFees: { volumes: [0], fees: [100] },
+    }
+  },
+  linea: (signers?: SignerWithAddress[]) => {
+    return {
+      proxyAdminAddress: '0x',
+      // NOTE: Example of extracting signers
+      adminAddress: signers?.[0] || '0x',
+      admin: '0x5c7C7246bD8a18DF5f6Ee422f9F8CCDF716A6aD2',
+      wNative: '0xe5D7C2a44FfDDf6b295A15c148167daaAf5Cf34f',
+      dexInfo: {
+        [Dex.Lynex]: {
+          factory: '0xBc7695Fd00E3b32D08124b7a4287493aEE99f9ee',
+          router: '0x610D2f07b7EdC67565160F587F37636194C34E74',
+          hopTokens: [
+            '0xA219439258ca9da29E9Cc4cE5596924745e12B93', // USDT
+            '0xe5D7C2a44FfDDf6b295A15c148167daaAf5Cf34f', // WETH
+            '0x176211869cA2b568f2A7D4EE941E073a821EE1ff', // USDC
+            '0x3aAB2285ddcDdaD8edf438C1bAB47e1a9D05a9b4', // WBTC
+            '0x4AF15ec2A0BD43Db75dd04E62FAA3B8EF36b00d5', // DAI
+            '0x1a51b19CE03dbE0Cb44C1528E34a7EDD7771E9Af', // Lynex
+          ],
+        },
+      },
+      feeCollector: '0x5c7C7246bD8a18DF5f6Ee422f9F8CCDF716A6aD2',
+      protocolFee: 300,
+      maxFee: 1000,
+      soulFeeManager: '0xd8F78175D2137330d8855DCbF1474e8de968d149',
+      soulAccessRegistry: '0x029CCB60da28bbE6bc340deBEc8c2Ce1226bFF50',
+      SoulZap_UniV2: '0x44073255A58F8606200F91c49ca3Ebf4FD3222eb',
       volumesAndFees: { volumes: [0], fees: [100] },
     }
   },

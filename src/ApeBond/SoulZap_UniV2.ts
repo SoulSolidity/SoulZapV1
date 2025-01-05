@@ -253,6 +253,7 @@ export class SoulZap_UniV2 {
         to,
         this.deadlineOffset
       )
+
       const priceImpactError = await this.checkPriceImpact(
         zapData.priceImpactPercentages[0],
         zapData.priceImpactPercentages[1],

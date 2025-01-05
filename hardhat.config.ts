@@ -1,13 +1,18 @@
 import { HardhatUserConfig, task, types } from 'hardhat/config'
-import { HardhatRuntimeEnvironment, HttpNetworkUserConfig, SolcUserConfig } from 'hardhat/types'
+import {
+  HardhatRuntimeEnvironment,
+  HttpNetworkAccountsUserConfig,
+  HttpNetworkUserConfig,
+  SolcUserConfig,
+} from 'hardhat/types'
 import { TASK_TEST } from 'hardhat/builtin-tasks/task-names'
 // Plugins
-import '@nomicfoundation/hardhat-toolbox'
-import '@nomiclabs/hardhat-etherscan'
-import 'solidity-coverage'
-import 'hardhat-docgen'
+import '@typechain/hardhat'
+import '@nomiclabs/hardhat-ethers'
+import '@nomicfoundation/hardhat-verify'
+// import 'hardhat-docgen' // HTML doc generator
 import 'hardhat-contract-sizer'
-import '@openzeppelin/hardhat-upgrades'
+import 'hardhat-gas-reporter'
 import './plugins/abiPlugins'
 // Project Config
 import solhintConfig from './solhint.config'
@@ -118,6 +123,14 @@ const networkConfig: ExtendedHardhatNetworkConfig = {
       mnemonic: testnetMnemonic,
     },
   },
+  linea: {
+    url: getEnv('LINEA_RPC_URL') || 'https://rpc.linea.build',
+    getExplorerUrl: (address: string) => `https://lineascan.build/address/${address}`,
+    chainId: 59144,
+    accounts: {
+      mnemonic: mainnetMnemonic,
+    }
+  },
   // Placeholder for the configuration below.
   hardhat: {
     getExplorerUrl: (address: string) => `(NO DEV EXPLORER): ${address}`,
@@ -162,25 +175,25 @@ const config: HardhatUserConfig = {
       },
     },
   },
-  gasReporter: {
-    // More options can be found here:
-    // https://www.npmjs.com/package/hardhat-gas-reporter
-    enabled: getEnv('REPORT_GAS') ? true : false,
-    currency: 'USD',
-    excludeContracts: [],
-  },
-  docgen: {
-    path: './docs',
-    clear: true,
-    runOnCompile: true,
-  },
-  typechain: {
-    // outDir: 'src/types', // defaults to './typechain-types/'
-    target: 'ethers-v5',
-    externalArtifacts: ['./artifacts-external/**/*.json'], // optional array of glob patterns with external artifacts to process (for example external libs from node_modules)
-    alwaysGenerateOverloads: false, // should overloads with full signatures like deposit(uint256) be generated always, even if there are no overloads?
-    dontOverrideCompile: false, // defaults to false
-  },
+  // gasReporter: {
+  //   // More options can be found here:
+  //   // https://www.npmjs.com/package/hardhat-gas-reporter
+  //   enabled: getEnv('REPORT_GAS') ? true : false,
+  //   currency: 'USD',
+  //   excludeContracts: [],
+  // },
+  // docgen: {
+  //   path: './docs',
+  //   clear: true,
+  //   runOnCompile: true,
+  // },
+  // typechain: {
+  //   // outDir: 'src/types', // defaults to './typechain-types/'
+  //   target: 'ethers-v5',
+  //   externalArtifacts: ['./artifacts-external/**/*.json'], // optional array of glob patterns with external artifacts to process (for example external libs from node_modules)
+  //   alwaysGenerateOverloads: false, // should overloads with full signatures like deposit(uint256) be generated always, even if there are no overloads?
+  //   dontOverrideCompile: false, // defaults to false
+  // },
   contractSizer: {
     // https://github.com/ItsNickBarry/hardhat-contract-sizer#usage
     alphaSort: false, // whether to sort results table alphabetically (default sort is by contract size)
@@ -204,9 +217,18 @@ const config: HardhatUserConfig = {
       bscTestnet: getEnv('BSCSCAN_API_KEY'),
       polygon: getEnv('POLYGONSCAN_API_KEY'),
       polygonMumbai: getEnv('POLYGONSCAN_API_KEY'),
+      linea: getEnv('LINEASCAN_API_KEY'),
     },
     // https://hardhat.org/hardhat-runner/plugins/nomicfoundation-hardhat-verify#adding-support-for-other-networks
     customChains: [
+      {
+        network: 'linea',
+        chainId: 59144,
+        urls: {
+          apiURL: 'https://api.lineascan.build/api',
+          browserURL: 'https://lineascan.build/',
+        },
+      },
       // {
       //   network: '',
       //   chainId: 1,

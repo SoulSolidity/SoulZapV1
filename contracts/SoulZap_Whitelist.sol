@@ -24,11 +24,11 @@ import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet
 /// -----------------------------------------------------------------------
 import {SoulAccessManaged} from "./access/SoulAccessManaged.sol";
 
-/// @title SoulZap_UniV2_Whitelist
+/// @title SoulZap_Whitelist
 /// @notice This contract extension requires specific role setup to manage the whitelist of Bond NFTs.
 /// The roles are managed through the SoulAccessManaged contract and are critical for the
 /// security and proper administration of the whitelist functionality.
-abstract contract SoulZap_UniV2_Whitelist is SoulAccessManaged {
+abstract contract SoulZap_Whitelist is SoulAccessManaged {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     EnumerableSet.AddressSet private _whitelistedRouters;

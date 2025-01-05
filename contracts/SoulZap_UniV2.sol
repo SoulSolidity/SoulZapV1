@@ -36,7 +36,7 @@ import {EpochVolumeTracker} from "./utils/EpochVolumeTracker.sol";
 import {ISoulFeeManager} from "./fee-manager/ISoulFeeManager.sol";
 import {ISoulZap_UniV2} from "./ISoulZap_UniV2.sol";
 import {SoulAccessManaged} from "./access/SoulAccessManaged.sol";
-import {SoulZap_UniV2_Whitelist} from "./SoulZap_UniV2_Whitelist.sol";
+import {SoulZap_Whitelist} from "./SoulZap_Whitelist.sol";
 import {TransferHelper} from "./utils/TransferHelper.sol";
 import {TokenHelper} from "./utils/TokenHelper.sol";
 import {LocalVarsLib} from "./utils/LocalVarsLib.sol";
@@ -58,7 +58,7 @@ import {Sweeper} from "./utils/Sweeper.sol";
 contract SoulZap_UniV2 is
     ISoulZap_UniV2,
     SoulAccessManaged,
-    SoulZap_UniV2_Whitelist,
+    SoulZap_Whitelist,
     EpochVolumeTracker,
     Initializable,
     Pausable,

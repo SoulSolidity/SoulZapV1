@@ -16,6 +16,7 @@ export enum ChainId {
   BNB = 56,
   POLYGON = 137,
   ARBITRUM_ONE = 42161,
+  LINEA = 59144,
 }
 
 export enum Project {
@@ -25,6 +26,7 @@ export enum Project {
 export enum DEX {
   APEBOND = 'ApeBond',
   QUICKSWAP = 'QuickSwap',
+  LYNEX = 'LYNEX',
 }
 
 /// -----------------------------------------------------------------------
@@ -40,6 +42,9 @@ export const ZAP_LENS_ADDRESS: Record<Project, Partial<Record<ChainId, Partial<R
       [DEX.APEBOND]: '0x52B95673D84A30fe8375dC7A088d2F612d13F7A5',
       [DEX.QUICKSWAP]: '0xb20889d91a4E1f409B08412B55eF079186Aa2b96',
     },
+    [ChainId.LINEA]: {
+      [DEX.LYNEX]: '0x9D78A48fe7cBB61EDFB89658e7411C4980407d47',
+    },
   },
 }
 
@@ -47,6 +52,7 @@ export const ZAP_ADDRESS: Record<Project, Partial<Record<ChainId, string>>> = {
   [Project.APEBOND]: {
     [ChainId.BNB]: '0x', //"0x253D007aa92d069eBc85c5b23868A2971C7Ac063",
     [ChainId.POLYGON]: '0x133141571DC83783d7c05138af8aA9cc2189c1A7',
+    [ChainId.LINEA]: '0x44073255A58F8606200F91c49ca3Ebf4FD3222eb',
   },
 }
 
@@ -58,6 +64,7 @@ export const WRAPPED_NATIVE: Record<ChainId, string> = {
   [ChainId.BNB]: '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c',
   [ChainId.POLYGON]: '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270',
   [ChainId.ARBITRUM_ONE]: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1',
+  [ChainId.LINEA]: '0xe5D7C2a44FfDDf6b295A15c148167daaAf5Cf34f',
 }
 
 /// -----------------------------------------------------------------------
@@ -76,6 +83,7 @@ export const PRICE_GETTER_ADDRESS: Record<ChainId, string> = {
   [ChainId.ARBITRUM_ONE]: '0x',
   [ChainId.BNB]: '0x945b9E730f35046c5bf24117478D651999377831',
   [ChainId.POLYGON]: '0x241ebA867Bee0Dd50a8Ca54732A6C05815C50Cc5',
+  [ChainId.LINEA]: '0x7AC1F230a436b0a5b49284CBa1d1BCFc5065E91d',
 }
 
 export const FACTORIES: Record<DEX, Partial<Record<ChainId, Partial<Record<PriceGetterProtocol, string>>>>> = {
@@ -92,4 +100,6 @@ export const FACTORIES: Record<DEX, Partial<Record<ChainId, Partial<Record<Price
       [PriceGetterProtocol.V2]: '0x5757371414417b8C6CAad45bAeF941aBc7d3Ab32',
     },
   },
+  [DEX.LYNEX]: {
+  }
 }

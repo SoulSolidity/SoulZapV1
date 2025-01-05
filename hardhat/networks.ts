@@ -8,6 +8,7 @@ export const NETWORKS = <const>[
   'bscTestnet',
   'polygon',
   'polygonTestnet',
+  'linea',
   'hardhat',
 ]
 // Create a type out of the network array
