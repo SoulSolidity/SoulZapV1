@@ -23,7 +23,7 @@ export const getDeployConfig = (network: DeployableNetworks, signers?: SignerWit
  *
  * NOTE: Add networks as needed
  */
-export type DeployableNetworks = Extract<Networks, 'bsc' | 'polygon' | 'bscTestnet' | 'linea'>
+export type DeployableNetworks = Extract<Networks, 'bsc' | 'polygon' | 'bscTestnet' | 'linea' | 'arbitrum' | 'ethereum' | 'base' | 'polygonMumbai'>
 
 /**
  * Deployment Variables for each network
@@ -190,4 +190,52 @@ const deployableNetworkConfig: Record<DeployableNetworks, (signers?: SignerWithA
       volumesAndFees: { volumes: [0], fees: [100] },
     }
   },
+  ethereum: (signers?: SignerWithAddress[]) => {
+    return {
+      proxyAdminAddress: '0x',
+      adminAddress: signers?.[0] || '0x',
+      admin: '0x',
+      wNative: '0x',
+      dexInfo: {},
+      feeCollector: '0x',
+      protocolFee: 300,
+      maxFee: 1000,
+      soulFeeManager: '0x',
+      soulAccessRegistry: '0x',
+      SoulZap_UniV2: '0x',
+      volumesAndFees: { volumes: [0], fees: [100] },
+    }
+  },
+  base: (signers?: SignerWithAddress[]) => {
+    return {
+      proxyAdminAddress: '0x',
+      adminAddress: signers?.[0] || '0x',
+      admin: '0x',
+      wNative: '0x',
+      dexInfo: {},
+      feeCollector: '0x',
+      protocolFee: 300,
+      maxFee: 1000,
+      soulFeeManager: '0x',
+      soulAccessRegistry: '0x',
+      SoulZap_UniV2: '0x',
+      volumesAndFees: { volumes: [0], fees: [100] },
+    }
+  },
+  arbitrum: (signers?: SignerWithAddress[]) => {
+    return {
+      proxyAdminAddress: '0x',
+      adminAddress: signers?.[0] || '0x',
+      admin: '0x',
+      wNative: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1', // WETH on Arbitrum
+      dexInfo: {},
+      feeCollector: '0x',
+      protocolFee: 300,
+      maxFee: 1000,
+      soulFeeManager: '0x',
+      soulAccessRegistry: '0x',
+      SoulZap_UniV2: '0x',
+      volumesAndFees: { volumes: [0], fees: [100] },
+    }
+  }
 }

@@ -67,6 +67,14 @@ const networkConfig: ExtendedHardhatNetworkConfig = {
       mnemonic: mainnetMnemonic,
     },
   },
+  ethereum: {
+    url: getEnv('MAINNET_RPC_URL') || 'https://eth.llamarpc.com',
+    getExplorerUrl: (address: string) => `https://etherscan.io/address/${address}`,
+    chainId: 1,
+    accounts: {
+      mnemonic: mainnetMnemonic,
+    },
+  },
   goerli: {
     url: getEnv('GOERLI_RPC_URL') || '',
     getExplorerUrl: (address: string) => `https://goerli.etherscan.io/address/${address}`,
@@ -134,6 +142,12 @@ const networkConfig: ExtendedHardhatNetworkConfig = {
   // Placeholder for the configuration below.
   hardhat: {
     getExplorerUrl: (address: string) => `(NO DEV EXPLORER): ${address}`,
+  },
+  base: {
+    url: "https://mainnet.base.org",  // Base mainnet RPC URL
+    getExplorerUrl: (address: string) => `https://base.blockscout.com/address/${address}`,
+    chainId: 8453,
+    accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
   },
 }
 
